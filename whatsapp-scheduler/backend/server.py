@@ -1182,6 +1182,7 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
+    await stop_telegram_bot()
     scheduler.shutdown()
     if client:
         client.close()
