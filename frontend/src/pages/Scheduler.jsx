@@ -45,7 +45,7 @@ import {
   MessageSquare,
   User
 } from 'lucide-react';
-import { getSchedules, createSchedule, toggleSchedule, deleteSchedule, getContacts, getTemplates, sendMessageNow } from '../api';
+import { getSchedules, createSchedule, toggleSchedule, deleteSchedule, getContacts, getTemplates, sendNow } from '../api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
