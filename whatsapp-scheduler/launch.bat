@@ -18,8 +18,8 @@ if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 set "LOG_DIR=%SCRIPT_DIR%\logs"
 set "PID_DIR=%SCRIPT_DIR%\.pids"
 
-for /f "tokens=2 delims==" %%a in ('wmic os get localdatetime /value') do set "dt=%%a"
-set "TIMESTAMP=%dt:~0,8%_%dt:~8,6%"
+REM Get timestamp using PowerShell (WMIC is deprecated in Windows 11)
+for /f %%a in ('powershell -Command "Get-Date -Format \"yyyyMMdd_HHmmss\""') do set "TIMESTAMP=%%a"
 
 REM Service ports
 set "FRONTEND_PORT=3000"
@@ -37,6 +37,7 @@ if not exist "%LOG_DIR%\frontend" mkdir "%LOG_DIR%\frontend"
 if not exist "%LOG_DIR%\whatsapp" mkdir "%LOG_DIR%\whatsapp"
 if not exist "%LOG_DIR%\system" mkdir "%LOG_DIR%\system"
 if not exist "%PID_DIR%" mkdir "%PID_DIR%"
+
 
 REM ============================================================================
 REM  HEADER
