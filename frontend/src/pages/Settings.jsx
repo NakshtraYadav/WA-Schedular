@@ -109,6 +109,8 @@ function SettingsPage() {
       } else {
         toast.info('You are up to date');
       }
+      // Refresh global version context
+      if (checkVersion) checkVersion();
     } catch (error) {
       toast.error('Failed to check for updates');
     } finally {
