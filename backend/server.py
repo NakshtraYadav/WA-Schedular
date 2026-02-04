@@ -1158,6 +1158,63 @@ async def get_app_version():
         "changelog": version_info.get("changelog", [])[:3]  # Last 3 versions
     }
 
+@api_router.get("/updates/debug")
+async def debug_updates():
+    """Debug endpoint to see exactly what's happening with updates"""
+    import time
+    cache_buster = int(time.time())
+    
+    local_version = get_version_info()
+    local_file = ROOT_DIR.parent / "version.json"
+    
+    result = {
+        "local": {
+            "version": local_version.get("version"),
+            "build": local_version.get("build"),
+            "file_exists": local_file.exists(),
+            "file_path": str(local_file)
+        },
+        "remote": {},
+        "comparison": {}
+    }
+    
+    try:
+        async with httpx.AsyncClient() as http_client:
+            url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/version.json?t={cache_buster}"
+            response = await http_client.get(url, timeout=10.0)
+            
+            result["remote"]["url"] = url
+            result["remote"]["status_code"] = response.status_code
+            
+            if response.status_code == 200:
+                import json
+                remote = json.loads(response.text)
+                result["remote"]["version"] = remote.get("version")
+                result["remote"]["build"] = remote.get("build")
+                
+                # Do comparison
+                def parse_version(v):
+                    try:
+                        return tuple(int(p) for p in v.split('.')[:3])
+                    except:
+                        return (0, 0, 0)
+                
+                local_tuple = parse_version(local_version.get("version", "0.0.0"))
+                remote_tuple = parse_version(remote.get("version", "0.0.0"))
+                
+                result["comparison"] = {
+                    "local_tuple": local_tuple,
+                    "remote_tuple": remote_tuple,
+                    "remote_greater": remote_tuple > local_tuple,
+                    "should_update": remote_tuple > local_tuple or (remote_tuple == local_tuple and remote.get("build", 0) > local_version.get("build", 0))
+                }
+            else:
+                result["remote"]["error"] = response.text[:200]
+    except Exception as e:
+        result["remote"]["error"] = str(e)
+    
+    return result
+
 @api_router.get("/updates/check")
 async def check_for_updates():
     """Check GitHub for available updates by comparing version.json"""
