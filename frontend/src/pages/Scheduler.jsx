@@ -633,28 +633,46 @@ function Scheduler() {
             {scheduleType === 'recurring' && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Schedule Pattern</Label>
+                  <Label>Frequency</Label>
                   <Select
                     value={selectedCronPreset}
                     onValueChange={setSelectedCronPreset}
                   >
                     <SelectTrigger data-testid="select-cron-preset">
-                      <SelectValue placeholder="Select pattern" />
+                      <SelectValue placeholder="Select frequency" />
                     </SelectTrigger>
                     <SelectContent>
                       {SCHEDULE_PRESETS.map((preset) => (
                         <SelectItem key={preset.value} value={preset.value}>
                           <div>
                             <span>{preset.label}</span>
-                            {preset.value !== 'custom' && (
-                              <span className="text-muted-foreground ml-2">({preset.description})</span>
-                            )}
+                            <span className="text-muted-foreground ml-2">({preset.description})</span>
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* Time picker for recurring - show unless it's hourly or custom */}
+                {selectedCronPreset && 
+                 selectedCronPreset !== 'custom' && 
+                 !SCHEDULE_PRESETS.find(p => p.value === selectedCronPreset)?.noTime && (
+                  <div className="space-y-2">
+                    <Label>Time</Label>
+                    <Input
+                      type="time"
+                      value={recurringTime}
+                      onChange={(e) => setRecurringTime(e.target.value)}
+                      className="font-mono w-32"
+                      data-testid="recurring-time"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Messages will be sent at this time
+                    </p>
+                  </div>
+                )}
+                
                 {selectedCronPreset === 'custom' && (
                   <div className="space-y-2">
                     <Label>Custom Cron Expression</Label>
@@ -666,7 +684,7 @@ function Scheduler() {
                       data-testid="custom-cron-input"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Format: minute hour day month weekday (e.g., "0 9 * * 1-5" = weekdays at 9am)
+                      Format: minute hour day month weekday (e.g., "30 14 * * 1-5" = weekdays at 2:30 PM)
                     </p>
                   </div>
                 )}
