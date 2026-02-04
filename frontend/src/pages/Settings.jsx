@@ -23,9 +23,9 @@ import {
   Play,
   Square
 } from 'lucide-react';
-import { getSettings, updateSettings, getTimezoneInfo, api, checkForUpdates, installUpdate, getAutoUpdaterStatus, controlAutoUpdater, getAppVersion } from '../api';
+import { getSettings, updateSettings, getTimezoneInfo, apiClient, checkForUpdates, installUpdate, getAutoUpdaterStatus, controlAutoUpdater, getAppVersion, getTelegramStatus } from '../api';
 import { toast } from 'sonner';
-import { useVersion } from '../App';
+import { useVersionContext } from '../context';
 
 function SettingsPage() {
   const { versionInfo, checkVersion } = useVersion() || {};
