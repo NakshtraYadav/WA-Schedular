@@ -12,8 +12,8 @@ REM Go up one level to main directory
 for %%a in ("%SCRIPT_DIR%") do set "PARENT_DIR=%%~dpa"
 if "%PARENT_DIR:~-1%"=="\" set "PARENT_DIR=%PARENT_DIR:~0,-1%"
 
-for /f "tokens=2 delims==" %%a in ('wmic os get localdatetime /value') do set "dt=%%a"
-set "TIMESTAMP=%dt:~0,8%"
+REM Get timestamp using PowerShell (WMIC is deprecated in Windows 11)
+for /f %%a in ('powershell -Command "Get-Date -Format \"yyyyMMdd\""') do set "TIMESTAMP=%%a"
 set "REPORT_FILE=%PARENT_DIR%\logs\system\diagnostic_report_%TIMESTAMP%.txt"
 
 echo.
