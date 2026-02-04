@@ -175,7 +175,8 @@ class WhatsAppSchedulerTester:
         if self.failed_tests:
             print("\n❌ FAILED TESTS:")
             for failure in self.failed_tests:
-                print(f"  - {failure.get('test', 'Unknown')}: {failure.get('error', f\"Status {failure.get('actual')} != {failure.get('expected')}\")}")
+                error_msg = failure.get('error', f"Status {failure.get('actual')} != {failure.get('expected')}")
+                print(f"  - {failure.get('test', 'Unknown')}: {error_msg}")
         
         return self.tests_passed == self.tests_run
 
