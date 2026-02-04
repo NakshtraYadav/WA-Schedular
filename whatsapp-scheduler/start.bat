@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================================
 REM  WhatsApp Scheduler - Production Start Script for Windows 10/11
-REM  Version: 2.1 | Fixed path handling for spaces
+REM  Version: 3.0 | Uses PowerShell instead of deprecated WMIC
 REM ============================================================================
 setlocal enabledelayedexpansion
 
@@ -17,9 +17,8 @@ if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
 set "LOG_DIR=%SCRIPT_DIR%\logs\system"
 
-REM Create timestamp
-for /f "tokens=2 delims==" %%a in ('wmic os get localdatetime /value') do set "dt=%%a"
-set "TIMESTAMP=%dt:~0,8%_%dt:~8,6%"
+REM Get timestamp using PowerShell (WMIC is deprecated in Windows 11)
+for /f %%a in ('powershell -Command "Get-Date -Format \"yyyyMMdd_HHmmss\""') do set "TIMESTAMP=%%a"
 set "START_LOG=%LOG_DIR%\start_%TIMESTAMP%.log"
 
 set "HEALTH_INTERVAL=30"
