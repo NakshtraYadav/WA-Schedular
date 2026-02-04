@@ -391,14 +391,18 @@ async def process_telegram_command(token: str, chat_id: str, text: str):
         await send_telegram_message(token, chat_id, msg)
         
     elif text == "/contacts":
-        contacts = await database.contacts.find({}, {"_id": 0}).to_list(50)
+        total_count = await database.contacts.count_documents({})
+        contacts = await database.contacts.find({}, {"_id": 0}).limit(20).to_list(20)
         if contacts:
-            lines = ["📋 <b>Contacts</b>\n"]
-            for c in contacts:
+            lines = [f"📋 <b>Contacts</b> ({total_count} total)\n"]
+            for c in contacts[:20]:
                 lines.append(f"• {c['name']}: {c['phone']}")
+            if total_count > 20:
+                lines.append(f"\n... and {total_count - 20} more")
+                lines.append("Use /search &lt;name&gt; to find specific contacts")
             response = "\n".join(lines)
         else:
-            response = "📋 <b>No contacts found</b>\n\nAdd contacts via the web dashboard."
+            response = "📋 <b>No contacts found</b>\n\nAdd contacts via the web dashboard or sync from WhatsApp."
         await send_telegram_message(token, chat_id, response)
         
     elif text == "/schedules":
