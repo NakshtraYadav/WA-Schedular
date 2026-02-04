@@ -1,34 +1,73 @@
+# ============================================
+# WA Scheduler - Git Ignore
+# ============================================
+
 # Dependencies
 node_modules/
 venv/
 __pycache__/
 *.pyc
+*.pyo
 
-# WhatsApp session data
-.wwebjs_auth/
-.wwebjs_cache/
-
-# Logs
-logs/
-*.log
-
-# Environment files (keep .env.example)
+# Environment files (use .env.example as template)
 .env
 backend/.env
 frontend/.env
 
-# IDE
-.vscode/
-.idea/
+# WhatsApp session data (user-specific)
+.wwebjs_auth/
+.wwebjs_cache/
 
-# OS
-.DS_Store
-Thumbs.db
+# Logs
+logs/**/*.log
+*.log
 
-# Build
-build/
-dist/
+# Version tracking (auto-generated)
+.version
 
 # PID files
 *.pid
 .pids/
+.auto-updater.pid
+.wa.pid
+.backend.pid
+.frontend.pid
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Emergent platform (if any)
+.emergent/
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Test coverage
+coverage/
+.coverage
+htmlcov/
+
+# Yarn
+.yarn/
+.pnp.*
