@@ -24,7 +24,6 @@ function Connect() {
   const [qrCode, setQrCode] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [connecting, setConnecting] = useState(false);
   const [clearingSession, setClearingSession] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
