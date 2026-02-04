@@ -9,10 +9,15 @@ import {
   CheckCircle,
   Smartphone,
   Loader2,
-  Zap
+  Zap,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { getWhatsAppStatus, getWhatsAppQR, logoutWhatsApp, simulateConnect } from '../lib/api';
 import { toast } from 'sonner';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 function Connect() {
   const [status, setStatus] = useState(null);
@@ -20,6 +25,8 @@ function Connect() {
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [clearingSession, setClearingSession] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -69,6 +76,48 @@ function Connect() {
     }
   };
 
+  const handleClearSession = async () => {
+    if (!window.confirm('This will clear the WhatsApp session. You will need to scan the QR code again. Continue?')) {
+      return;
+    }
+    
+    setClearingSession(true);
+    try {
+      // Call the clear-session endpoint directly on WhatsApp service
+      await axios.post('http://localhost:3001/clear-session', {}, { timeout: 10000 });
+      toast.success('Session cleared! Reinitializing...');
+      
+      // Wait a moment then refresh
+      setTimeout(() => {
+        fetchStatus();
+      }, 3000);
+    } catch (error) {
+      // Try via backend
+      try {
+        await axios.post(`${API_URL}/api/whatsapp/clear-session`, {}, { timeout: 10000 });
+        toast.success('Session cleared! Reinitializing...');
+        setTimeout(() => fetchStatus(), 3000);
+      } catch (e) {
+        toast.error('Could not clear session. Try running scripts/fix-whatsapp.bat manually.');
+      }
+    } finally {
+      setClearingSession(false);
+    }
+  };
+
+  const handleRetryInit = async () => {
+    setRetrying(true);
+    try {
+      await axios.post('http://localhost:3001/retry-init', {}, { timeout: 5000 });
+      toast.success('Reinitialization started...');
+      setTimeout(() => fetchStatus(), 2000);
+    } catch (error) {
+      toast.error('Could not trigger retry. Check if WhatsApp service is running.');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -76,6 +125,15 @@ function Connect() {
       </div>
     );
   }
+
+  // Check for specific error types
+  const hasFrameError = status?.error && (
+    status.error.includes('frame') || 
+    status.error.includes('detached') ||
+    status.error.includes('Target closed') ||
+    status.error.includes('Protocol error') ||
+    status.error.includes('Navigation')
+  );
 
   return (
     <div data-testid="connect-page" className="space-y-6 animate-fade-in">
@@ -109,12 +167,16 @@ function Connect() {
                 ? 'bg-emerald-500/20' 
                 : status?.hasQrCode 
                   ? 'bg-amber-500/20'
-                  : 'bg-red-500/20'
+                  : status?.isInitializing
+                    ? 'bg-blue-500/20'
+                    : 'bg-red-500/20'
             }`}>
               {status?.isReady ? (
                 <CheckCircle className="w-8 h-8 text-emerald-500" />
               ) : status?.hasQrCode ? (
                 <Smartphone className="w-8 h-8 text-amber-500" />
+              ) : status?.isInitializing ? (
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
               ) : (
                 <Radio className="w-8 h-8 text-red-500" />
               )}
@@ -125,28 +187,72 @@ function Connect() {
                   variant={status?.isReady ? 'default' : 'secondary'}
                   className={status?.isReady ? 'bg-emerald-500' : ''}
                 >
-                  {status?.isReady ? 'Connected' : status?.hasQrCode ? 'Waiting for scan' : 'Disconnected'}
+                  {status?.isReady ? 'Connected' : status?.hasQrCode ? 'Waiting for scan' : status?.isInitializing ? 'Initializing...' : 'Disconnected'}
                 </Badge>
-                {status?.simulationMode && (
-                  <Badge variant="outline" className="text-amber-500 border-amber-500">
-                    Simulation
+                {status?.isInitializing && (
+                  <Badge variant="outline" className="text-blue-500 border-blue-500">
+                    Attempt {status.initAttempts || 1}/3
                   </Badge>
                 )}
               </div>
               {status?.isReady && status?.clientInfo && (
                 <p className="text-muted-foreground mt-1">
                   Logged in as <span className="font-medium text-foreground">{status.clientInfo.pushname}</span>
-                </p>
-              )}
-              {status?.clientInfo?.wid && (
-                <p className="text-xs font-mono text-muted-foreground mt-1">
-                  {status.clientInfo.wid}
+                  {status.clientInfo.phone && (
+                    <span className="text-xs text-muted-foreground ml-2">({status.clientInfo.phone})</span>
+                  )}
                 </p>
               )}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Error with specific fix for frame detached */}
+      {status?.error && hasFrameError && (
+        <Card className="bg-card border-destructive">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-heading text-lg flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              WhatsApp Initialization Error
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-destructive mb-4">{status.error}</p>
+            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
+              <p className="text-sm font-medium text-amber-500 mb-2">This is a known issue. Here's how to fix it:</p>
+              <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1">
+                <li>Click <strong>"Clear Session & Retry"</strong> below</li>
+                <li>Wait 30-90 seconds for reinitialization</li>
+                <li>If it still fails, run <code className="bg-secondary px-1 rounded">scripts\fix-whatsapp.bat</code></li>
+                <li>Make sure Google Chrome is installed and no Chrome windows are open</li>
+              </ol>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleClearSession} 
+                disabled={clearingSession}
+                variant="default"
+              >
+                {clearingSession ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                {clearingSession ? 'Clearing...' : 'Clear Session & Retry'}
+              </Button>
+              <Button 
+                onClick={handleRetryInit} 
+                disabled={retrying}
+                variant="outline"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${retrying ? 'animate-spin' : ''}`} />
+                {retrying ? 'Retrying...' : 'Retry Init'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {!status?.isReady && (
         <Card className="bg-card border-border">
@@ -166,41 +272,20 @@ function Connect() {
                     />
                   </div>
                   <div className="text-center">
-                    {status?.simulationMode && (
-                      <div className="mb-4">
-                        <Badge variant="secondary" className="mb-2">Simulation Mode</Badge>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Click below to simulate WhatsApp connection for demo purposes.
-                        </p>
-                        <Button
-                          onClick={handleSimulateConnect}
-                          disabled={connecting}
-                          className="btn-glow"
-                          data-testid="simulate-connect-btn"
-                        >
-                          <Zap className="w-4 h-4 mr-2" />
-                          {connecting ? 'Connecting...' : 'Simulate Connection'}
-                        </Button>
-                      </div>
-                    )}
-                    {!status?.simulationMode && (
-                      <>
-                        <p className="text-muted-foreground">
-                          Open WhatsApp on your phone
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Go to <span className="font-medium text-foreground">Settings → Linked Devices → Link a Device</span>
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Point your phone at this screen to capture the QR code
-                        </p>
-                      </>
-                    )}
+                    <p className="text-muted-foreground">
+                      Open WhatsApp on your phone
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Go to <span className="font-medium text-foreground">Settings → Linked Devices → Link a Device</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Point your phone at this screen to capture the QR code
+                    </p>
                   </div>
                 </>
               ) : (
                 <div className="text-center py-8">
-                  {status?.error ? (
+                  {status?.error && !hasFrameError ? (
                     <>
                       <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
                         <Radio className="w-8 h-8 text-red-500" />
@@ -212,23 +297,45 @@ function Connect() {
                         <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1">
                           <li>Make sure Google Chrome is installed</li>
                           <li>Close all Chrome windows and try again</li>
-                          <li>Delete the .wwebjs_auth folder in whatsapp-service</li>
+                          <li>Run <code className="bg-secondary px-1 rounded">scripts\fix-whatsapp.bat</code></li>
                           <li>Check antivirus is not blocking Chrome</li>
                         </ol>
                       </div>
-                      <Button onClick={fetchStatus} variant="outline">
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Retry Connection
-                      </Button>
+                      <div className="flex gap-2 justify-center">
+                        <Button onClick={handleClearSession} disabled={clearingSession}>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Clear Session
+                        </Button>
+                        <Button onClick={handleRetryInit} variant="outline" disabled={retrying}>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Retry
+                        </Button>
+                      </div>
+                    </>
+                  ) : status?.isInitializing ? (
+                    <>
+                      <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+                      <p className="text-foreground font-medium">
+                        Initializing WhatsApp...
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {status.initAttempts > 1 
+                          ? `Attempt ${status.initAttempts}/3 - This may take longer...`
+                          : 'This may take 30-90 seconds on first run'
+                        }
+                      </p>
+                      <div className="mt-4 w-64 bg-secondary rounded-full h-2 overflow-hidden">
+                        <div className="bg-primary h-2 animate-pulse" style={{ width: '60%' }}></div>
+                      </div>
                     </>
                   ) : (
                     <>
                       <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
                       <p className="text-muted-foreground">
-                        Initializing WhatsApp...
+                        Starting WhatsApp service...
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">
-                        This may take up to 60 seconds on first run
+                        Please wait...
                       </p>
                     </>
                   )}
@@ -269,18 +376,20 @@ function Connect() {
         </CardHeader>
         <CardContent>
           <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-            <li>Wait for the QR code to appear above</li>
+            <li>Wait for the QR code to appear above (30-90 seconds)</li>
             <li>Open WhatsApp on your phone</li>
             <li>Go to <span className="text-foreground">Settings → Linked Devices</span></li>
             <li>Tap <span className="text-foreground">Link a Device</span></li>
             <li>Scan the QR code with your phone</li>
             <li>Once connected, you can schedule messages!</li>
           </ol>
-          <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
-            <p className="text-sm text-amber-500">
-              Note: This environment runs in simulation mode. For real WhatsApp integration, 
-              download the code and run it on your local Windows PC with Chrome installed.
-            </p>
+          <div className="mt-4 p-4 rounded-lg bg-secondary/50">
+            <p className="text-sm font-medium text-foreground mb-2">Having trouble?</p>
+            <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
+              <li>Make sure Google Chrome is installed</li>
+              <li>Run <code className="bg-background px-1 rounded">scripts\fix-whatsapp.bat</code> to clear session</li>
+              <li>Run <code className="bg-background px-1 rounded">scripts\reinstall-whatsapp.bat</code> for a full reinstall</li>
+            </ul>
           </div>
         </CardContent>
       </Card>
