@@ -183,7 +183,7 @@ function Scheduler() {
 
     setSending(true);
     try {
-      const result = await sendMessageNow(sendNowData.contact_id, sendNowData.message);
+      const result = await sendNow(sendNowData.contact_id, sendNowData.message);
       if (result.data.success) {
         toast.success('Message sent successfully!');
         setSendNowDialogOpen(false);
