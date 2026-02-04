@@ -9,7 +9,6 @@ from core.scheduler import scheduler
 from services.telegram.sender import send_telegram_message
 from services.telegram.state import telegram_user_state, set_user_state, clear_user_state
 from services.scheduler.presets import TELEGRAM_SCHEDULE_PRESETS
-from services.scheduler.executor import execute_scheduled_message
 
 
 async def handle_create(token: str, chat_id: str):
