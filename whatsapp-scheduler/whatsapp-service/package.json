@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-service",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "WhatsApp Web automation service",
   "main": "index.js",
   "scripts": {
@@ -8,11 +8,10 @@
     "clean": "node -e \"const fs=require('fs');['.wwebjs_auth','.wwebjs_cache'].forEach(p=>{if(fs.existsSync(p)){fs.rmSync(p,{recursive:true});console.log('Cleared:',p)}})\""
   },
   "dependencies": {
-    "whatsapp-web.js": "1.23.0",
+    "whatsapp-web.js": "^1.34.6",
     "qrcode": "^1.5.3",
     "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "puppeteer": "21.5.0"
+    "cors": "^2.8.5"
   },
   "engines": {
     "node": ">=18.0.0"
