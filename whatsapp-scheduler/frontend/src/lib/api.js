@@ -14,7 +14,9 @@ export const api = axios.create({
 export const getWhatsAppStatus = () => api.get('/whatsapp/status');
 export const getWhatsAppQR = () => api.get('/whatsapp/qr');
 export const logoutWhatsApp = () => api.post('/whatsapp/logout');
-export const simulateConnect = () => api.post('/whatsapp/simulate-connect');
+export const retryWhatsApp = () => api.post('/whatsapp/retry');
+export const clearWhatsAppSession = () => api.post('/whatsapp/clear-session');
+export const testBrowser = () => api.get('/whatsapp/test-browser');
 
 // Contacts
 export const getContacts = () => api.get('/contacts');
@@ -49,3 +51,9 @@ export const getTimezoneInfo = () => api.get('/timezone');
 
 // Dashboard
 export const getDashboardStats = () => api.get('/dashboard/stats');
+
+// Diagnostics
+export const getDiagnostics = () => api.get('/diagnostics');
+export const getLogsSummary = () => api.get('/diagnostics/logs');
+export const getServiceLogs = (service, lines = 100) => api.get(`/diagnostics/logs/${service}?lines=${lines}`);
+export const clearServiceLogs = (service) => api.post(`/diagnostics/clear-logs/${service}`);
