@@ -896,20 +896,32 @@ async def send_whatsapp_message(phone: str, message: str):
 
 async def execute_scheduled_message(schedule_id: str):
     """Execute a scheduled message"""
+    logger.info(f"🔔 EXECUTING SCHEDULE: {schedule_id}")
     try:
         database = await get_database()
         schedule = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
-        if not schedule or not schedule.get('is_active'):
+        
+        if not schedule:
+            logger.warning(f"Schedule {schedule_id} not found in database")
+            return
+            
+        if not schedule.get('is_active'):
+            logger.info(f"Schedule {schedule_id} is inactive, skipping")
             return
         
+        logger.info(f"📤 Sending to {schedule['contact_name']} ({schedule['contact_phone']}): {schedule['message'][:50]}...")
+        
         result = await send_whatsapp_message(schedule['contact_phone'], schedule['message'])
+        
+        status = "sent" if result.get('success') else "failed"
+        logger.info(f"📬 Result: {status} - {result}")
         
         log = MessageLog(
             contact_id=schedule['contact_id'],
             contact_name=schedule['contact_name'],
             contact_phone=schedule['contact_phone'],
             message=schedule['message'],
-            status="sent" if result.get('success') else "failed",
+            status=status,
             error_message=result.get('error'),
             scheduled_message_id=schedule_id
         )
@@ -921,8 +933,18 @@ async def execute_scheduled_message(schedule_id: str):
             {"id": schedule_id},
             {"$set": {"last_run": datetime.now(timezone.utc).isoformat()}}
         )
+        
+        # Send Telegram notification if enabled
+        settings = await database.settings.find_one({"id": "settings"}, {"_id": 0})
+        if settings and settings.get('telegram_enabled') and settings.get('telegram_token'):
+            try:
+                msg = f"{'✅' if status == 'sent' else '❌'} Scheduled message {status}\n\n📞 {schedule['contact_name']}\n💬 {schedule['message'][:100]}"
+                await send_telegram_message(settings['telegram_token'], settings['telegram_chat_id'], msg)
+            except:
+                pass
+                
     except Exception as e:
-        logger.error(f"Execute scheduled message error: {e}")
+        logger.error(f"❌ Execute scheduled message error: {e}", exc_info=True)
 
 @api_router.get("/schedules", response_model=List[ScheduledMessage])
 async def get_schedules():
