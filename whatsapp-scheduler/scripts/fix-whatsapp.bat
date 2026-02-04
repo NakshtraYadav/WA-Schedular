@@ -43,9 +43,9 @@ for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":3001 " ^| findstr "L
 )
 taskkill /FI "WINDOWTITLE eq WhatsApp-Scheduler-WA*" /F >nul 2>&1
 
-REM Kill any lingering node processes
-for /f "skip=1 tokens=2" %%a in ('wmic process where "name='node.exe' and commandline like '%%whatsapp%%'" get processid 2^>nul') do (
-    if "%%a" neq "" taskkill /F /PID %%a >nul 2>&1
+REM Kill any lingering node processes (using PowerShell instead of deprecated WMIC)
+for /f %%a in ('powershell -Command "Get-Process node -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '*whatsapp*'} | Select-Object -ExpandProperty Id"') do (
+    taskkill /F /PID %%a >nul 2>&1
 )
 
 timeout /t 3 /nobreak >nul
