@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { useVersion } from '../App';
 
 function SettingsPage() {
+  const { versionInfo, checkVersion } = useVersion() || {};
   const [settings, setSettings] = useState({
     telegram_token: '',
     telegram_chat_id: '',
