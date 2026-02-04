@@ -282,19 +282,30 @@ echo  --------------------------------------------------------------------------
 echo.
 
 echo   [..] Setting up WhatsApp service...
-echo   [i] This may take a few minutes (downloads Chromium)...
+echo   [i] This may take 3-5 minutes (downloads ~200MB)...
 
 pushd "%SCRIPT_DIR%\whatsapp-service"
 
-if not exist "node_modules" (
-    call npm install --legacy-peer-deps 2>nul
+REM Clear any old yarn.lock that might cause issues
+if exist "yarn.lock" del yarn.lock 2>nul
+
+if not exist "node_modules\whatsapp-web.js" (
+    echo   [..] Installing from npm registry...
+    call npm install --registry https://registry.npmjs.org/ 2>nul
     if !errorLevel! neq 0 (
-        echo   [!] npm install had warnings - retrying...
-        call npm install --legacy-peer-deps --force 2>nul
+        echo   [!] First attempt had issues, retrying with --legacy-peer-deps...
+        call npm install --legacy-peer-deps --registry https://registry.npmjs.org/ 2>nul
     )
 )
-echo   [OK] WhatsApp service dependencies installed
-echo [%date% %time%] WhatsApp dependencies installed >> "%SETUP_LOG%"
+
+if exist "node_modules\whatsapp-web.js" (
+    echo   [OK] WhatsApp service dependencies installed
+    echo [%date% %time%] WhatsApp dependencies installed >> "%SETUP_LOG%"
+) else (
+    echo   [!] WhatsApp dependencies may have issues
+    echo   [i] Try running scripts\reinstall-whatsapp.bat
+    echo [%date% %time%] WARNING: WhatsApp install incomplete >> "%SETUP_LOG%"
+)
 
 popd
 echo.
