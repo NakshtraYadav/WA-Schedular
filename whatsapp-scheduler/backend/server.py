@@ -789,6 +789,143 @@ async def get_timezone_info():
         "all_timezones": pytz.common_timezones
     }
 
+# ============== UPDATE SYSTEM ==============
+
+GITHUB_REPO = "NakshtraYadav/WA-Schedular"
+GITHUB_BRANCH = "main"
+
+@api_router.get("/updates/check")
+async def check_for_updates():
+    """Check GitHub for available updates"""
+    try:
+        async with httpx.AsyncClient() as http_client:
+            # Get latest commit from GitHub
+            response = await http_client.get(
+                f"https://api.github.com/repos/{GITHUB_REPO}/commits/{GITHUB_BRANCH}",
+                timeout=10.0
+            )
+            
+            if response.status_code != 200:
+                return {"error": "Could not check GitHub", "status_code": response.status_code}
+            
+            data = response.json()
+            remote_sha = data.get("sha", "")[:7]
+            remote_message = data.get("commit", {}).get("message", "").split("\n")[0]
+            remote_date = data.get("commit", {}).get("committer", {}).get("date", "")
+            
+            # Get local version
+            version_file = ROOT_DIR.parent / ".version"
+            local_sha = "none"
+            if version_file.exists():
+                local_sha = version_file.read_text().strip()[:7]
+            
+            has_update = remote_sha != local_sha and local_sha != "none"
+            
+            return {
+                "has_update": has_update,
+                "local_version": local_sha,
+                "remote_version": remote_sha,
+                "remote_message": remote_message,
+                "remote_date": remote_date,
+                "repo": GITHUB_REPO
+            }
+    except Exception as e:
+        return {"error": str(e)}
+
+@api_router.post("/updates/install")
+async def install_update():
+    """Trigger update installation (runs update.sh)"""
+    import subprocess
+    
+    update_script = ROOT_DIR.parent / "update.sh"
+    
+    if not update_script.exists():
+        return {"success": False, "error": "update.sh not found"}
+    
+    try:
+        # Run update in background
+        result = subprocess.Popen(
+            ["bash", str(update_script), "force"],
+            cwd=str(ROOT_DIR.parent),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        return {
+            "success": True,
+            "message": "Update started. Services will restart automatically.",
+            "pid": result.pid
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@api_router.get("/updates/auto-updater/status")
+async def get_auto_updater_status():
+    """Check if auto-updater daemon is running"""
+    pid_file = ROOT_DIR.parent / ".auto-updater.pid"
+    log_file = ROOT_DIR.parent / "logs" / "system" / "auto-update.log"
+    
+    is_running = False
+    pid = None
+    recent_logs = []
+    
+    if pid_file.exists():
+        try:
+            pid = int(pid_file.read_text().strip())
+            # Check if process is running
+            import os
+            try:
+                os.kill(pid, 0)
+                is_running = True
+            except OSError:
+                is_running = False
+        except:
+            pass
+    
+    if log_file.exists():
+        try:
+            with open(log_file, 'r') as f:
+                lines = f.readlines()
+                recent_logs = [l.strip() for l in lines[-10:]]
+        except:
+            pass
+    
+    return {
+        "is_running": is_running,
+        "pid": pid if is_running else None,
+        "recent_logs": recent_logs
+    }
+
+@api_router.post("/updates/auto-updater/{action}")
+async def control_auto_updater(action: str):
+    """Start or stop the auto-updater daemon"""
+    import subprocess
+    
+    if action not in ["start", "stop", "restart"]:
+        return {"success": False, "error": "Invalid action. Use: start, stop, restart"}
+    
+    script = ROOT_DIR.parent / "auto-updater.sh"
+    
+    if not script.exists():
+        return {"success": False, "error": "auto-updater.sh not found"}
+    
+    try:
+        result = subprocess.run(
+            ["bash", str(script), action],
+            cwd=str(ROOT_DIR.parent),
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        return {
+            "success": result.returncode == 0,
+            "output": result.stdout.strip(),
+            "error": result.stderr.strip() if result.returncode != 0 else None
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 @api_router.get("/settings", response_model=Settings)
 async def get_settings():
     """Get application settings"""
