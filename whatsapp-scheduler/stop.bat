@@ -78,11 +78,19 @@ REM  STOP ORPHAN PROCESSES
 REM ============================================================================
 echo    [3/4] Cleaning up orphan processes...
 
-REM Kill orphan node processes
+REM Kill orphan node processes (whatsapp service and any npm)
 for /f "skip=1 tokens=2" %%a in ('wmic process where "name='node.exe' and commandline like '%%whatsapp%%'" get processid 2^>nul') do (
     if "%%a" neq "" (
         taskkill /F /PID %%a >nul 2>&1
         echo          Orphan node stopped (PID: %%a^)
+    )
+)
+
+REM Kill any node processes related to our frontend
+for /f "skip=1 tokens=2" %%a in ('wmic process where "name='node.exe' and commandline like '%%react-scripts%%'" get processid 2^>nul') do (
+    if "%%a" neq "" (
+        taskkill /F /PID %%a >nul 2>&1
+        echo          Frontend node stopped (PID: %%a^)
     )
 )
 
@@ -91,6 +99,14 @@ for /f "skip=1 tokens=2" %%a in ('wmic process where "name='python.exe' and comm
     if "%%a" neq "" (
         taskkill /F /PID %%a >nul 2>&1
         echo          Orphan python stopped (PID: %%a^)
+    )
+)
+
+REM Also check pythonw.exe (windowless python)
+for /f "skip=1 tokens=2" %%a in ('wmic process where "name='pythonw.exe' and commandline like '%%uvicorn%%'" get processid 2^>nul') do (
+    if "%%a" neq "" (
+        taskkill /F /PID %%a >nul 2>&1
+        echo          Orphan pythonw stopped (PID: %%a^)
     )
 )
 
