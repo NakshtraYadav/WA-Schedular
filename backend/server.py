@@ -511,6 +511,63 @@ async def delete_contact(contact_id: str):
         raise HTTPException(status_code=404, detail="Contact not found")
     return {"success": True}
 
+@api_router.post("/contacts/sync-whatsapp")
+async def sync_whatsapp_contacts():
+    """Sync contacts from WhatsApp"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{WHATSAPP_SERVICE}/contacts", timeout=30.0)
+            
+            if response.status_code != 200:
+                return {"success": False, "error": "Failed to fetch WhatsApp contacts", "imported": 0}
+            
+            wa_contacts = response.json().get("contacts", [])
+            
+            if not wa_contacts:
+                return {"success": True, "message": "No contacts found in WhatsApp", "imported": 0}
+            
+            database = await get_database()
+            imported = 0
+            skipped = 0
+            
+            for wa_contact in wa_contacts:
+                phone = wa_contact.get("number", "").replace("@c.us", "")
+                name = wa_contact.get("name") or wa_contact.get("pushname") or phone
+                
+                if not phone:
+                    continue
+                
+                # Check if contact already exists (by phone)
+                existing = await database.contacts.find_one({"phone": phone}, {"_id": 0})
+                
+                if existing:
+                    skipped += 1
+                    continue
+                
+                # Create new contact
+                contact = Contact(
+                    name=name,
+                    phone=phone,
+                    notes=f"Synced from WhatsApp"
+                )
+                doc = contact.model_dump()
+                doc['created_at'] = doc['created_at'].isoformat()
+                await database.contacts.insert_one(doc)
+                imported += 1
+            
+            return {
+                "success": True,
+                "imported": imported,
+                "skipped": skipped,
+                "total_found": len(wa_contacts),
+                "message": f"Imported {imported} contacts, skipped {skipped} duplicates"
+            }
+    except httpx.TimeoutException:
+        return {"success": False, "error": "WhatsApp service timeout", "imported": 0}
+    except Exception as e:
+        logger.error(f"Contact sync error: {e}")
+        return {"success": False, "error": str(e), "imported": 0}
+
 # ============== MESSAGE TEMPLATES ==============
 
 @api_router.get("/templates", response_model=List[MessageTemplate])
