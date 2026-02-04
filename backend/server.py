@@ -1164,20 +1164,27 @@ async def check_for_updates():
     try:
         local_version = get_version_info()
         
+        # Add cache-busting timestamp to avoid CDN caching
+        import time
+        cache_buster = int(time.time())
+        
         async with httpx.AsyncClient() as http_client:
-            # Try to get version.json from GitHub first
-            version_response = await http_client.get(
-                f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/version.json",
-                timeout=10.0
-            )
+            # Try to get version.json from GitHub first (with cache-busting)
+            version_url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/version.json?t={cache_buster}"
+            logger.info(f"Checking for updates from: {version_url}")
+            
+            version_response = await http_client.get(version_url, timeout=10.0)
             
             remote_version_info = None
             if version_response.status_code == 200:
                 try:
                     import json
                     remote_version_info = json.loads(version_response.text)
-                except:
-                    pass
+                    logger.info(f"Remote version: {remote_version_info.get('version')}, Local version: {local_version.get('version')}")
+                except Exception as e:
+                    logger.warning(f"Failed to parse remote version.json: {e}")
+            else:
+                logger.warning(f"Failed to fetch version.json: HTTP {version_response.status_code}")
             
             # Also get latest commit info
             commit_response = await http_client.get(
