@@ -275,6 +275,9 @@ async function initializeClient() {
 // ============================================================================
 
 app.get('/status', (req, res) => {
+    // Check if session exists
+    const sessionExists = fs.existsSync(path.join(SESSION_PATH, 'session-whatsapp-scheduler'));
+    
     res.json({
         isReady,
         isAuthenticated,
@@ -284,6 +287,7 @@ app.get('/status', (req, res) => {
         error: initError,
         version: '3.0.0',
         library: 'whatsapp-web.js@1.34.6',
+        hasSession: sessionExists,
         clientInfo: clientInfo ? {
             pushname: clientInfo.pushname,
             wid: clientInfo.wid?._serialized,
