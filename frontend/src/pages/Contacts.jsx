@@ -30,7 +30,7 @@ import {
   Download,
   Loader2
 } from 'lucide-react';
-import { getContacts, createContact, updateContact, deleteContact, sendMessageNow, getWhatsAppStatus, syncWhatsAppContacts } from '../lib/api';
+import { getContacts, createContact, updateContact, deleteContact, sendMessageNow, getWhatsAppStatus, syncWhatsAppContacts } from '../api';
 import { toast } from 'sonner';
 
 function Contacts() {

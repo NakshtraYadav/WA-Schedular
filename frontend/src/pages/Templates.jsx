@@ -18,7 +18,7 @@ import {
   MessageSquare,
   Copy
 } from 'lucide-react';
-import { getTemplates, createTemplate, updateTemplate, deleteTemplate } from '../lib/api';
+import { getTemplates, createTemplate, updateTemplate, deleteTemplate } from '../api';
 import { toast } from 'sonner';
 
 function Templates() {

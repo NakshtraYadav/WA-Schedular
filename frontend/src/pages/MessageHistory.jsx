@@ -17,7 +17,7 @@ import {
   Trash2,
   RefreshCw
 } from 'lucide-react';
-import { getLogs, clearLogs } from '../lib/api';
+import { getLogs, clearLogs } from '../api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 

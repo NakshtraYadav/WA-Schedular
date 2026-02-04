@@ -23,7 +23,7 @@ import {
   Play,
   Square
 } from 'lucide-react';
-import { getSettings, updateSettings, getTimezoneInfo, api, checkForUpdates, installUpdate, getAutoUpdaterStatus, controlAutoUpdater, getAppVersion } from '../lib/api';
+import { getSettings, updateSettings, getTimezoneInfo, api, checkForUpdates, installUpdate, getAutoUpdaterStatus, controlAutoUpdater, getAppVersion } from '../api';
 import { toast } from 'sonner';
 import { useVersion } from '../App';
 
