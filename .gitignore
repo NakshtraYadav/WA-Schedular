@@ -50,8 +50,9 @@ dist/
 Thumbs.db
 desktop.ini
 
-# Emergent platform (if any)
+# Emergent platform
 .emergent/
+.gitconfig
 
 # Archives
 *.zip
@@ -71,3 +72,7 @@ htmlcov/
 # Yarn
 .yarn/
 .pnp.*
+
+# Windows files (not needed for Linux)
+*.bat
+*.ps1
