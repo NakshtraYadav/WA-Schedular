@@ -1,18 +1,18 @@
 {
   "name": "whatsapp-service",
   "version": "2.0.0",
-  "description": "WhatsApp Web automation service - Hardened for Windows",
+  "description": "WhatsApp Web automation service",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "clean": "node -e \"const fs=require('fs');['.wwebjs_auth','.wwebjs_cache'].forEach(p=>{if(fs.existsSync(p)){fs.rmSync(p,{recursive:true});console.log('Cleared:',p)}})\""
   },
   "dependencies": {
-    "whatsapp-web.js": "^1.25.0",
+    "whatsapp-web.js": "1.23.0",
     "qrcode": "^1.5.3",
     "express": "^4.18.2",
     "cors": "^2.8.5",
-    "puppeteer": "^22.0.0"
+    "puppeteer": "21.5.0"
   },
   "engines": {
     "node": ">=18.0.0"
