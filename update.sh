@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
-#  WA Scheduler - Update Script v2.0
-#  Robust update system with rollback support
+#  WA Scheduler - Update Script v2.1
+#  Fixed for local WSL development
 # ============================================================================
 
 # Colors
@@ -31,7 +31,7 @@ log() {
     echo -e "$1"
 }
 
-# Lock management to prevent concurrent updates
+# Lock management
 acquire_lock() {
     if [ -f "$LOCK_FILE" ]; then
         LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
@@ -49,22 +49,19 @@ release_lock() {
     rm -f "$LOCK_FILE"
 }
 
-# Cleanup on exit
 cleanup() {
     release_lock
-    # Clean temp files
     rm -rf /tmp/wa-update-* 2>/dev/null
 }
 trap cleanup EXIT
 
 get_remote_version() {
-    # Get latest commit SHA from GitHub (with rate limit handling)
     RESPONSE=$(curl -s -w "\n%{http_code}" "$GITHUB_API" 2>/dev/null)
     HTTP_CODE=$(echo "$RESPONSE" | tail -1)
     BODY=$(echo "$RESPONSE" | head -n -1)
     
     if [ "$HTTP_CODE" = "403" ]; then
-        log "${YELLOW}[!] GitHub API rate limit exceeded. Try again later.${NC}"
+        log "${YELLOW}[!] GitHub API rate limit exceeded${NC}"
         return 1
     fi
     
@@ -86,7 +83,7 @@ check_update() {
     LOCAL_SHA=$(get_local_version)
     
     if [ -z "$REMOTE_SHA" ]; then
-        log "${RED}[!] Could not fetch remote version (network error or rate limit)${NC}"
+        log "${RED}[!] Could not fetch remote version${NC}"
         return 2
     fi
     
@@ -106,43 +103,31 @@ create_backup() {
     CURRENT_BACKUP="$BACKUP_DIR/$BACKUP_TIME"
     mkdir -p "$CURRENT_BACKUP"
     
-    # Backup critical files
     [ -f "$SCRIPT_DIR/backend/server.py" ] && cp "$SCRIPT_DIR/backend/server.py" "$CURRENT_BACKUP/"
     [ -d "$SCRIPT_DIR/frontend/src" ] && cp -r "$SCRIPT_DIR/frontend/src" "$CURRENT_BACKUP/frontend_src"
     [ -f "$SCRIPT_DIR/version.json" ] && cp "$SCRIPT_DIR/version.json" "$CURRENT_BACKUP/"
     [ -f "$VERSION_FILE" ] && cp "$VERSION_FILE" "$CURRENT_BACKUP/.version"
     
-    # Keep only last 5 backups
     ls -dt "$BACKUP_DIR"/*/ 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null
     
     echo "$CURRENT_BACKUP"
-    log "${GREEN}[OK] Backup created: $CURRENT_BACKUP${NC}"
+    log "${GREEN}[OK] Backup created${NC}"
 }
 
 rollback() {
-    log "${YELLOW}Rolling back to previous version...${NC}"
+    log "${YELLOW}Rolling back...${NC}"
     
-    # Find latest backup
     LATEST_BACKUP=$(ls -dt "$BACKUP_DIR"/*/ 2>/dev/null | head -1)
     
-    if [ -z "$LATEST_BACKUP" ] || [ ! -d "$LATEST_BACKUP" ]; then
-        log "${RED}[!] No backup found to rollback to${NC}"
+    if [ -z "$LATEST_BACKUP" ]; then
+        log "${RED}[!] No backup found${NC}"
         return 1
     fi
     
-    log "  Restoring from: $LATEST_BACKUP"
-    
-    # Restore files
     [ -f "$LATEST_BACKUP/server.py" ] && cp "$LATEST_BACKUP/server.py" "$SCRIPT_DIR/backend/"
     [ -d "$LATEST_BACKUP/frontend_src" ] && cp -r "$LATEST_BACKUP/frontend_src/"* "$SCRIPT_DIR/frontend/src/"
     [ -f "$LATEST_BACKUP/version.json" ] && cp "$LATEST_BACKUP/version.json" "$SCRIPT_DIR/"
     [ -f "$LATEST_BACKUP/.version" ] && cp "$LATEST_BACKUP/.version" "$VERSION_FILE"
-    
-    # Rebuild frontend
-    build_frontend
-    
-    # Restart
-    restart_services
     
     log "${GREEN}[OK] Rollback complete${NC}"
 }
@@ -153,28 +138,24 @@ download_update() {
     TEMP_DIR=$(mktemp -d /tmp/wa-update-XXXXXX)
     TEMP_ZIP="$TEMP_DIR/update.zip"
     
-    # Download with timeout
     if ! curl -sL --connect-timeout 30 --max-time 120 "$GITHUB_ARCHIVE" -o "$TEMP_ZIP"; then
         log "${RED}[!] Download failed${NC}"
         rm -rf "$TEMP_DIR"
         return 1
     fi
     
-    # Verify download
     if [ ! -s "$TEMP_ZIP" ]; then
         log "${RED}[!] Downloaded file is empty${NC}"
         rm -rf "$TEMP_DIR"
         return 1
     fi
     
-    # Extract
     if ! unzip -q "$TEMP_ZIP" -d "$TEMP_DIR"; then
-        log "${RED}[!] Extraction failed (corrupted download?)${NC}"
+        log "${RED}[!] Extraction failed${NC}"
         rm -rf "$TEMP_DIR"
         return 1
     fi
     
-    # Find extracted folder
     EXTRACTED_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "WA-Schedular-*" | head -1)
     
     if [ -z "$EXTRACTED_DIR" ]; then
@@ -196,14 +177,14 @@ apply_update() {
     [ -f "$SCRIPT_DIR/backend/.env" ] && cp "$SCRIPT_DIR/backend/.env" "/tmp/backend.env.bak"
     [ -f "$SCRIPT_DIR/frontend/.env" ] && cp "$SCRIPT_DIR/frontend/.env" "/tmp/frontend.env.bak"
     
-    # Update version.json first
+    # Update version.json
     [ -f "$EXTRACTED_DIR/version.json" ] && cp "$EXTRACTED_DIR/version.json" "$SCRIPT_DIR/"
     
     # Update backend
     [ -f "$EXTRACTED_DIR/backend/server.py" ] && cp "$EXTRACTED_DIR/backend/server.py" "$SCRIPT_DIR/backend/"
     [ -f "$EXTRACTED_DIR/backend/requirements.txt" ] && cp "$EXTRACTED_DIR/backend/requirements.txt" "$SCRIPT_DIR/backend/"
     
-    # Update frontend source
+    # Update frontend source (atomic swap)
     if [ -d "$EXTRACTED_DIR/frontend/src" ]; then
         rm -rf "$SCRIPT_DIR/frontend/src.new" 2>/dev/null
         cp -r "$EXTRACTED_DIR/frontend/src" "$SCRIPT_DIR/frontend/src.new"
@@ -248,7 +229,7 @@ install_dependencies() {
     
     cd "$SCRIPT_DIR/frontend"
     if command -v yarn &> /dev/null; then
-        yarn install --silent 2>/dev/null || true
+        yarn install --silent 2>/dev/null || npm install --legacy-peer-deps --silent 2>/dev/null || true
     else
         npm install --legacy-peer-deps --silent 2>/dev/null || true
     fi
@@ -265,65 +246,73 @@ install_dependencies() {
     log "${GREEN}[OK] Dependencies updated${NC}"
 }
 
-build_frontend() {
-    log "${BLUE}Building frontend...${NC}"
-    
-    cd "$SCRIPT_DIR/frontend"
-    
-    if command -v yarn &> /dev/null; then
-        if yarn build >> "$UPDATE_LOG" 2>&1; then
-            log "${GREEN}[OK] Frontend built successfully${NC}"
-            return 0
-        fi
-    else
-        if npm run build >> "$UPDATE_LOG" 2>&1; then
-            log "${GREEN}[OK] Frontend built successfully${NC}"
-            return 0
-        fi
-    fi
-    
-    log "${RED}[!] Frontend build failed${NC}"
-    return 1
-}
-
-restart_services() {
-    log "${BLUE}Restarting services...${NC}"
-    
-    cd "$SCRIPT_DIR"
-    
-    # Check for supervisor (Emergent/production)
-    if command -v supervisorctl &> /dev/null && supervisorctl status &> /dev/null 2>&1; then
-        log "  Using supervisor..."
-        sudo supervisorctl restart backend 2>/dev/null || supervisorctl restart backend 2>/dev/null
-        sleep 2
-        sudo supervisorctl restart frontend 2>/dev/null || supervisorctl restart frontend 2>/dev/null
-        
-        # Verify services started
-        sleep 3
-        if supervisorctl status backend 2>/dev/null | grep -q "RUNNING"; then
-            log "${GREEN}[OK] Backend restarted${NC}"
-        else
-            log "${RED}[!] Backend may not have restarted properly${NC}"
-        fi
-        if supervisorctl status frontend 2>/dev/null | grep -q "RUNNING"; then
-            log "${GREEN}[OK] Frontend restarted${NC}"
-        else
-            log "${RED}[!] Frontend may not have restarted properly${NC}"
-        fi
-    else
-        # Local development
-        ./stop.sh > /dev/null 2>&1
-        sleep 2
-        ./start.sh > /dev/null 2>&1 &
-        log "${GREEN}[OK] Services restarted${NC}"
-    fi
-}
-
 save_version() {
     REMOTE_SHA=$(get_remote_version)
     if [ -n "$REMOTE_SHA" ]; then
         echo "$REMOTE_SHA" > "$VERSION_FILE"
         log "${GREEN}[OK] Version saved: ${REMOTE_SHA:0:7}${NC}"
+    fi
+}
+
+stop_services() {
+    log "${BLUE}Stopping services...${NC}"
+    
+    cd "$SCRIPT_DIR"
+    
+    # Check for supervisor first
+    if command -v supervisorctl &> /dev/null && supervisorctl status &> /dev/null 2>&1; then
+        sudo supervisorctl stop backend frontend 2>/dev/null || supervisorctl stop backend frontend 2>/dev/null
+    else
+        # Local: use stop.sh or kill by PID
+        if [ -f "./stop.sh" ]; then
+            ./stop.sh > /dev/null 2>&1 || true
+        fi
+        
+        # Also kill by port as backup
+        for port in 3000 8001 3001; do
+            pid=$(lsof -t -i:$port 2>/dev/null)
+            [ -n "$pid" ] && kill -9 $pid 2>/dev/null || true
+        done
+    fi
+    
+    sleep 2
+    log "${GREEN}[OK] Services stopped${NC}"
+}
+
+start_services() {
+    log "${BLUE}Starting services...${NC}"
+    
+    cd "$SCRIPT_DIR"
+    
+    # Check for supervisor first
+    if command -v supervisorctl &> /dev/null && supervisorctl status &> /dev/null 2>&1; then
+        sudo supervisorctl start backend frontend 2>/dev/null || supervisorctl start backend frontend 2>/dev/null
+        sleep 3
+        log "${GREEN}[OK] Services started via supervisor${NC}"
+    else
+        # Local: use start.sh in foreground mode briefly then background
+        if [ -f "./start.sh" ]; then
+            log "  Starting services with start.sh..."
+            # Run start.sh but don't wait for frontend compilation
+            ./start.sh &
+            START_PID=$!
+            
+            # Wait for backend to be ready (max 30 seconds)
+            log "  Waiting for backend..."
+            for i in {1..15}; do
+                if curl -s http://localhost:8001/api/ > /dev/null 2>&1; then
+                    log "${GREEN}[OK] Backend is running${NC}"
+                    break
+                fi
+                sleep 2
+            done
+            
+            # Don't wait for frontend - it compiles in background
+            log "${GREEN}[OK] Services starting (frontend compiling in background)${NC}"
+            log "  Frontend will be ready at http://localhost:3000 in 1-2 minutes"
+        else
+            log "${RED}[!] start.sh not found${NC}"
+        fi
     fi
 }
 
@@ -362,33 +351,29 @@ case "${1:-check}" in
             exit 0
         fi
         
-        # Create backup before update
-        BACKUP_PATH=$(create_backup)
+        create_backup
         
         EXTRACTED=$(download_update)
         if [ $? -ne 0 ]; then
-            log "${RED}[!] Update failed. Rolling back...${NC}"
-            rollback
+            log "${RED}[!] Download failed${NC}"
             exit 1
         fi
+        
+        # Stop services first
+        stop_services
         
         apply_update "$EXTRACTED"
         install_dependencies
-        
-        # Build frontend
-        if ! build_frontend; then
-            log "${RED}[!] Build failed. Rolling back...${NC}"
-            rollback
-            exit 1
-        fi
-        
         save_version
         
         echo ""
-        echo -e "${YELLOW}Restart services to apply changes?${NC}"
+        echo -e "${YELLOW}Restart services now?${NC}"
         read -p "  (y/n): " RESTART
         if [[ "$RESTART" =~ ^[Yy]$ ]]; then
-            restart_services
+            start_services
+        else
+            echo ""
+            echo -e "Run ${CYAN}./start.sh${NC} to start services manually"
         fi
         
         echo ""
@@ -404,8 +389,7 @@ case "${1:-check}" in
         
         acquire_lock || exit 1
         
-        # Create backup
-        BACKUP_PATH=$(create_backup)
+        create_backup
         
         EXTRACTED=$(download_update)
         if [ $? -ne 0 ]; then
@@ -413,27 +397,24 @@ case "${1:-check}" in
             exit 1
         fi
         
+        stop_services
         apply_update "$EXTRACTED"
         install_dependencies
-        
-        if ! build_frontend; then
-            log "${RED}[!] Build failed. Rolling back...${NC}"
-            rollback
-            exit 1
-        fi
-        
         save_version
-        restart_services
+        start_services
         
         echo ""
         echo -e "${GREEN}Force update complete!${NC}"
+        echo -e "Frontend compiling in background - wait 1-2 minutes"
         echo ""
         ;;
         
     rollback)
         echo ""
-        log "${YELLOW}Starting rollback...${NC}"
+        acquire_lock || exit 1
+        stop_services
         rollback
+        start_services
         echo ""
         ;;
         
