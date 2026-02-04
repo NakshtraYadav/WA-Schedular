@@ -1,70 +1,92 @@
-# WhatsApp Scheduler - PRD
+# WhatsApp Scheduler - Product Requirements Document
 
-## Version: 1.1.0 (Build 2)
-Release Date: 2026-02-04
+## Original Problem Statement
+User requested modularization of the codebase for better file management, more folders, and improved code organization across backend, frontend, and WhatsApp service.
 
-## What's New in v1.1.0
+## Architecture Overview
 
-### Features Added
-- **WhatsApp Contact Sync** - Import contacts directly from WhatsApp
-- **Telegram Interactive Schedule Creation** - Create schedules via /create command
-- **Custom Time for Recurring Schedules** - Pick any time, not just presets
-- **Rollback Support** - `./update.sh rollback` to revert failed updates
+### Backend Structure (FastAPI + MongoDB)
+```
+/app/backend/
+├── server.py (83 lines - entry point only)
+├── core/          - Config, DB, Scheduler, Logging
+├── models/        - Pydantic models (Contact, Template, Schedule, etc.)
+├── routes/        - API endpoints (13 route modules)
+├── services/      - Business logic
+│   ├── whatsapp/  - WhatsApp HTTP client
+│   ├── telegram/  - Telegram bot with command handlers
+│   ├── scheduler/ - Job execution and management
+│   ├── contacts/  - Contact CRUD + sync
+│   ├── templates/ - Template CRUD
+│   └── updates/   - Update system
+├── repositories/  - Data access layer
+└── utils/         - Helpers (datetime, validators, serializers)
+```
 
-### Bug Fixes
-- Fixed version comparison (string vs numeric)
-- Fixed auto-updater timeout issue
-- Added lock file for concurrent update protection
-- Telegram setup instructions auto-hide when configured
+### Frontend Structure (React + TailwindCSS)
+```
+/app/frontend/src/
+├── App.js (45 lines - routing only)
+├── api/           - Modular API layer (11 endpoint files)
+├── components/
+│   ├── layout/    - Sidebar, Layout
+│   ├── shared/    - StatusBadge, LoadingSpinner, EmptyState
+│   └── ui/        - shadcn components
+├── context/       - VersionContext, WhatsAppContext
+├── hooks/         - useVersion, useWhatsAppStatus
+└── pages/         - 8 page components
+```
 
-## Telegram Bot Commands (v1.1.0)
+### WhatsApp Service Structure (Express + WWebJS)
+```
+/app/whatsapp-service/
+├── index.js (entry point)
+└── src/
+    ├── app.js         - Express setup
+    ├── config/        - Environment config
+    ├── routes/        - Status, Message, Contacts, Session
+    ├── services/
+    │   ├── whatsapp/  - Client, Messaging, Contacts
+    │   └── session/   - Session management
+    ├── middleware/    - Error handler
+    └── utils/         - Logger, Phone utilities
+```
 
-| Command | Description |
-|---------|-------------|
-| `/help` | Show all commands |
-| `/status` | Check WhatsApp connection |
-| `/contacts` | List all contacts |
-| `/schedules` | List active schedules |
-| `/send <name> <message>` | Send message now |
-| `/create` | **NEW** Create schedule interactively |
-| `/cancel` | Cancel current operation |
-| `/logs` | Recent message history |
+## Implementation Status (Feb 2026)
 
-### Interactive Schedule Creation Flow
-1. `/create` → Select contact (1-15)
-2. Enter message text
-3. Select schedule type (Daily, Weekdays, Weekly, Monthly, Once)
-4. Enter time (HH:MM)
-5. Confirm with "yes"
+### Completed ✅
+- [x] Backend modularization (1967 → 83 lines server.py)
+- [x] Created 45+ backend modules with single responsibility
+- [x] Frontend API layer split into 11 domain-specific files
+- [x] Layout components (Sidebar, Layout) extracted
+- [x] Shared components (StatusBadge, LoadingSpinner, etc.)
+- [x] Custom hooks (useVersion, useWhatsAppStatus)
+- [x] React contexts (VersionContext, WhatsAppContext)
+- [x] WhatsApp service modularization
+- [x] All API endpoints tested and working (100% pass rate)
+- [x] Frontend-backend integration verified
 
-## Update System
+### Backlog / Future Enhancements
+- [ ] Add unit tests for services layer
+- [ ] Add E2E tests with Playwright
+- [ ] Extract more shared components from pages
+- [ ] Add TypeScript support
+- [ ] Add API documentation (Swagger/OpenAPI)
+- [ ] Implement lazy loading for routes
+- [ ] Add error boundary components
 
-### How Updates Work
-1. Compares local `version.json` with GitHub's `version.json`
-2. Uses semantic versioning (major.minor.patch) + build number
-3. Falls back to git SHA comparison if no version.json
+## Key Metrics
 
-### Commands
-- `./update.sh check` - Check for updates
-- `./update.sh install` - Install with confirmation
-- `./update.sh force` - Force update + restart
-- `./update.sh rollback` - Revert to backup
+| Area | Before | After |
+|------|--------|-------|
+| Backend server.py | 1967 lines | 83 lines |
+| Backend folders | 1 | 8 |
+| Backend files | 2 | 45+ |
+| Frontend App.js | 235 lines | 45 lines |
+| Frontend API files | 1 | 11 |
+| WhatsApp index.js | 533 lines | 20 lines |
 
-### Robustness Features
-- Lock file prevents concurrent updates
-- Auto-backup before update
-- Rollback on build failure
-- Rate limit handling for GitHub API
-
-## Files Reference
-- `/app/version.json` - Version info (bump this to release)
-- `/app/backend/server.py` - API + Telegram bot
-- `/app/update.sh` - Update script
-- `/app/.backup/` - Backup directory
-
-## Next Features (Backlog)
-- [ ] Message variables ({name}, {date})
-- [ ] Bulk messaging to groups
-- [ ] Delivery status tracking
-- [ ] AI message suggestions
-- [ ] Contact groups/tags
+## Testing Status
+- Backend: 100% endpoints working
+- Frontend: All pages loading correctly
+- Integration: Full communication verified
