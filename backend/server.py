@@ -943,16 +943,32 @@ async def check_for_updates():
             update_type = None
             
             if remote_version_info:
-                # Compare semantic versions
+                # Compare semantic versions properly
+                def parse_version(v):
+                    """Parse version string to tuple for proper comparison"""
+                    try:
+                        parts = v.split('.')
+                        return tuple(int(p) for p in parts[:3])
+                    except:
+                        return (0, 0, 0)
+                
                 local_ver = local_version.get("version", "0.0.0")
                 remote_ver = remote_version_info.get("version", "0.0.0")
                 local_build = local_version.get("build", 0)
                 remote_build = remote_version_info.get("build", 0)
                 
-                if remote_ver > local_ver:
+                local_tuple = parse_version(local_ver)
+                remote_tuple = parse_version(remote_ver)
+                
+                if remote_tuple > local_tuple:
                     has_update = True
-                    update_type = "major" if remote_ver.split('.')[0] > local_ver.split('.')[0] else "minor"
-                elif remote_ver == local_ver and remote_build > local_build:
+                    if remote_tuple[0] > local_tuple[0]:
+                        update_type = "major"
+                    elif remote_tuple[1] > local_tuple[1]:
+                        update_type = "minor"
+                    else:
+                        update_type = "patch"
+                elif remote_tuple == local_tuple and remote_build > local_build:
                     has_update = True
                     update_type = "patch"
             else:
