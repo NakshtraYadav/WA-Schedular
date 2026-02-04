@@ -187,7 +187,7 @@ export default function Diagnostics() {
 
   const clearLogs = async (service) => {
     try {
-      await api.post(`/diagnostics/clear-logs/${service}`);
+      await apiClient.post(`/api/diagnostics/clear-logs/${service}`);
       toast.success(`${service} logs cleared`);
       fetchServiceLogs(service);
       fetchLogsSummary();
