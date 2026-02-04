@@ -25,14 +25,18 @@ import {
   Trash2, 
   Users,
   Phone,
-  Send
+  Send,
+  RefreshCw,
+  Download,
+  Loader2
 } from 'lucide-react';
-import { getContacts, createContact, updateContact, deleteContact, sendMessageNow, getWhatsAppStatus } from '../lib/api';
+import { getContacts, createContact, updateContact, deleteContact, sendMessageNow, getWhatsAppStatus, syncWhatsAppContacts } from '../lib/api';
 import { toast } from 'sonner';
 
 function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
