@@ -130,14 +130,37 @@ function Scheduler() {
         scheduledTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         data.scheduled_time = scheduledTime.toISOString();
       } else {
-        const cronValue = selectedCronPreset === 'custom' ? customCron : selectedCronPreset;
-        if (!cronValue) {
+        if (!selectedCronPreset) {
           toast.error('Please select a schedule pattern');
           return;
         }
-        data.cron_expression = cronValue;
+        
         const preset = SCHEDULE_PRESETS.find(p => p.value === selectedCronPreset);
-        data.cron_description = preset?.description || 'Custom schedule';
+        let cronValue;
+        
+        if (selectedCronPreset === 'custom') {
+          cronValue = customCron;
+          if (!cronValue) {
+            toast.error('Please enter a cron expression');
+            return;
+          }
+        } else if (preset?.noTime) {
+          // Hourly presets don't need time customization
+          cronValue = preset.cron;
+        } else {
+          // Build cron with custom time
+          const [hours, minutes] = recurringTime.split(':');
+          cronValue = preset.cron.replace('{H}', hours).replace('0 {H}', `${minutes} ${hours}`);
+        }
+        
+        data.cron_expression = cronValue;
+        
+        // Build description with time
+        if (preset?.noTime || selectedCronPreset === 'custom') {
+          data.cron_description = preset?.description || 'Custom schedule';
+        } else {
+          data.cron_description = `${preset?.description} at ${recurringTime}`;
+        }
       }
 
       await createSchedule(data);
