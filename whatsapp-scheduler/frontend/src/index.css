@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Chivo:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code, .font-mono {
+    font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, monospace;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Chivo', sans-serif;
+}
+
+@layer base {
+    :root {
+        --background: 240 6% 4%;
+        --foreground: 0 0% 98%;
+        --card: 240 6% 7%;
+        --card-foreground: 0 0% 98%;
+        --popover: 240 6% 4%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 160 84% 39%;
+        --primary-foreground: 0 0% 0%;
+        --secondary: 240 4% 16%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 240 4% 16%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 240 4% 16%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 4% 16%;
+        --input: 240 4% 16%;
+        --ring: 160 84% 39%;
+        --chart-1: 160 84% 39%;
+        --chart-2: 199 89% 48%;
+        --chart-3: 43 96% 56%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+        --radius: 0.5rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* Status indicator glow */
+.status-dot-connected {
+    @apply h-2 w-2 rounded-full bg-emerald-500;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+}
+
+.status-dot-disconnected {
+    @apply h-2 w-2 rounded-full bg-red-500;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+}
+
+.status-dot-pending {
+    @apply h-2 w-2 rounded-full bg-amber-500;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Primary button glow */
+.btn-glow {
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-glow:hover {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+/* Card hover effect */
+.card-hover {
+    @apply transition-all duration-300;
+}
+
+.card-hover:hover {
+    @apply border-primary/50;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+}
+
+/* QR Code container */
+.qr-container {
+    @apply p-4 bg-white rounded-lg;
+}
+
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+}
