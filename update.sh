@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
-#  WA Scheduler - FAST Update Script v3.0
-#  Uses git pull for speed, only restarts what changed
+#  WA Scheduler - FAST Update Script v4.0
+#  Zero-downtime updates with hot reload support
 # ============================================================================
 
 RED='\033[0;31m'
@@ -23,7 +23,6 @@ log() {
     echo -e "$1"
 }
 
-# Check if git is available and repo is a git repo
 is_git_repo() {
     [ -d "$SCRIPT_DIR/.git" ] && command -v git &> /dev/null
 }
@@ -38,247 +37,260 @@ acquire_lock() {
         rm -f "$LOCK_FILE"
     fi
     echo $$ > "$LOCK_FILE"
-    return 0
 }
 
-release_lock() {
-    rm -f "$LOCK_FILE"
-}
-
-cleanup() {
-    release_lock
-}
+release_lock() { rm -f "$LOCK_FILE"; }
+cleanup() { release_lock; }
 trap cleanup EXIT
 
-# Fast check using git
-check_update_git() {
+# ============================================================================
+#  SPEED OPTIMIZATION 1: Check if hot reload is running
+# ============================================================================
+is_dev_mode() {
+    # Check if uvicorn is running with --reload
+    pgrep -f "uvicorn.*--reload" > /dev/null 2>&1
+}
+
+is_frontend_dev() {
+    # Check if react dev server is running (has hot reload built-in)
+    pgrep -f "react-scripts start" > /dev/null 2>&1
+}
+
+# ============================================================================
+#  SPEED OPTIMIZATION 2: Git pull only changed files
+# ============================================================================
+fast_git_update() {
     cd "$SCRIPT_DIR"
+    
+    log "${BLUE}[1/4] Fetching changes...${NC}"
     git fetch origin main --quiet 2>/dev/null
     
-    LOCAL=$(git rev-parse HEAD 2>/dev/null)
-    REMOTE=$(git rev-parse origin/main 2>/dev/null)
+    # Get changed files
+    CHANGED=$(git diff --name-only HEAD origin/main 2>/dev/null)
+    CHANGE_COUNT=$(echo "$CHANGED" | grep -c . || echo 0)
     
-    if [ "$LOCAL" = "$REMOTE" ]; then
-        return 1  # No update
-    else
-        return 0  # Update available
+    if [ "$CHANGE_COUNT" -eq 0 ]; then
+        log "${GREEN}Already up to date!${NC}"
+        return 0
     fi
-}
-
-# Get list of changed files
-get_changed_files() {
-    cd "$SCRIPT_DIR"
-    git diff --name-only HEAD origin/main 2>/dev/null
-}
-
-# Fast update using git pull
-fast_update() {
-    log "${BLUE}=== Fast Update (git pull) ===${NC}"
     
-    cd "$SCRIPT_DIR"
+    log "  $CHANGE_COUNT file(s) changed"
     
-    # Save current HEAD
-    OLD_HEAD=$(git rev-parse HEAD 2>/dev/null)
-    
-    # Get changed files BEFORE pull
-    CHANGED_FILES=$(get_changed_files)
-    
-    log "Changed files:"
-    echo "$CHANGED_FILES" | head -10
-    
-    # Stash any local changes
+    log "${BLUE}[2/4] Pulling changes...${NC}"
     git stash --quiet 2>/dev/null
-    
-    # Pull latest
-    log "${BLUE}Pulling latest changes...${NC}"
-    if ! git pull origin main --quiet 2>/dev/null; then
-        log "${RED}[!] Git pull failed${NC}"
-        git stash pop --quiet 2>/dev/null
-        return 1
-    fi
-    
-    # Save new version
+    git pull origin main --quiet 2>/dev/null
     git rev-parse HEAD > "$VERSION_FILE"
     
-    log "${GREEN}[OK] Code updated${NC}"
+    # Analyze what changed
+    BACKEND_CHANGED=$(echo "$CHANGED" | grep -c "^backend/" || echo 0)
+    FRONTEND_CHANGED=$(echo "$CHANGED" | grep -c "^frontend/src/" || echo 0)
+    PKG_CHANGED=$(echo "$CHANGED" | grep -c "package.json" || echo 0)
+    REQ_CHANGED=$(echo "$CHANGED" | grep -c "requirements.txt" || echo 0)
     
-    # Determine what needs restart
-    RESTART_BACKEND=false
-    RESTART_FRONTEND=false
-    RUN_NPM_INSTALL=false
-    RUN_PIP_INSTALL=false
+    log "${BLUE}[3/4] Installing dependencies (if needed)...${NC}"
     
-    if echo "$CHANGED_FILES" | grep -q "backend/"; then
-        RESTART_BACKEND=true
-        log "  → Backend changed"
+    if [ "$PKG_CHANGED" -gt 0 ]; then
+        log "  npm install..."
+        cd "$SCRIPT_DIR/frontend" && npm install --legacy-peer-deps --silent 2>/dev/null &
+        NPM_PID=$!
     fi
     
-    if echo "$CHANGED_FILES" | grep -q "frontend/src/\|frontend/public/"; then
-        RESTART_FRONTEND=true
-        log "  → Frontend changed"
-    fi
-    
-    if echo "$CHANGED_FILES" | grep -q "frontend/package.json"; then
-        RUN_NPM_INSTALL=true
-        log "  → package.json changed - need npm install"
-    fi
-    
-    if echo "$CHANGED_FILES" | grep -q "backend/requirements.txt"; then
-        RUN_PIP_INSTALL=true
-        log "  → requirements.txt changed - need pip install"
-    fi
-    
-    if echo "$CHANGED_FILES" | grep -q "whatsapp-service/"; then
-        log "  → WhatsApp service changed - restart required"
-    fi
-    
-    # Install dependencies only if needed
-    if [ "$RUN_NPM_INSTALL" = true ]; then
-        log "${BLUE}Installing npm dependencies...${NC}"
-        cd "$SCRIPT_DIR/frontend"
-        npm install --legacy-peer-deps --silent 2>/dev/null || yarn install --silent 2>/dev/null
-    fi
-    
-    if [ "$RUN_PIP_INSTALL" = true ]; then
-        log "${BLUE}Installing pip dependencies...${NC}"
+    if [ "$REQ_CHANGED" -gt 0 ]; then
+        log "  pip install..."
         cd "$SCRIPT_DIR/backend"
-        pip install -q -r requirements.txt 2>/dev/null
+        if [ -d "venv" ]; then
+            source venv/bin/activate
+            pip install -q -r requirements.txt 2>/dev/null &
+            PIP_PID=$!
+            deactivate
+        fi
     fi
     
-    # Smart restart
+    # Wait for installs
+    [ -n "$NPM_PID" ] && wait $NPM_PID
+    [ -n "$PIP_PID" ] && wait $PIP_PID
+    
+    log "${BLUE}[4/4] Restarting services...${NC}"
+    
+    # SPEED OPTIMIZATION 3: Hot reload detection
+    if is_dev_mode && [ "$BACKEND_CHANGED" -gt 0 ]; then
+        log "  ${GREEN}Backend: Hot reload will pick up changes automatically!${NC}"
+    elif [ "$BACKEND_CHANGED" -gt 0 ]; then
+        log "  Restarting backend..."
+        restart_backend_fast
+    fi
+    
+    if is_frontend_dev && [ "$FRONTEND_CHANGED" -gt 0 ]; then
+        log "  ${GREEN}Frontend: Hot reload will pick up changes automatically!${NC}"
+    elif [ "$FRONTEND_CHANGED" -gt 0 ]; then
+        log "  Restarting frontend..."
+        restart_frontend_fast
+    fi
+    
+    log "${GREEN}✓ Update complete!${NC}"
+}
+
+# ============================================================================
+#  SPEED OPTIMIZATION 4: Graceful restart (don't kill, signal reload)
+# ============================================================================
+restart_backend_fast() {
+    # Try graceful reload first (SIGHUP)
+    BACKEND_PID=$(cat "$SCRIPT_DIR/.backend.pid" 2>/dev/null)
+    
+    if [ -n "$BACKEND_PID" ] && ps -p "$BACKEND_PID" > /dev/null 2>&1; then
+        # Try to send reload signal
+        kill -HUP "$BACKEND_PID" 2>/dev/null
+        sleep 1
+        if ps -p "$BACKEND_PID" > /dev/null 2>&1; then
+            log "  ${GREEN}Backend reloaded gracefully${NC}"
+            return 0
+        fi
+    fi
+    
+    # Fallback: fast restart
+    pkill -f "uvicorn.*server:app" 2>/dev/null
+    sleep 1
+    
+    cd "$SCRIPT_DIR/backend"
+    if [ -d "venv" ]; then
+        source venv/bin/activate
+        nohup python3 -m uvicorn server:app --host 0.0.0.0 --port 8001 > /dev/null 2>&1 &
+        echo $! > "$SCRIPT_DIR/.backend.pid"
+        deactivate
+    else
+        nohup python3 -m uvicorn server:app --host 0.0.0.0 --port 8001 > /dev/null 2>&1 &
+        echo $! > "$SCRIPT_DIR/.backend.pid"
+    fi
+    log "  ${GREEN}Backend restarted${NC}"
+}
+
+restart_frontend_fast() {
+    # For dev server, just let hot reload handle it
+    if is_frontend_dev; then
+        log "  ${GREEN}Frontend dev server will hot reload${NC}"
+        return 0
+    fi
+    
+    # Production: rebuild needed
+    pkill -f "serve -s build" 2>/dev/null
+    cd "$SCRIPT_DIR/frontend"
+    npm run build --silent 2>/dev/null
+    nohup npx serve -s build -l 3000 > /dev/null 2>&1 &
+    log "  ${GREEN}Frontend rebuilt and restarted${NC}"
+}
+
+# ============================================================================
+#  SPEED OPTIMIZATION 5: Background pre-fetch
+# ============================================================================
+prefetch_update() {
+    log "${BLUE}Pre-fetching update in background...${NC}"
+    cd "$SCRIPT_DIR"
+    git fetch origin main --quiet 2>/dev/null &
+    log "${GREEN}Pre-fetch started. Run './update.sh apply' when ready.${NC}"
+}
+
+apply_prefetched() {
+    log "${BLUE}Applying pre-fetched update...${NC}"
     cd "$SCRIPT_DIR"
     
-    if [ "$RESTART_BACKEND" = true ] || [ "$RUN_PIP_INSTALL" = true ]; then
-        log "${BLUE}Restarting backend...${NC}"
-        if command -v supervisorctl &> /dev/null; then
-            supervisorctl restart backend 2>/dev/null
-        else
-            # Find and kill backend process
-            pkill -f "uvicorn.*server:app" 2>/dev/null || true
-            pkill -f "python.*server.py" 2>/dev/null || true
-            sleep 1
-            cd "$SCRIPT_DIR/backend"
-            if [ -d "venv" ]; then
-                source venv/bin/activate
-                python server.py &
-                deactivate
-            else
-                python server.py &
-            fi
-        fi
-        log "${GREEN}[OK] Backend restarted${NC}"
-    fi
+    git stash --quiet 2>/dev/null
+    git merge origin/main --quiet 2>/dev/null
+    git rev-parse HEAD > "$VERSION_FILE"
     
-    if [ "$RESTART_FRONTEND" = true ] || [ "$RUN_NPM_INSTALL" = true ]; then
-        log "${BLUE}Restarting frontend...${NC}"
-        if command -v supervisorctl &> /dev/null; then
-            supervisorctl restart frontend 2>/dev/null
-        else
-            # Kill and restart frontend
-            pkill -f "react-scripts start" 2>/dev/null || true
-            pkill -f "node.*start" 2>/dev/null || true
-            sleep 1
-            cd "$SCRIPT_DIR/frontend"
-            npm start &
-        fi
-        log "${YELLOW}Frontend restarting (may take 30-60s to compile)${NC}"
-    fi
+    # Quick restart
+    restart_backend_fast
     
-    # If nothing specific changed, assume full restart needed
-    if [ "$RESTART_BACKEND" = false ] && [ "$RESTART_FRONTEND" = false ]; then
-        log "${BLUE}No specific changes detected, doing full restart...${NC}"
-        ./stop.sh 2>/dev/null
-        sleep 2
-        ./start.sh &
-    fi
-    
-    log "${GREEN}=== Update Complete ===${NC}"
-    return 0
-}
-
-# Fallback: download zip (slower)
-full_update() {
-    log "${YELLOW}=== Full Update (ZIP download) ===${NC}"
-    log "This is slower. Consider using git clone for faster updates."
-    
-    # Use existing update logic
-    ./update.sh force
-}
-
-check_update() {
-    if is_git_repo; then
-        log "${BLUE}Checking for updates (git)...${NC}"
-        if check_update_git; then
-            CHANGED=$(get_changed_files | wc -l)
-            log "${GREEN}Update available! ($CHANGED files changed)${NC}"
-            return 0
-        else
-            log "${GREEN}Already up to date${NC}"
-            return 1
-        fi
-    else
-        log "${BLUE}Checking for updates (API)...${NC}"
-        # Fallback to version.json comparison
-        LOCAL_VER=$(grep '"version"' "$SCRIPT_DIR/version.json" 2>/dev/null | head -1 | cut -d'"' -f4)
-        REMOTE_VER=$(curl -s "https://raw.githubusercontent.com/NakshtraYadav/WA-Schedular/main/version.json" | grep '"version"' | head -1 | cut -d'"' -f4)
-        
-        if [ "$LOCAL_VER" != "$REMOTE_VER" ]; then
-            log "${GREEN}Update available: $LOCAL_VER -> $REMOTE_VER${NC}"
-            return 0
-        else
-            log "${GREEN}Already up to date ($LOCAL_VER)${NC}"
-            return 1
-        fi
-    fi
+    log "${GREEN}✓ Applied!${NC}"
 }
 
 # ============================================================================
 #  Main
 # ============================================================================
-
 case "${1:-check}" in
     check)
         echo ""
-        check_update
-        echo ""
-        ;;
-        
-    fast|pull)
-        echo ""
-        acquire_lock || exit 1
-        
-        if ! is_git_repo; then
-            log "${RED}[!] Not a git repository. Run: git clone https://github.com/NakshtraYadav/WA-Schedular.git${NC}"
-            log "Falling back to full update..."
-            full_update
-            exit $?
+        if is_git_repo; then
+            cd "$SCRIPT_DIR"
+            git fetch origin main --quiet 2>/dev/null
+            LOCAL=$(git rev-parse HEAD 2>/dev/null | cut -c1-7)
+            REMOTE=$(git rev-parse origin/main 2>/dev/null | cut -c1-7)
+            CHANGES=$(git diff --name-only HEAD origin/main 2>/dev/null | wc -l)
+            
+            if [ "$LOCAL" = "$REMOTE" ]; then
+                echo -e "${GREEN}✓ Up to date ($LOCAL)${NC}"
+            else
+                echo -e "${YELLOW}Update available: $LOCAL → $REMOTE ($CHANGES files)${NC}"
+                echo -e "Run: ${CYAN}./update.sh fast${NC}"
+            fi
+        else
+            echo "Not a git repo - use API to check"
         fi
-        
-        fast_update
         echo ""
         ;;
         
-    install|update)
+    fast|pull|install|update|force)
         echo ""
         acquire_lock || exit 1
+        
+        START_TIME=$(date +%s)
         
         if is_git_repo; then
-            fast_update
+            fast_git_update
         else
-            full_update
+            log "${YELLOW}Not a git repo. Converting...${NC}"
+            git init
+            git remote add origin https://github.com/NakshtraYadav/WA-Schedular.git
+            git fetch origin main
+            git reset --hard origin/main
+            fast_git_update
         fi
+        
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - START_TIME))
+        log "⏱️  Total time: ${DURATION}s"
         echo ""
         ;;
         
-    force)
-        echo ""
-        acquire_lock || exit 1
+    prefetch)
+        prefetch_update
+        ;;
         
-        if is_git_repo; then
-            fast_update
+    apply)
+        acquire_lock || exit 1
+        apply_prefetched
+        ;;
+        
+    dev)
+        echo ""
+        echo -e "${BLUE}Starting in DEVELOPMENT mode (hot reload enabled)...${NC}"
+        echo ""
+        
+        # Kill existing
+        pkill -f "uvicorn.*server:app" 2>/dev/null
+        pkill -f "react-scripts start" 2>/dev/null
+        sleep 2
+        
+        # Start backend with hot reload
+        cd "$SCRIPT_DIR/backend"
+        if [ -d "venv" ]; then
+            source venv/bin/activate
+            nohup python3 -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload > "$SCRIPT_DIR/logs/backend-dev.log" 2>&1 &
+            deactivate
         else
-            full_update
+            nohup python3 -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload > "$SCRIPT_DIR/logs/backend-dev.log" 2>&1 &
         fi
+        echo -e "${GREEN}✓ Backend started with hot reload${NC}"
+        
+        # Start frontend (already has hot reload)
+        cd "$SCRIPT_DIR/frontend"
+        nohup npm start > "$SCRIPT_DIR/logs/frontend-dev.log" 2>&1 &
+        echo -e "${GREEN}✓ Frontend started with hot reload${NC}"
+        
+        echo ""
+        echo -e "${GREEN}Development mode active!${NC}"
+        echo "  - Backend changes: Auto-reload in ~1-2s"
+        echo "  - Frontend changes: Auto-reload in ~2-5s"
+        echo "  - No manual restart needed for code changes"
         echo ""
         ;;
         
@@ -286,16 +298,19 @@ case "${1:-check}" in
         echo ""
         echo "Usage: ./update.sh [command]"
         echo ""
-        echo "Commands:"
-        echo "  check   - Check for updates"
-        echo "  fast    - Fast update using git pull (recommended)"
-        echo "  install - Smart update (git if available, zip fallback)"
-        echo "  force   - Force update"
+        echo "Update Commands:"
+        echo "  check    - Check for updates"
+        echo "  fast     - Fast update with git pull (~10-30s)"
+        echo "  prefetch - Download update in background"
+        echo "  apply    - Apply pre-fetched update (~5s)"
         echo ""
-        echo "Tips for faster updates:"
-        echo "  1. Use 'git clone' to set up the repo"
-        echo "  2. Use './update.sh fast' for incremental updates"
-        echo "  3. Only changed services will restart"
+        echo "Development:"
+        echo "  dev      - Start with HOT RELOAD (instant updates)"
+        echo ""
+        echo -e "${CYAN}Speed Tips:${NC}"
+        echo "  1. Use './update.sh dev' for development (instant reload)"
+        echo "  2. Use './update.sh prefetch' then 'apply' for zero-downtime"
+        echo "  3. Git repo = fast updates, ZIP = slow updates"
         echo ""
         ;;
 esac
