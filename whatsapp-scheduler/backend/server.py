@@ -1171,6 +1171,12 @@ async def startup():
                         )
                 except Exception as e:
                     logger.warning(f"Failed to reload schedule {schedule['id']}: {e}")
+                    
+            # Start Telegram bot if enabled
+            settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+            if settings and settings.get('telegram_enabled') and settings.get('telegram_token'):
+                await start_telegram_bot()
+                
         except Exception as e:
             logger.warning(f"Could not reload schedules: {e}")
 
