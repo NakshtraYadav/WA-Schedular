@@ -11,107 +11,132 @@ Harden, fix, and fully automate a WhatsApp Scheduler project to run flawlessly o
 
 ## What's Been Implemented
 
-### December 2025 - WhatsApp Service Fix (P0 Complete)
+### December 2025 - Latest Updates
 
-**Issue:** WhatsApp service was failing with outdated dependencies (`whatsapp-web.js@1.23.0` + `puppeteer@21.5.0`)
+#### 1. WhatsApp Service Fix (P0 Complete) ✅
+**Issue:** WhatsApp service was failing with outdated dependencies
 
-**Solution:** Updated to latest stable version based on official documentation:
-- **`whatsapp-web.js@1.34.6`** (latest stable as of Dec 2025)
-- **Removed explicit puppeteer dependency** - now bundled automatically by whatsapp-web.js
-- **Updated index.js** with official recommended configuration:
-  - Proper LocalAuth strategy with clientId
-  - Correct puppeteer args for Windows compatibility
-  - Events set up BEFORE initialize() (critical for v1.34.x)
-  - Better error handling and logging
-  - Version display in status endpoint
+**Solution:** Updated to latest stable version:
+- **`whatsapp-web.js@1.34.6`** (latest stable)
+- Removed explicit puppeteer dependency (now bundled automatically)
+- Updated index.js with official v1.34.x patterns
+- Better error handling and logging
 
 **Files Changed:**
-- `/whatsapp-service/package.json` - Updated to v3.0.0 with correct dependencies
-- `/whatsapp-service/index.js` - Complete rewrite with official v1.34.x patterns
-- `/scripts/reinstall-whatsapp.bat` - Updated for clean install of v1.34.6
-- `/setup.bat` - Updated WhatsApp service section with version info
-- `/start.bat` - Updated display header for WhatsApp service
+- `/whatsapp-service/package.json` - Updated to v3.0.0
+- `/whatsapp-service/index.js` - Complete rewrite
+- `/scripts/reinstall-whatsapp.bat` - Updated for v1.34.6
 
-### Previous Implementation (Feb 2026)
+#### 2. Web-Based Diagnostics Dashboard (NEW) ✅
+**Feature:** Real-time monitoring without multiple command windows
 
-#### Core Scripts Created:
-1. **setup.bat** - Production setup with:
-   - Auto-detect Node.js, Python, MongoDB
-   - Dependency installation with retry logic
-   - Environment file auto-creation
-   - Port validation and cleanup
+**Backend Endpoints Added:**
+- `GET /api/diagnostics` - Full system diagnostics (CPU, memory, service status)
+- `GET /api/diagnostics/logs/{service}` - Read logs for backend/frontend/whatsapp/system
+- `GET /api/diagnostics/logs` - Get summary of all log files
+- `POST /api/diagnostics/clear-logs/{service}` - Clear logs
+- `POST /api/whatsapp/retry` - Retry WhatsApp initialization
+- `POST /api/whatsapp/clear-session` - Clear session and restart
+- `GET /api/whatsapp/test-browser` - Test browser launch
 
-2. **start.bat** - Production start with:
-   - Sequential service startup (MongoDB → WhatsApp → Backend → Frontend)
-   - Health checks with retry logic
-   - Dashboard status display
-   - Built-in watchdog monitoring
-   - Browser auto-launch
+**Frontend Page:**
+- `/diagnostics` - New diagnostics page with:
+  - Real-time service status cards (WhatsApp, Backend, MongoDB)
+  - System metrics (CPU, Memory, Platform)
+  - Live log viewer for all services
+  - WhatsApp actions (Retry, Clear Session, Test Browser)
+  - Log management (view, clear)
+  - Auto-refresh toggle
 
-3. **stop.bat** - Graceful shutdown with:
-   - Process termination by window title
-   - Port cleanup
-   - Orphan process detection via WMIC
-   - Verification of clean shutdown
+**Files Created:**
+- `/frontend/src/pages/Diagnostics.jsx` - Diagnostics dashboard
+- `/launch.bat` - Silent background launcher
 
-4. **restart.bat** - Clean restart with port verification
+**Files Modified:**
+- `/frontend/src/App.js` - Added Diagnostics route
+- `/frontend/src/lib/api.js` - Added diagnostic API functions
+- `/backend/server.py` - Added diagnostic endpoints
+- `/backend/requirements.txt` - Added psutil
 
-5. **health-check.bat** - Full diagnostics
+#### 3. Single-Window Background Launcher (NEW) ✅
+**Feature:** Run all services in background without extra windows
 
-6. **watchdog.bat** - Self-healing monitor
+**New Script:** `launch.bat`
+- Uses PowerShell `Start-Process -WindowStyle Hidden` 
+- All services run silently in background
+- Logs saved to `logs/` directory
+- Opens dashboard automatically
+- No more multiple command windows!
 
-#### Utility Scripts (scripts/ folder):
-- **reinstall-whatsapp.bat** - Full reinstall with v1.34.6
-- **fix-whatsapp.bat** - Session clearing
-- **diagnose-whatsapp.bat** - Diagnostic tool
-- **rotate-logs.bat** - Log cleanup (7-day retention)
-- **install-task.bat** - Windows Task Scheduler auto-start
-- **uninstall-task.bat** - Remove auto-start
+**Modified:** `stop.bat`
+- Added handling for react-scripts processes
+- Added pythonw.exe cleanup for background processes
 
-#### Directory Structure:
+### Directory Structure:
 ```
 whatsapp-scheduler/
 ├── backend/           # FastAPI Python backend
-├── frontend/          # React frontend
+├── frontend/          # React frontend with Diagnostics page
 ├── whatsapp-service/  # Node.js WhatsApp service (v3.0.0)
 ├── logs/
-│   ├── backend/
-│   ├── frontend/
-│   ├── whatsapp/
-│   └── system/
+│   ├── backend/       # Backend API logs
+│   ├── frontend/      # React compilation logs
+│   ├── whatsapp/      # WhatsApp service logs
+│   └── system/        # Setup/stop/start logs
 ├── scripts/           # Utility scripts
+├── launch.bat         # ⭐ NEW: Silent background launcher
 ├── setup.bat          # One-command setup
-├── start.bat          # One-command start
-├── stop.bat           # One-command stop
-└── restart.bat        # One-command restart
+├── start.bat          # Traditional start (with windows)
+├── stop.bat           # Stop all services
+└── restart.bat        # Restart services
+```
+
+## How to Use
+
+### Option 1: Silent Background Mode (Recommended)
+```batch
+launch.bat
+```
+- All services start in background
+- No extra command windows
+- Monitor via http://localhost:3000/diagnostics
+
+### Option 2: Traditional Mode (with windows)
+```batch
+start.bat
+```
+- Services start in separate windows
+- Built-in watchdog monitoring
+
+### Stopping Services
+```batch
+stop.bat
 ```
 
 ## Key Features
-- Zero manual intervention required
-- Self-healing with auto-restart
-- Structured, timestamped logging
-- Windows 10/11 optimized
-- Port conflict resolution
-- MongoDB service detection and auto-start
-- Latest whatsapp-web.js@1.34.6
+- ✅ Zero manual intervention required
+- ✅ Single-window operation (launch.bat)
+- ✅ Web-based diagnostics dashboard
+- ✅ Real-time log viewing
+- ✅ Self-healing with auto-restart
+- ✅ Structured, timestamped logging
+- ✅ Windows 10/11 optimized
+- ✅ Latest whatsapp-web.js@1.34.6
 
 ## Next Steps / Backlog
 
 ### P0 (Completed)
 - ✅ Fix WhatsApp service with correct dependencies
+- ✅ Web-based diagnostics dashboard
+- ✅ Single-window launcher
 
-### P1 (Pending)
-- Review and fix PowerShell scripts (execution policy issues)
-- Full system validation testing on Windows
+### P1 (User Testing Required)
+- Test launch.bat on Windows
+- Verify QR code generation and WhatsApp connection
+- Test full workflow: setup → launch → connect → send message
 
 ### P2 (Future)
-- Add email notification for critical failures
-- Implement log rotation in watchdog
-- Add Prometheus metrics endpoint
-- Create Windows service wrapper
-- Add backup/restore for MongoDB data
-
-## Testing Notes
-- WhatsApp service tested successfully in container (health/status endpoints working)
-- Browser initialization error in Linux container is expected (ARM architecture mismatch)
-- Service will work correctly on Windows with Chrome/Edge installed
+- Add email/Telegram notifications for critical failures
+- Windows service wrapper for auto-start on boot
+- Backup/restore for MongoDB data
+- Remove/fix PowerShell scripts (.ps1 files)
