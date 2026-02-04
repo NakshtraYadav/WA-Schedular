@@ -391,6 +391,130 @@ function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Updates Card */}
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                <Download className="w-5 h-5 text-green-500" />
+              </div>
+              <div>
+                <CardTitle className="font-heading text-lg">Updates</CardTitle>
+                <CardDescription>Keep your WA Scheduler up to date</CardDescription>
+              </div>
+            </div>
+            {updateInfo?.has_update && (
+              <Badge className="bg-green-500">Update Available</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Version Info */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-lg bg-secondary/30">
+              <p className="text-xs text-muted-foreground mb-1">Current Version</p>
+              <p className="font-mono font-semibold">
+                {updateInfo?.local_version === 'none' ? 'Not tracked' : updateInfo?.local_version || '...'}
+              </p>
+            </div>
+            <div className="p-4 rounded-lg bg-secondary/30">
+              <p className="text-xs text-muted-foreground mb-1">Latest Version</p>
+              <p className="font-mono font-semibold text-primary">{updateInfo?.remote_version || '...'}</p>
+              {updateInfo?.remote_message && (
+                <p className="text-xs text-muted-foreground mt-1 truncate" title={updateInfo.remote_message}>
+                  {updateInfo.remote_message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Update Actions */}
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={handleCheckUpdate}
+              disabled={checkingUpdate}
+            >
+              {checkingUpdate ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              Check for Updates
+            </Button>
+            
+            {updateInfo?.has_update && (
+              <Button 
+                onClick={handleInstallUpdate}
+                disabled={installingUpdate}
+                className="btn-glow"
+              >
+                {installingUpdate ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                Install Update
+              </Button>
+            )}
+            
+            <a 
+              href={`https://github.com/${updateInfo?.repo || 'NakshtraYadav/WA-Schedular'}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="ghost">
+                <Github className="w-4 h-4 mr-2" />
+                View on GitHub
+              </Button>
+            </a>
+          </div>
+
+          {/* Auto-Updater */}
+          <div className="p-4 rounded-lg bg-secondary/30 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Auto-Updater</h4>
+                <p className="text-sm text-muted-foreground">Automatically check for updates every 30 minutes</p>
+              </div>
+              <Badge variant={autoUpdaterStatus?.is_running ? "default" : "secondary"}>
+                {autoUpdaterStatus?.is_running ? (
+                  <><CheckCircle className="w-3 h-3 mr-1" /> Running</>
+                ) : (
+                  <><XCircle className="w-3 h-3 mr-1" /> Stopped</>
+                )}
+              </Badge>
+            </div>
+            
+            <div className="flex gap-2">
+              {autoUpdaterStatus?.is_running ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleAutoUpdaterControl('stop')}
+                >
+                  <Square className="w-4 h-4 mr-2" />
+                  Stop Auto-Updater
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleAutoUpdaterControl('start')}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Start Auto-Updater
+                </Button>
+              )}
+            </div>
+            
+            {autoUpdaterStatus?.recent_logs?.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground mb-2">Recent activity:</p>
+                <div className="bg-zinc-950 rounded p-3 font-mono text-xs max-h-32 overflow-y-auto">
+                  {autoUpdaterStatus.recent_logs.map((log, i) => (
+                    <div key={i} className="text-zinc-400">{log}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="font-heading text-lg flex items-center gap-2">
@@ -400,7 +524,7 @@ function SettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p><strong className="text-foreground">WA Scheduler</strong> v3.0</p>
+            <p><strong className="text-foreground">WA Scheduler</strong> v3.1</p>
             <p>A local tool for scheduling WhatsApp messages with Telegram remote control.</p>
             <p className="text-xs mt-4">
               Note: WhatsApp Web automation should be used responsibly. 
