@@ -166,7 +166,7 @@ export default function Diagnostics() {
 
   const fetchLogsSummary = useCallback(async () => {
     try {
-      const response = await api.get('/diagnostics/logs');
+      const response = await apiClient.get('/api/diagnostics/logs');
       setLogsSummary(response.data);
     } catch (error) {
       console.error('Failed to fetch logs summary:', error);
