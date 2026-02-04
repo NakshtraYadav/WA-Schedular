@@ -1,10 +1,22 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 2,
+  "build": 3,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-02-04",
+      "changes": [
+        "Fixed update loop issue - frontend no longer gets stuck",
+        "Added /contacts endpoint to WhatsApp service for sync",
+        "Fixed WhatsApp session persistence on restart",
+        "Update now runs detached - survives backend restart",
+        "Added Telegram /create command for interactive scheduling",
+        "Improved update script with proper service stop/start"
+      ]
+    },
     {
       "version": "1.1.0",
       "date": "2026-02-04",
