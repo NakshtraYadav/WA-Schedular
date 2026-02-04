@@ -71,10 +71,50 @@ Open the Connect page and scan the QR code with your WhatsApp mobile app.
 |--------|-------------|
 | `./setup.sh` | Full installation from scratch |
 | `./start.sh` | Start all services |
+| `./start.sh -a` | Start with auto-updater enabled |
 | `./stop.sh` | Stop all services |
 | `./status.sh` | Check service status |
 | `./logs.sh` | View service logs |
+| `./update.sh` | Check and install updates |
+| `./auto-updater.sh` | Control auto-update daemon |
 | `./fix-whatsapp.sh` | Clear WhatsApp session and restart |
+
+## Auto-Updates
+
+WA Scheduler can automatically check for updates from GitHub every 30 minutes.
+
+### Enable Auto-Updates
+
+**Option 1:** Start with auto-updater
+```bash
+./start.sh --auto-update
+```
+
+**Option 2:** Start auto-updater separately
+```bash
+./auto-updater.sh start
+```
+
+### Manual Update
+```bash
+# Check for updates
+./update.sh check
+
+# Install update
+./update.sh install
+
+# Force update and restart
+./update.sh force
+```
+
+### Control Auto-Updater
+```bash
+./auto-updater.sh start    # Start daemon
+./auto-updater.sh stop     # Stop daemon
+./auto-updater.sh status   # Check status
+```
+
+You can also control updates from the **Settings** page in the web dashboard.
 
 ## Telegram Bot Setup
 
