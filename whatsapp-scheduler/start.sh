@@ -216,7 +216,16 @@ echo "  Logs: $LOG_DIR/"
 echo ""
 echo -e "${BLUE}============================================================================${NC}"
 echo ""
+
+# Start auto-updater if requested
+if [[ "$1" == "--auto-update" ]] || [[ "$1" == "-a" ]]; then
+    echo "  Starting auto-updater daemon..."
+    "$SCRIPT_DIR/auto-updater.sh" start
+    echo ""
+fi
+
 echo "  To stop all services: ./stop.sh"
+echo "  To enable auto-updates: ./start.sh --auto-update"
 echo ""
 
 # Try to open browser (works in WSL with Windows browser)
