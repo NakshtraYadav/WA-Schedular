@@ -45,6 +45,7 @@ function VersionProvider({ children }) {
   const [versionInfo, setVersionInfo] = useState(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
+  const [initialized, setInitialized] = useState(false);
 
   const checkVersion = useCallback(async () => {
     try {
@@ -57,6 +58,20 @@ function VersionProvider({ children }) {
       
       if (updateRes.data?.has_update) {
         setUpdateAvailable(true);
+      }
+      return updateRes.data?.has_update;
+    } catch (e) {
+      console.error("Failed to check version:", e);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    
+    const init = async () => {
+      const hasUpdate = await checkVersion();
+      if (mounted && hasUpdate && !initialized) {
         toast.info("Update available! Go to Settings to install.", {
           duration: 5000,
           action: {
@@ -65,17 +80,18 @@ function VersionProvider({ children }) {
           }
         });
       }
-    } catch (e) {
-      console.error("Failed to check version:", e);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkVersion();
+      if (mounted) setInitialized(true);
+    };
+    
+    init();
+    
     // Check every 30 minutes
     const interval = setInterval(checkVersion, 30 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [checkVersion]);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [checkVersion, initialized]);
 
   return (
     <VersionContext.Provider value={{ versionInfo, updateAvailable, updateInfo, checkVersion }}>
