@@ -62,19 +62,6 @@ function Connect() {
     }
   };
 
-  const handleSimulateConnect = async () => {
-    setConnecting(true);
-    try {
-      await simulateConnect();
-      toast.success('WhatsApp connected (simulation mode)');
-      fetchStatus();
-    } catch (error) {
-      toast.error('Failed to connect');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
   const handleClearSession = async () => {
     if (!window.confirm('This will clear the WhatsApp session. You will need to scan the QR code again. Continue?')) {
       return;
