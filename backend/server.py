@@ -1152,6 +1152,7 @@ async def get_app_version():
         "version": version_info.get("version", "1.0.0"),
         "build": version_info.get("build", 1),
         "name": version_info.get("name", "WhatsApp Scheduler"),
+        "app_name": version_info.get("name", "WhatsApp Scheduler"),
         "release_date": version_info.get("release_date", "unknown"),
         "git_sha": git_sha,
         "repository": version_info.get("repository"),
