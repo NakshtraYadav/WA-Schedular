@@ -76,3 +76,7 @@ htmlcov/
 # Windows files (not needed for Linux)
 *.bat
 *.ps1
+-e 
+# Environment files
+*.env
+*.env.*
