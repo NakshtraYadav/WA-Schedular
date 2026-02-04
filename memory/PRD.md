@@ -72,6 +72,28 @@ Harden, fix, and fully automate a WhatsApp Scheduler project to run flawlessly o
 - Added handling for react-scripts processes
 - Added pythonw.exe cleanup for background processes
 
+#### 4. Windows 11 Compatibility Fix ✅
+**Issue:** `wmic` command not recognized (deprecated in Windows 11)
+
+**Solution:** Replaced all WMIC commands with PowerShell equivalents:
+- Timestamp generation: `powershell -Command "Get-Date -Format 'yyyyMMdd_HHmmss'"`
+- Process lookup: `powershell -Command "Get-Process node | Where-Object {...}"`
+
+**Files Updated:**
+- `setup.bat` - PowerShell timestamp
+- `start.bat` - PowerShell timestamp  
+- `stop.bat` - PowerShell timestamp + process lookup
+- `launch.bat` - PowerShell timestamp
+- `scripts/diagnose.bat` - PowerShell timestamp
+- `scripts/fix-whatsapp.bat` - PowerShell process lookup
+
+#### 5. NPM Progress Indicator Fix ✅
+**Issue:** Setup appeared stuck with no feedback during 200MB download
+
+**Solution:** Removed output suppression and added `--progress` flag:
+- `setup.bat` - Shows npm install progress
+- `scripts/reinstall-whatsapp.bat` - Shows npm install progress
+
 ### Directory Structure:
 ```
 whatsapp-scheduler/
