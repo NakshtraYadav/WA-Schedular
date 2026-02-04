@@ -549,17 +549,6 @@ function SettingsPage() {
                 </Button>
               )}
             </div>
-            
-            {autoUpdaterStatus?.recent_logs?.length > 0 && (
-              <div className="mt-3">
-                <p className="text-xs text-muted-foreground mb-2">Recent activity:</p>
-                <div className="bg-zinc-950 rounded p-3 font-mono text-xs max-h-32 overflow-y-auto">
-                  {autoUpdaterStatus.recent_logs.map((log, i) => (
-                    <div key={i} className="text-zinc-400">{log}</div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
