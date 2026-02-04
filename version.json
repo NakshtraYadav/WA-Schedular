@@ -1,29 +1,28 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 6,
+  "build": 7,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "1.6.0",
+      "date": "2026-02-04",
+      "changes": [
+        "HOT RELOAD: ./update.sh dev - instant code updates without restart",
+        "PREFETCH: Download updates in background, apply instantly",
+        "GRACEFUL RESTART: Backend reloads without dropping connections",
+        "PARALLEL INSTALLS: npm & pip run simultaneously",
+        "AUTO-DETECT: Skips restart if hot reload is active",
+        "Shows total update time"
+      ]
+    },
     {
       "version": "1.5.0",
       "date": "2026-02-04",
       "changes": [
-        "FAST UPDATES: Uses git pull instead of ZIP download (10-30s vs 2-3min)",
-        "Smart restart: Only restarts services that have changes",
-        "Skip npm install if package.json unchanged",
-        "Skip pip install if requirements.txt unchanged",
-        "Added update method indicator (git_pull vs zip_download)",
-        "Shows estimated update time"
-      ]
-    },
-    {
-      "version": "1.4.0",
-      "date": "2026-02-04",
-      "changes": [
-        "Fixed update check not detecting new versions (cache-busting)",
-        "Added logging for update check debugging",
-        "Added /api/updates/debug endpoint"
+        "Fast updates using git pull (10-30s vs 2-3min)",
+        "Smart restart: Only restarts changed services"
       ]
     },
     {
