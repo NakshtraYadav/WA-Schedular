@@ -282,7 +282,9 @@ echo  --------------------------------------------------------------------------
 echo.
 
 echo   [..] Setting up WhatsApp service...
-echo   [i] This may take 3-5 minutes (downloads ~200MB)...
+echo   [i] This downloads whatsapp-web.js + puppeteer + Chromium (~200MB)
+echo   [i] Progress will be shown below:
+echo.
 
 pushd "%SCRIPT_DIR%\whatsapp-service"
 
@@ -292,13 +294,24 @@ if exist "package-lock.json" del package-lock.json 2>nul
 
 REM Always clean install to ensure latest version
 if not exist "node_modules\whatsapp-web.js" (
-    echo   [..] Installing whatsapp-web.js@1.34.6 from npm registry...
+    echo   ---------------------------------------------------------------------------
+    echo   [i] Starting npm install - watch progress below:
+    echo   ---------------------------------------------------------------------------
+    echo.
+    
+    REM Clean npm cache first
     call npm cache clean --force >nul 2>&1
-    call npm install --registry https://registry.npmjs.org/ 2>nul
+    
+    REM Run npm install WITH visible progress (not suppressed)
+    call npm install --registry https://registry.npmjs.org/ --progress
+    
     if !errorLevel! neq 0 (
+        echo.
         echo   [!] First attempt had issues, retrying with --legacy-peer-deps...
-        call npm install --legacy-peer-deps --registry https://registry.npmjs.org/ 2>nul
+        call npm install --legacy-peer-deps --registry https://registry.npmjs.org/ --progress
     )
+    echo.
+    echo   ---------------------------------------------------------------------------
 ) else (
     echo   [OK] WhatsApp dependencies already installed
 )
