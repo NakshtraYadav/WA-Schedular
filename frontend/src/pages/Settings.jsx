@@ -187,7 +187,7 @@ function SettingsPage() {
       await updateSettings(settings);
       
       // Then test
-      const response = await api.post('/telegram/test');
+      const response = await apiClient.post('/api/telegram/test');
       const result = response.data;
       
       if (result.success) {
