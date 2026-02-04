@@ -70,7 +70,7 @@ function Sidebar() {
         })}
       </nav>
       
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-2">
         <NavLink
           to="/connect"
           data-testid="nav-connect"
@@ -82,6 +82,18 @@ function Sidebar() {
         >
           <Radio className="w-5 h-5" />
           <span className="font-medium">WhatsApp Status</span>
+        </NavLink>
+        <NavLink
+          to="/diagnostics"
+          data-testid="nav-diagnostics"
+          className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
+            isActive
+              ? "bg-orange-500 text-white"
+              : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+          }`}
+        >
+          <Activity className="w-5 h-5" />
+          <span className="font-medium">Diagnostics</span>
         </NavLink>
       </div>
     </aside>
