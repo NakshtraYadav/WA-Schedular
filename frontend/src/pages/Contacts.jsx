@@ -63,6 +63,33 @@ function Contacts() {
     fetchContacts();
   }, [fetchContacts]);
 
+  const handleSyncContacts = async () => {
+    if (!waConnected) {
+      toast.error('WhatsApp is not connected. Please connect first.');
+      return;
+    }
+    
+    setSyncing(true);
+    const toastId = toast.loading('Syncing WhatsApp contacts...');
+    
+    try {
+      const res = await syncWhatsAppContacts();
+      toast.dismiss(toastId);
+      
+      if (res.data.success) {
+        toast.success(res.data.message || `Imported ${res.data.imported} contacts`);
+        fetchContacts();
+      } else {
+        toast.error(res.data.error || 'Failed to sync contacts');
+      }
+    } catch (error) {
+      toast.dismiss(toastId);
+      toast.error('Failed to sync contacts');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
