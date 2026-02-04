@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================================
 REM  WhatsApp Scheduler - Production Stop Script for Windows 10/11
-REM  Version: 2.1 | Fixed path handling for spaces
+REM  Version: 3.0 | Uses PowerShell instead of deprecated WMIC
 REM ============================================================================
 setlocal enabledelayedexpansion
 
@@ -17,8 +17,8 @@ if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
 set "LOG_DIR=%SCRIPT_DIR%\logs\system"
 
-for /f "tokens=2 delims==" %%a in ('wmic os get localdatetime /value') do set "dt=%%a"
-set "TIMESTAMP=%dt:~0,8%_%dt:~8,6%"
+REM Get timestamp using PowerShell (WMIC is deprecated in Windows 11)
+for /f %%a in ('powershell -Command "Get-Date -Format \"yyyyMMdd_HHmmss\""') do set "TIMESTAMP=%%a"
 set "STOP_LOG=%LOG_DIR%\stop_%TIMESTAMP%.log"
 
 REM Service ports
@@ -74,40 +74,32 @@ echo    [OK] All ports cleared
 echo.
 
 REM ============================================================================
-REM  STOP ORPHAN PROCESSES
+REM  STOP ORPHAN PROCESSES (Using PowerShell instead of WMIC)
 REM ============================================================================
 echo    [3/4] Cleaning up orphan processes...
 
-REM Kill orphan node processes (whatsapp service and any npm)
-for /f "skip=1 tokens=2" %%a in ('wmic process where "name='node.exe' and commandline like '%%whatsapp%%'" get processid 2^>nul') do (
-    if "%%a" neq "" (
-        taskkill /F /PID %%a >nul 2>&1
-        echo          Orphan node stopped (PID: %%a^)
-    )
+REM Kill orphan node processes (whatsapp service)
+for /f %%a in ('powershell -Command "Get-Process node -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '*whatsapp*'} | Select-Object -ExpandProperty Id"') do (
+    taskkill /F /PID %%a >nul 2>&1
+    echo          WhatsApp node stopped (PID: %%a^)
 )
 
-REM Kill any node processes related to our frontend
-for /f "skip=1 tokens=2" %%a in ('wmic process where "name='node.exe' and commandline like '%%react-scripts%%'" get processid 2^>nul') do (
-    if "%%a" neq "" (
-        taskkill /F /PID %%a >nul 2>&1
-        echo          Frontend node stopped (PID: %%a^)
-    )
+REM Kill any node processes related to frontend (react-scripts)
+for /f %%a in ('powershell -Command "Get-Process node -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '*react-scripts*'} | Select-Object -ExpandProperty Id"') do (
+    taskkill /F /PID %%a >nul 2>&1
+    echo          Frontend node stopped (PID: %%a^)
 )
 
 REM Kill orphan python uvicorn processes
-for /f "skip=1 tokens=2" %%a in ('wmic process where "name='python.exe' and commandline like '%%uvicorn%%server%%'" get processid 2^>nul') do (
-    if "%%a" neq "" (
-        taskkill /F /PID %%a >nul 2>&1
-        echo          Orphan python stopped (PID: %%a^)
-    )
+for /f %%a in ('powershell -Command "Get-Process python -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '*uvicorn*server*'} | Select-Object -ExpandProperty Id"') do (
+    taskkill /F /PID %%a >nul 2>&1
+    echo          Backend python stopped (PID: %%a^)
 )
 
 REM Also check pythonw.exe (windowless python)
-for /f "skip=1 tokens=2" %%a in ('wmic process where "name='pythonw.exe' and commandline like '%%uvicorn%%'" get processid 2^>nul') do (
-    if "%%a" neq "" (
-        taskkill /F /PID %%a >nul 2>&1
-        echo          Orphan pythonw stopped (PID: %%a^)
-    )
+for /f %%a in ('powershell -Command "Get-Process pythonw -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '*uvicorn*'} | Select-Object -ExpandProperty Id"') do (
+    taskkill /F /PID %%a >nul 2>&1
+    echo          Backend pythonw stopped (PID: %%a^)
 )
 
 echo    [OK] Orphan processes cleaned
@@ -143,7 +135,7 @@ echo   =========================================================================
 echo                        ALL SERVICES STOPPED
 echo   ===========================================================================
 echo.
-echo    To start services again, run: start.bat
+echo    To start services again, run: start.bat or launch.bat
 echo.
 echo   ===========================================================================
 echo.
