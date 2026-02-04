@@ -1003,19 +1003,36 @@ async def control_auto_updater(action: str):
         return {"success": False, "error": "auto-updater.sh not found"}
     
     try:
-        result = subprocess.run(
-            ["bash", str(script), action],
-            cwd=str(ROOT_DIR.parent),
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        return {
-            "success": result.returncode == 0,
-            "output": result.stdout.strip(),
-            "error": result.stderr.strip() if result.returncode != 0 else None
-        }
+        if action == "start":
+            # Run start in background using nohup
+            process = subprocess.Popen(
+                ["nohup", "bash", str(script), "start"],
+                cwd=str(ROOT_DIR.parent),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True
+            )
+            return {
+                "success": True,
+                "output": "Auto-updater starting in background...",
+                "pid": process.pid
+            }
+        else:
+            # Stop and restart can complete quickly
+            result = subprocess.run(
+                ["bash", str(script), action],
+                cwd=str(ROOT_DIR.parent),
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            return {
+                "success": result.returncode == 0,
+                "output": result.stdout.strip() or f"Auto-updater {action}ped",
+                "error": result.stderr.strip() if result.returncode != 0 else None
+            }
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": f"Command timed out"}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
