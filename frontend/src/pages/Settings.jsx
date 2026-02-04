@@ -166,7 +166,7 @@ function SettingsPage() {
       await updateSettings(settings);
       toast.success('Settings saved');
       // Refresh telegram status
-      const statusRes = await api.get('/telegram/status');
+      const statusRes = await getTelegramStatus();
       setTelegramStatus(statusRes.data);
     } catch (error) {
       toast.error('Failed to save settings');
