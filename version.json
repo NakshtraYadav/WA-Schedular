@@ -1,10 +1,21 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 3,
+  "build": 4,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "1.3.0",
+      "date": "2026-02-04",
+      "changes": [
+        "Fixed Telegram schedules not executing (now adds to APScheduler)",
+        "Telegram /create now uses search instead of numbered list",
+        "Added /search command for finding contacts",
+        "Improved /contacts to show total count and search hint",
+        "Works with 500+ contacts via search-based selection"
+      ]
+    },
     {
       "version": "1.2.0",
       "date": "2026-02-04",
