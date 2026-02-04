@@ -124,6 +124,7 @@ function App() {
             <Route path="/history" element={<MessageHistory />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/connect" element={<Connect />} />
+            <Route path="/diagnostics" element={<Diagnostics />} />
           </Routes>
         </Layout>
       </BrowserRouter>
