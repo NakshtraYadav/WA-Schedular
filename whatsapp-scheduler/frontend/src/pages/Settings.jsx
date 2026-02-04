@@ -38,9 +38,26 @@ function SettingsPage() {
     common_timezones: []
   });
   const [telegramStatus, setTelegramStatus] = useState(null);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [autoUpdaterStatus, setAutoUpdaterStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+
+  const fetchUpdateInfo = useCallback(async () => {
+    try {
+      const [updateRes, autoUpdaterRes] = await Promise.all([
+        checkForUpdates(),
+        getAutoUpdaterStatus()
+      ]);
+      setUpdateInfo(updateRes.data);
+      setAutoUpdaterStatus(autoUpdaterRes.data);
+    } catch (e) {
+      console.error('Failed to fetch update info');
+    }
+  }, []);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -66,6 +83,9 @@ function SettingsPage() {
       } catch (e) {
         console.error('Failed to fetch telegram status');
       }
+      
+      // Fetch update info
+      await fetchUpdateInfo();
     } catch (error) {
       toast.error('Failed to fetch settings');
     } finally {
