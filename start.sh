@@ -1,238 +1,167 @@
 #!/bin/bash
 # ============================================================================
-#  WhatsApp Scheduler - Start All Services (Ubuntu/WSL)
-#  Runs services in background with logging
+#  WA Scheduler - Simple Start & Update
+#  Just run: ./start.sh
 # ============================================================================
 
-# Colors
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m'
 
-# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_DIR="$SCRIPT_DIR/logs"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-
-# Ports
-FRONTEND_PORT=3000
-BACKEND_PORT=8001
-WHATSAPP_PORT=3001
-
-# Create log directories
-mkdir -p "$LOG_DIR/backend"
-mkdir -p "$LOG_DIR/frontend"
-mkdir -p "$LOG_DIR/whatsapp"
-mkdir -p "$LOG_DIR/system"
-
-echo ""
-echo -e "${BLUE}============================================================================${NC}"
-echo -e "${BLUE}       WhatsApp Scheduler - Starting Services${NC}"
-echo -e "${BLUE}============================================================================${NC}"
-echo ""
+mkdir -p "$SCRIPT_DIR/logs"
 
 # ============================================================================
-# STOP ANY EXISTING SERVICES
+#  START - Runs everything with hot reload
 # ============================================================================
-echo -e "${YELLOW}[1/5]${NC} Stopping any existing services..."
-
-# Kill by port
-for port in $FRONTEND_PORT $BACKEND_PORT $WHATSAPP_PORT; do
-    pid=$(lsof -t -i:$port 2>/dev/null)
-    if [ -n "$pid" ]; then
-        kill -9 $pid 2>/dev/null || true
-        echo "  Killed process on port $port (PID: $pid)"
-    fi
-done
-
-sleep 2
-echo -e "${GREEN}[OK]${NC} Ports cleared"
-echo ""
-
-# ============================================================================
-# START MONGODB (if installed locally)
-# ============================================================================
-echo -e "${YELLOW}[2/5]${NC} Checking MongoDB..."
-
-if command -v mongod &> /dev/null; then
-    if ! pgrep -x "mongod" > /dev/null; then
-        echo "  Starting MongoDB..."
-        sudo systemctl start mongod 2>/dev/null || \
-        mongod --dbpath /var/lib/mongodb --fork --logpath "$LOG_DIR/system/mongodb.log" 2>/dev/null || \
-        echo -e "${YELLOW}[!]${NC} Could not start MongoDB - may need manual start"
-    fi
-    echo -e "${GREEN}[OK]${NC} MongoDB running"
-else
-    echo -e "${YELLOW}[!]${NC} MongoDB not installed locally - using Atlas or external"
-fi
-echo ""
-
-# ============================================================================
-# START WHATSAPP SERVICE
-# ============================================================================
-echo -e "${YELLOW}[3/5]${NC} Starting WhatsApp service..."
-
-WA_LOG="$LOG_DIR/whatsapp/service_$TIMESTAMP.log"
-cd "$SCRIPT_DIR/whatsapp-service"
-
-# Start in background
-nohup node index.js > "$WA_LOG" 2>&1 &
-WA_PID=$!
-echo $WA_PID > "$SCRIPT_DIR/.wa.pid"
-
-echo "  PID: $WA_PID"
-echo "  Log: $WA_LOG"
-
-# Wait for WhatsApp to be ready
-echo -n "  Waiting for WhatsApp service"
-for i in {1..30}; do
-    if curl -s http://localhost:$WHATSAPP_PORT/health > /dev/null 2>&1; then
-        echo ""
-        echo -e "${GREEN}[OK]${NC} WhatsApp service ready on port $WHATSAPP_PORT"
-        break
-    fi
-    echo -n "."
-    sleep 2
-done
-
-if ! curl -s http://localhost:$WHATSAPP_PORT/health > /dev/null 2>&1; then
+start_all() {
     echo ""
-    echo -e "${YELLOW}[!]${NC} WhatsApp service slow to start - check logs"
-fi
-echo ""
-
-# ============================================================================
-# START BACKEND
-# ============================================================================
-echo -e "${YELLOW}[4/5]${NC} Starting Backend API..."
-
-BE_LOG="$LOG_DIR/backend/api_$TIMESTAMP.log"
-cd "$SCRIPT_DIR/backend"
-
-# Activate venv and start
-source venv/bin/activate
-nohup python3 -m uvicorn server:app --host 0.0.0.0 --port $BACKEND_PORT > "$BE_LOG" 2>&1 &
-BE_PID=$!
-echo $BE_PID > "$SCRIPT_DIR/.backend.pid"
-deactivate
-
-echo "  PID: $BE_PID"
-echo "  Log: $BE_LOG"
-
-# Wait for Backend
-echo -n "  Waiting for Backend API"
-for i in {1..20}; do
-    if curl -s http://localhost:$BACKEND_PORT/api/ > /dev/null 2>&1; then
-        echo ""
-        echo -e "${GREEN}[OK]${NC} Backend API ready on port $BACKEND_PORT"
-        break
-    fi
-    echo -n "."
-    sleep 2
-done
-
-if ! curl -s http://localhost:$BACKEND_PORT/api/ > /dev/null 2>&1; then
+    echo -e "${BOLD}Starting WA Scheduler...${NC}"
     echo ""
-    echo -e "${YELLOW}[!]${NC} Backend slow to start - check logs"
-fi
-echo ""
 
-# ============================================================================
-# START FRONTEND
-# ============================================================================
-echo -e "${YELLOW}[5/5]${NC} Starting Frontend..."
-echo "  First start may take 1-2 minutes to compile React..."
+    # Stop any existing processes
+    pkill -f "uvicorn.*server:app" 2>/dev/null
+    pkill -f "node.*react-scripts" 2>/dev/null
+    pkill -f "node.*whatsapp-service" 2>/dev/null
+    sleep 2
 
-FE_LOG="$LOG_DIR/frontend/react_$TIMESTAMP.log"
-cd "$SCRIPT_DIR/frontend"
+    # Start WhatsApp Service
+    echo -e "  ${CYAN}→${NC} WhatsApp Service (port 3001)"
+    cd "$SCRIPT_DIR/whatsapp-service"
+    nohup node index.js > "$SCRIPT_DIR/logs/whatsapp.log" 2>&1 &
 
-# Start React dev server
-BROWSER=none nohup npm start > "$FE_LOG" 2>&1 &
-FE_PID=$!
-echo $FE_PID > "$SCRIPT_DIR/.frontend.pid"
+    # Start Backend with hot reload
+    echo -e "  ${CYAN}→${NC} Backend (port 8001) - hot reload ON"
+    cd "$SCRIPT_DIR/backend"
+    nohup python3 -m uvicorn server:app --host 0.0.0.0 --port 8001 --reload \
+        --reload-dir "$SCRIPT_DIR/backend" > "$SCRIPT_DIR/logs/backend.log" 2>&1 &
 
-echo "  PID: $FE_PID"
-echo "  Log: $FE_LOG"
+    # Start Frontend with hot reload
+    echo -e "  ${CYAN}→${NC} Frontend (port 3000) - hot reload ON"
+    cd "$SCRIPT_DIR/frontend"
+    BROWSER=none nohup npm start > "$SCRIPT_DIR/logs/frontend.log" 2>&1 &
 
-# Wait for Frontend (longer timeout for compilation)
-echo -n "  Compiling frontend"
-for i in {1..60}; do
-    if curl -s http://localhost:$FRONTEND_PORT > /dev/null 2>&1; then
-        echo ""
-        echo -e "${GREEN}[OK]${NC} Frontend ready on port $FRONTEND_PORT"
-        break
-    fi
-    echo -n "."
     sleep 3
-done
-
-if ! curl -s http://localhost:$FRONTEND_PORT > /dev/null 2>&1; then
+    
     echo ""
-    echo -e "${YELLOW}[!]${NC} Frontend still compiling - check logs or wait"
-fi
-echo ""
+    echo -e "${GREEN}${BOLD}✓ Running!${NC}"
+    echo ""
+    echo "  Frontend:  http://localhost:3000"
+    echo "  Backend:   http://localhost:8001"
+    echo "  WhatsApp:  http://localhost:3001"
+    echo ""
+    echo -e "  ${CYAN}Code changes apply automatically (1-3 sec)${NC}"
+    echo -e "  ${CYAN}To update from GitHub: ./start.sh update${NC}"
+    echo ""
+}
 
 # ============================================================================
-# SUMMARY
+#  UPDATE - Fast pull from GitHub (works while running)
 # ============================================================================
-echo -e "${BLUE}============================================================================${NC}"
-echo -e "${GREEN}                    ALL SERVICES STARTED${NC}"
-echo -e "${BLUE}============================================================================${NC}"
-echo ""
-echo "  Service                Port        Status"
-echo "  ---------------------------------------------------------------------------"
-
-# Check each service
-if curl -s http://localhost:$WHATSAPP_PORT/health > /dev/null 2>&1; then
-    echo -e "  WhatsApp Service       $WHATSAPP_PORT         ${GREEN}[RUNNING]${NC}"
-else
-    echo -e "  WhatsApp Service       $WHATSAPP_PORT         ${YELLOW}[STARTING]${NC}"
-fi
-
-if curl -s http://localhost:$BACKEND_PORT/api/ > /dev/null 2>&1; then
-    echo -e "  Backend API            $BACKEND_PORT         ${GREEN}[RUNNING]${NC}"
-else
-    echo -e "  Backend API            $BACKEND_PORT         ${YELLOW}[STARTING]${NC}"
-fi
-
-if curl -s http://localhost:$FRONTEND_PORT > /dev/null 2>&1; then
-    echo -e "  Frontend Dashboard     $FRONTEND_PORT         ${GREEN}[RUNNING]${NC}"
-else
-    echo -e "  Frontend Dashboard     $FRONTEND_PORT         ${YELLOW}[COMPILING]${NC}"
-fi
-
-echo "  ---------------------------------------------------------------------------"
-echo ""
-echo "  URLs:"
-echo -e "    Dashboard:    ${CYAN}http://localhost:$FRONTEND_PORT${NC}"
-echo -e "    Diagnostics:  ${CYAN}http://localhost:$FRONTEND_PORT/diagnostics${NC}"
-echo -e "    Connect WA:   ${CYAN}http://localhost:$FRONTEND_PORT/connect${NC}"
-echo -e "    API Health:   ${CYAN}http://localhost:$BACKEND_PORT/api/health${NC}"
-echo ""
-echo "  Logs: $LOG_DIR/"
-echo ""
-echo -e "${BLUE}============================================================================${NC}"
-echo ""
-
-# Start auto-updater if requested
-if [[ "$1" == "--auto-update" ]] || [[ "$1" == "-a" ]]; then
-    echo "  Starting auto-updater daemon..."
-    "$SCRIPT_DIR/auto-updater.sh" start
+update() {
     echo ""
-fi
+    echo -e "${BOLD}Updating...${NC}"
+    
+    cd "$SCRIPT_DIR"
+    
+    # Pull latest
+    git fetch origin main --quiet 2>/dev/null
+    git stash --quiet 2>/dev/null
+    git pull origin main --quiet 2>/dev/null
+    
+    # Check if dependencies changed
+    if git diff HEAD~1 --name-only 2>/dev/null | grep -q "package.json"; then
+        echo -e "  ${CYAN}→${NC} Installing npm packages..."
+        cd "$SCRIPT_DIR/frontend" && npm install --legacy-peer-deps --silent 2>/dev/null
+    fi
+    
+    if git diff HEAD~1 --name-only 2>/dev/null | grep -q "requirements.txt"; then
+        echo -e "  ${CYAN}→${NC} Installing pip packages..."
+        cd "$SCRIPT_DIR/backend" && pip install -q -r requirements.txt 2>/dev/null
+    fi
+    
+    # Trigger hot reload (just touch the file)
+    touch "$SCRIPT_DIR/backend/server.py" 2>/dev/null
+    
+    echo ""
+    echo -e "${GREEN}${BOLD}✓ Updated!${NC} Changes will apply in 1-3 seconds."
+    echo ""
+}
 
-echo "  To stop all services: ./stop.sh"
-echo "  To enable auto-updates: ./start.sh --auto-update"
-echo ""
+# ============================================================================
+#  STOP - Kill everything
+# ============================================================================
+stop_all() {
+    echo ""
+    echo -e "${BOLD}Stopping...${NC}"
+    pkill -f "uvicorn.*server:app" 2>/dev/null
+    pkill -f "node.*react-scripts" 2>/dev/null
+    pkill -f "node.*whatsapp-service" 2>/dev/null
+    echo -e "${GREEN}✓ Stopped${NC}"
+    echo ""
+}
 
-# Try to open browser (works in WSL with Windows browser)
-if command -v xdg-open &> /dev/null; then
-    xdg-open "http://localhost:$FRONTEND_PORT" 2>/dev/null &
-elif command -v wslview &> /dev/null; then
-    wslview "http://localhost:$FRONTEND_PORT" 2>/dev/null &
-elif [ -f "/mnt/c/Windows/explorer.exe" ]; then
-    /mnt/c/Windows/explorer.exe "http://localhost:$FRONTEND_PORT" 2>/dev/null &
-fi
+# ============================================================================
+#  STATUS - Check what's running
+# ============================================================================
+status() {
+    echo ""
+    echo -e "${BOLD}Status:${NC}"
+    echo ""
+    
+    if pgrep -f "uvicorn.*server:app" > /dev/null; then
+        echo -e "  Backend:   ${GREEN}● Running${NC}"
+    else
+        echo -e "  Backend:   ${YELLOW}○ Stopped${NC}"
+    fi
+    
+    if pgrep -f "react-scripts start" > /dev/null; then
+        echo -e "  Frontend:  ${GREEN}● Running${NC}"
+    else
+        echo -e "  Frontend:  ${YELLOW}○ Stopped${NC}"
+    fi
+    
+    if pgrep -f "node.*whatsapp" > /dev/null; then
+        echo -e "  WhatsApp:  ${GREEN}● Running${NC}"
+    else
+        echo -e "  WhatsApp:  ${YELLOW}○ Stopped${NC}"
+    fi
+    echo ""
+}
+
+# ============================================================================
+#  MAIN
+# ============================================================================
+case "${1:-start}" in
+    start|"")
+        start_all
+        ;;
+    update|pull)
+        update
+        ;;
+    stop)
+        stop_all
+        ;;
+    restart)
+        stop_all
+        sleep 2
+        start_all
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo ""
+        echo "Usage: ./start.sh [command]"
+        echo ""
+        echo "  start    Start everything (default)"
+        echo "  update   Pull latest from GitHub"
+        echo "  stop     Stop everything"
+        echo "  restart  Stop and start"
+        echo "  status   Check what's running"
+        echo ""
+        ;;
+esac
