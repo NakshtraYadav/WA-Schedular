@@ -1,27 +1,25 @@
 @echo off
 REM ============================================================================
 REM  WhatsApp Scheduler - Log Rotation Script
-REM  Compresses old logs and removes files older than 7 days
+REM  Removes log files older than 7 days
 REM ============================================================================
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+
+REM Go up one level to main directory
 for %%a in ("%SCRIPT_DIR%") do set "PARENT_DIR=%%~dpa"
-set "PARENT_DIR=%PARENT_DIR:~0,-1%"
+if "%PARENT_DIR:~-1%"=="\" set "PARENT_DIR=%PARENT_DIR:~0,-1%"
+
 set "LOG_BASE=%PARENT_DIR%\logs"
-set "ARCHIVE_DIR=%LOG_BASE%\archive"
 set "MAX_AGE_DAYS=7"
-set "MAX_SIZE_MB=10"
 
 echo.
 echo   ===========================================================================
 echo              WhatsApp Scheduler - Log Rotation
 echo   ===========================================================================
 echo.
-
-REM Create archive directory
-if not exist "%ARCHIVE_DIR%" mkdir "%ARCHIVE_DIR%"
 
 REM Process each log directory
 for %%d in (backend frontend whatsapp system) do (

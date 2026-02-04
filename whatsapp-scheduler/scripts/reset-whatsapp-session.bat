@@ -6,9 +6,12 @@ REM ============================================================================
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+
+REM Go up one level to main directory
 for %%a in ("%SCRIPT_DIR%") do set "PARENT_DIR=%%~dpa"
-set "PARENT_DIR=%PARENT_DIR:~0,-1%"
+if "%PARENT_DIR:~-1%"=="\" set "PARENT_DIR=%PARENT_DIR:~0,-1%"
+
 set "SESSION_DIR=%PARENT_DIR%\whatsapp-service\.wwebjs_auth"
 
 echo.
@@ -17,14 +20,14 @@ echo        WhatsApp Scheduler - Reset WhatsApp Session
 echo   ===========================================================================
 echo.
 echo    This will:
- echo    1. Stop the WhatsApp service
+echo    1. Stop the WhatsApp service
 echo    2. Delete the saved session data
 echo    3. You will need to scan the QR code again
 echo.
 echo    Are you sure you want to continue? (Y/N)
 set /p CONFIRM="    Choice: "
 
-if /i not "!CONFIRM!"=="Y" (
+if /i not "%CONFIRM%"=="Y" (
     echo.
     echo    Operation cancelled.
     pause
@@ -35,7 +38,7 @@ echo.
 echo    [..] Stopping WhatsApp service...
 
 REM Kill WhatsApp service
-for /f "tokens=5" %%a in ('netstat -ano ^| find ":3001 " ^| find "LISTENING"') do (
+for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":3001 " ^| findstr "LISTENING"') do (
     taskkill /F /PID %%a >nul 2>&1
 )
 taskkill /FI "WINDOWTITLE eq WhatsApp-Scheduler-WA*" /F >nul 2>&1

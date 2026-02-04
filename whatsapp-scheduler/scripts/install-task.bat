@@ -6,9 +6,11 @@ REM ============================================================================
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+
+REM Go up one level to main directory
 for %%a in ("%SCRIPT_DIR%") do set "PARENT_DIR=%%~dpa"
-set "PARENT_DIR=%PARENT_DIR:~0,-1%"
+if "%PARENT_DIR:~-1%"=="\" set "PARENT_DIR=%PARENT_DIR:~0,-1%"
 
 echo.
 echo   ===========================================================================
@@ -29,6 +31,7 @@ if %errorLevel% neq 0 (
 
 REM Create task
 echo    [..] Creating scheduled task...
+echo    Start script: %PARENT_DIR%\start.bat
 
 schtasks /Create /TN "WhatsAppScheduler\AutoStart" /TR "\"%PARENT_DIR%\start.bat\"" /SC ONLOGON /DELAY 0001:00 /RL HIGHEST /F >nul 2>&1
 
