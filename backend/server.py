@@ -793,6 +793,22 @@ async def get_timezone_info():
 
 GITHUB_REPO = "NakshtraYadav/WA-Schedular"
 GITHUB_BRANCH = "main"
+APP_VERSION = "1.0.0"  # Semantic version for the app
+
+@api_router.get("/version")
+async def get_app_version():
+    """Get application version info"""
+    version_file = ROOT_DIR.parent / ".version"
+    git_sha = "unknown"
+    if version_file.exists():
+        git_sha = version_file.read_text().strip()[:7]
+    
+    return {
+        "version": APP_VERSION,
+        "git_sha": git_sha,
+        "app_name": "WhatsApp Scheduler",
+        "build_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    }
 
 @api_router.get("/updates/check")
 async def check_for_updates():
