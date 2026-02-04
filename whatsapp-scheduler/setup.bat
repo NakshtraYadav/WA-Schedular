@@ -277,7 +277,7 @@ REM ============================================================================
 REM  WHATSAPP SERVICE SETUP
 REM ============================================================================
 echo  ----------------------------------------------------------------------------
-echo   WHATSAPP SERVICE SETUP
+echo   WHATSAPP SERVICE SETUP (whatsapp-web.js@1.34.6)
 echo  ----------------------------------------------------------------------------
 echo.
 
@@ -286,21 +286,26 @@ echo   [i] This may take 3-5 minutes (downloads ~200MB)...
 
 pushd "%SCRIPT_DIR%\whatsapp-service"
 
-REM Clear any old yarn.lock that might cause issues
+REM Clear any old lock files that might cause issues
 if exist "yarn.lock" del yarn.lock 2>nul
+if exist "package-lock.json" del package-lock.json 2>nul
 
+REM Always clean install to ensure latest version
 if not exist "node_modules\whatsapp-web.js" (
-    echo   [..] Installing from npm registry...
+    echo   [..] Installing whatsapp-web.js@1.34.6 from npm registry...
+    call npm cache clean --force >nul 2>&1
     call npm install --registry https://registry.npmjs.org/ 2>nul
     if !errorLevel! neq 0 (
         echo   [!] First attempt had issues, retrying with --legacy-peer-deps...
         call npm install --legacy-peer-deps --registry https://registry.npmjs.org/ 2>nul
     )
+) else (
+    echo   [OK] WhatsApp dependencies already installed
 )
 
 if exist "node_modules\whatsapp-web.js" (
-    echo   [OK] WhatsApp service dependencies installed
-    echo [%date% %time%] WhatsApp dependencies installed >> "%SETUP_LOG%"
+    echo   [OK] WhatsApp service dependencies installed (v1.34.6)
+    echo [%date% %time%] WhatsApp dependencies installed (whatsapp-web.js@1.34.6) >> "%SETUP_LOG%"
 ) else (
     echo   [!] WhatsApp dependencies may have issues
     echo   [i] Try running scripts\reinstall-whatsapp.bat
