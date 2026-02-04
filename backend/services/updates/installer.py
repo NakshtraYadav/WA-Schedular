@@ -7,43 +7,37 @@ from core.logging import logger
 
 async def install_update() -> dict:
     """Trigger fast update installation"""
-    update_script = ROOT_DIR.parent / "update.sh"
+    start_script = ROOT_DIR.parent / "start.sh"
     
-    if not update_script.exists():
-        return {"success": False, "error": "update.sh not found"}
+    if not start_script.exists():
+        return {"success": False, "error": "start.sh not found"}
     
     is_git = (ROOT_DIR.parent / ".git").exists()
     
     try:
-        wrapper_script = ROOT_DIR.parent / ".update_runner.sh"
-        
-        with open(wrapper_script, 'w') as f:
-            f.write(f"""#!/bin/bash
-# Auto-generated update wrapper
-sleep 2  # Wait for API response
-cd "{ROOT_DIR.parent}"
-./update.sh fast >> logs/system/update.log 2>&1
-rm -f "{wrapper_script}"
-""")
-        
-        os.chmod(wrapper_script, 0o755)
-        
-        subprocess.Popen(
-            ["nohup", "bash", str(wrapper_script)],
+        # Run update directly (it's fast now, ~3 seconds)
+        result = subprocess.run(
+            ["bash", str(start_script), "update"],
             cwd=str(ROOT_DIR.parent),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            stdin=subprocess.DEVNULL,
-            start_new_session=True,
-            close_fds=True
+            capture_output=True,
+            text=True,
+            timeout=30
         )
         
-        return {
-            "success": True,
-            "method": "git_pull" if is_git else "zip_download",
-            "message": "Update starting..." + (" (fast mode)" if is_git else " (this may take a few minutes)"),
-            "estimated_time": "10-30 seconds" if is_git else "2-3 minutes"
-        }
+        if result.returncode == 0:
+            return {
+                "success": True,
+                "method": "hot_reload",
+                "message": "Updated! Changes applied via hot reload.",
+                "estimated_time": "1-3 seconds"
+            }
+        else:
+            return {
+                "success": False,
+                "error": result.stderr or "Update failed"
+            }
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "Update timed out"}
     except Exception as e:
-        logger.error(f"Failed to start update: {e}")
+        logger.error(f"Failed to update: {e}")
         return {"success": False, "error": str(e)}
