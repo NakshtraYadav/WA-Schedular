@@ -71,6 +71,7 @@ function Scheduler() {
   const [scheduleType, setScheduleType] = useState('once');
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState('09:00');
+  const [recurringTime, setRecurringTime] = useState('09:00');
   const [selectedCronPreset, setSelectedCronPreset] = useState('');
   const [customCron, setCustomCron] = useState('');
   const [sending, setSending] = useState(false);
