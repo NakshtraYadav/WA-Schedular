@@ -86,6 +86,7 @@ function VersionProvider({ children }) {
 
 function Sidebar() {
   const location = useLocation();
+  const { versionInfo, updateAvailable } = useVersion() || {};
   
   return (
     <aside className="fixed left-0 top-0 w-64 h-screen bg-card border-r border-border flex flex-col">
@@ -104,6 +105,7 @@ function Sidebar() {
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
+          const showUpdateBadge = item.path === "/settings" && updateAvailable;
           return (
             <NavLink
               key={item.path}
@@ -117,6 +119,11 @@ function Sidebar() {
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
+              {showUpdateBadge && (
+                <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-green-500 animate-pulse">
+                  <ArrowUpCircle className="w-3 h-3 text-white" />
+                </span>
+              )}
             </NavLink>
           );
         })}
@@ -147,6 +154,28 @@ function Sidebar() {
           <Activity className="w-5 h-5" />
           <span className="font-medium">Diagnostics</span>
         </NavLink>
+      </div>
+      
+      {/* Version Badge */}
+      <div className="p-4 border-t border-border">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Version</span>
+          <span className="font-mono text-foreground">
+            {versionInfo?.version || "..."} 
+            {versionInfo?.git_sha && versionInfo.git_sha !== "unknown" && (
+              <span className="text-muted-foreground ml-1">({versionInfo.git_sha})</span>
+            )}
+          </span>
+        </div>
+        {updateAvailable && (
+          <NavLink 
+            to="/settings" 
+            className="mt-2 flex items-center gap-2 text-xs text-green-500 hover:text-green-400 transition-colors"
+          >
+            <ArrowUpCircle className="w-3 h-3" />
+            Update available
+          </NavLink>
+        )}
       </div>
     </aside>
   );
