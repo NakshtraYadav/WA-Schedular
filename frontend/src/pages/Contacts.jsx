@@ -129,7 +129,7 @@ function Contacts() {
   const handleSendNow = async () => {
     if (!selectedContact || !sendMessage.trim()) return;
     try {
-      const result = await sendMessageNow(selectedContact.id, sendMessage);
+      const result = await sendNow(selectedContact.id, sendMessage);
       if (result.data.success) {
         toast.success('Message sent!');
         setSendDialogOpen(false);
