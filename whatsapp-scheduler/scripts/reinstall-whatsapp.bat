@@ -102,21 +102,24 @@ if !errorLevel! neq 0 (
 
 echo.
 echo    [5/6] Installing dependencies...
-echo    [i] This downloads whatsapp-web.js + puppeteer + chromium (~200MB)...
+echo    [i] This downloads whatsapp-web.js + puppeteer + chromium (~200MB)
+echo    [i] Watch progress below:
 echo.
+echo    ---------------------------------------------------------------------------
 
 REM Clean npm cache first to avoid issues
 call npm cache clean --force >nul 2>&1
 
-REM Install with explicit registry
-call npm install --registry https://registry.npmjs.org/ 2>&1
+REM Install with explicit registry - WITH PROGRESS VISIBLE
+call npm install --registry https://registry.npmjs.org/ --progress
 
 if !errorLevel! neq 0 (
     echo.
     echo    [!] First attempt failed, retrying with --legacy-peer-deps...
-    call npm install --legacy-peer-deps --registry https://registry.npmjs.org/ 2>&1
+    call npm install --legacy-peer-deps --registry https://registry.npmjs.org/ --progress
 )
 
+echo    ---------------------------------------------------------------------------
 echo.
 echo    [6/6] Verifying installation...
 
