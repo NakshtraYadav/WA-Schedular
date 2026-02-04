@@ -112,10 +112,11 @@ async def process_telegram_command(token: str, chat_id: str, text: str):
         response = (
             "📱 <b>WA Scheduler Commands</b>\n\n"
             "/status - Check WhatsApp connection\n"
-            "/contacts - List all contacts\n"
+            "/contacts - List contacts (shows first 20)\n"
+            "/search &lt;name&gt; - Search contacts\n"
             "/schedules - List active schedules\n"
             "/send &lt;name&gt; &lt;message&gt; - Send message now\n"
-            "/create - Create a new schedule (interactive)\n"
+            "/create - Create a new schedule\n"
             "/cancel - Cancel current operation\n"
             "/logs - Recent message history\n"
             "/help - Show this help"
@@ -129,34 +130,91 @@ async def process_telegram_command(token: str, chat_id: str, text: str):
         else:
             await send_telegram_message(token, chat_id, "ℹ️ Nothing to cancel.")
     
-    elif text == "/create":
-        # Start interactive schedule creation
-        contacts = await database.contacts.find({}, {"_id": 0}).to_list(50)
-        if not contacts:
-            await send_telegram_message(token, chat_id, "❌ No contacts found. Add contacts via web dashboard first.")
+    elif text.startswith("/search "):
+        query = text[8:].strip()
+        if len(query) < 2:
+            await send_telegram_message(token, chat_id, "❌ Search query too short. Use at least 2 characters.")
             return
         
-        telegram_user_state[chat_id] = {"step": "select_contact", "data": {}}
+        contacts = await database.contacts.find(
+            {"name": {"$regex": query, "$options": "i"}},
+            {"_id": 0}
+        ).to_list(20)
         
-        lines = ["📅 <b>Create Schedule - Step 1/4</b>\n", "Select a contact (reply with number):\n"]
-        for i, c in enumerate(contacts[:15], 1):
-            lines.append(f"<b>{i}.</b> {c['name']} ({c['phone']})")
-        lines.append("\n/cancel to abort")
-        await send_telegram_message(token, chat_id, "\n".join(lines))
+        if contacts:
+            lines = [f"🔍 <b>Search results for '{query}':</b>\n"]
+            for c in contacts:
+                lines.append(f"• {c['name']} ({c['phone']})")
+            lines.append(f"\nFound {len(contacts)} contact(s)")
+            await send_telegram_message(token, chat_id, "\n".join(lines))
+        else:
+            await send_telegram_message(token, chat_id, f"❌ No contacts found matching '{query}'")
+    
+    elif text == "/create":
+        # Start interactive schedule creation with SEARCH
+        telegram_user_state[chat_id] = {"step": "search_contact", "data": {}}
+        
+        await send_telegram_message(token, chat_id,
+            "📅 <b>Create Schedule - Step 1/4</b>\n\n"
+            "Type the <b>name</b> of the contact to search:\n"
+            "(partial match works, e.g., 'john' finds 'John Doe')\n\n"
+            "/cancel to abort"
+        )
     
     elif chat_id in telegram_user_state:
         # Handle interactive flow
         state = telegram_user_state[chat_id]
         step = state["step"]
         
-        if step == "select_contact":
-            contacts = await database.contacts.find({}, {"_id": 0}).to_list(50)
+        if step == "search_contact":
+            query = text.strip()
+            if len(query) < 2:
+                await send_telegram_message(token, chat_id, "❌ Too short. Enter at least 2 characters.")
+                return
+            
+            contacts = await database.contacts.find(
+                {"name": {"$regex": query, "$options": "i"}},
+                {"_id": 0}
+            ).to_list(10)
+            
+            if not contacts:
+                await send_telegram_message(token, chat_id, 
+                    f"❌ No contacts found for '{query}'\n\nTry another name or /cancel"
+                )
+                return
+            
+            if len(contacts) == 1:
+                # Exact match - auto-select
+                contact = contacts[0]
+                state["data"]["contact"] = contact
+                state["step"] = "enter_message"
+                
+                await send_telegram_message(token, chat_id, 
+                    f"✅ Selected: <b>{contact['name']}</b>\n\n"
+                    "📅 <b>Step 2/4</b>\n"
+                    "Enter the message to send:\n\n"
+                    "/cancel to abort"
+                )
+            else:
+                # Multiple matches - let user pick
+                state["data"]["search_results"] = contacts
+                state["step"] = "pick_contact"
+                
+                lines = [f"🔍 Found {len(contacts)} contacts:\n"]
+                for i, c in enumerate(contacts, 1):
+                    lines.append(f"<b>{i}.</b> {c['name']} ({c['phone']})")
+                lines.append("\nReply with number to select, or /cancel")
+                await send_telegram_message(token, chat_id, "\n".join(lines))
+        
+        elif step == "pick_contact":
             try:
                 idx = int(text.strip()) - 1
+                contacts = state["data"].get("search_results", [])
                 if 0 <= idx < len(contacts):
                     contact = contacts[idx]
                     state["data"]["contact"] = contact
                     state["step"] = "enter_message"
+                    del state["data"]["search_results"]
                     
                     await send_telegram_message(token, chat_id, 
                         f"✅ Selected: <b>{contact['name']}</b>\n\n"
