@@ -589,7 +589,7 @@ function SettingsPage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Build Date:</span>
-                  <span className="ml-2 text-foreground">{versionInfo?.build_date || "N/A"}</span>
+                  <span className="ml-2 text-foreground">{versionInfo?.release_date || "N/A"}</span>
                 </div>
               </div>
             </div>
