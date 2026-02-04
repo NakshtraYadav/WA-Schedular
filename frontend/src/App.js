@@ -196,18 +196,20 @@ function App() {
   return (
     <div className="App">
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/contacts" element={<Contacts />} />
-            <Route path="/templates" element={<Templates />} />
-            <Route path="/scheduler" element={<Scheduler />} />
-            <Route path="/history" element={<MessageHistory />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/connect" element={<Connect />} />
-            <Route path="/diagnostics" element={<Diagnostics />} />
-          </Routes>
-        </Layout>
+        <VersionProvider>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/contacts" element={<Contacts />} />
+              <Route path="/templates" element={<Templates />} />
+              <Route path="/scheduler" element={<Scheduler />} />
+              <Route path="/history" element={<MessageHistory />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/connect" element={<Connect />} />
+              <Route path="/diagnostics" element={<Diagnostics />} />
+            </Routes>
+          </Layout>
+        </VersionProvider>
       </BrowserRouter>
       <Toaster position="top-right" />
     </div>
