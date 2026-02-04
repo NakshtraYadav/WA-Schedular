@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "name": "WhatsApp Scheduler",
+  "description": "Local WhatsApp message scheduling with Telegram remote control",
+  "build": 1,
+  "release_date": "2026-02-04",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-02-04",
+      "changes": [
+        "Initial release",
+        "WhatsApp Web integration via QR code",
+        "Contact management",
+        "Message templates",
+        "One-time and recurring schedules",
+        "Telegram bot remote control",
+        "Auto-updater system",
+        "Version tracking and update notifications"
+      ]
+    }
+  ],
+  "repository": "NakshtraYadav/WA-Schedular",
+  "branch": "main",
+  "author": "Nakshtra Yadav",
+  "license": "MIT"
+}
