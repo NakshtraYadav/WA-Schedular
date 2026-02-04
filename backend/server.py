@@ -1176,8 +1176,13 @@ async def check_for_updates():
 
 @api_router.post("/updates/install")
 async def install_update():
-    """Trigger update installation (runs update.sh)"""
+    """Trigger update installation (runs update.sh)
+    
+    Note: This starts the update in a completely detached process
+    so it survives the backend restart.
+    """
     import subprocess
+    import os
     
     update_script = ROOT_DIR.parent / "update.sh"
     
@@ -1185,19 +1190,40 @@ async def install_update():
         return {"success": False, "error": "update.sh not found"}
     
     try:
-        # Run update in background
-        result = subprocess.Popen(
-            ["bash", str(update_script), "force"],
+        # Create a wrapper script that runs the update after a delay
+        # This allows the API to respond before the backend is killed
+        wrapper_script = ROOT_DIR.parent / ".update_runner.sh"
+        
+        with open(wrapper_script, 'w') as f:
+            f.write(f"""#!/bin/bash
+# Auto-generated update wrapper
+sleep 2  # Wait for API response to complete
+cd "{ROOT_DIR.parent}"
+./update.sh force >> logs/system/update.log 2>&1
+rm -f "{wrapper_script}"  # Clean up
+""")
+        
+        os.chmod(wrapper_script, 0o755)
+        
+        # Run the wrapper completely detached
+        subprocess.Popen(
+            ["nohup", "bash", str(wrapper_script)],
             cwd=str(ROOT_DIR.parent),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+            close_fds=True
         )
         
         return {
             "success": True,
-            "message": "Update started. Services will restart automatically.",
-            "pid": result.pid
+            "message": "Update starting in 2 seconds. Page will reload when complete.",
+            "note": "Services will restart - please wait 1-2 minutes"
         }
+    except Exception as e:
+        logger.error(f"Failed to start update: {e}")
+        return {"success": False, "error": str(e)}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
