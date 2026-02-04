@@ -9,7 +9,8 @@ import {
   History, 
   Settings,
   Radio,
-  MessageCircle
+  MessageCircle,
+  Activity
 } from "lucide-react";
 
 // Pages
@@ -20,6 +21,7 @@ import Scheduler from "./pages/Scheduler";
 import MessageHistory from "./pages/MessageHistory";
 import SettingsPage from "./pages/Settings";
 import Connect from "./pages/Connect";
+import Diagnostics from "./pages/Diagnostics";
 
 const navItems = [
   { path: "/", icon: LayoutDashboard, label: "Dashboard" },
