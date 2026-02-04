@@ -117,6 +117,9 @@ apply_update() {
     # Copy new files (excluding preserved)
     log "  Copying new files..."
     
+    # Update version.json (important for version tracking)
+    cp "$EXTRACTED_DIR/version.json" "$SCRIPT_DIR/" 2>/dev/null
+    
     # Update backend
     cp "$EXTRACTED_DIR/backend/server.py" "$SCRIPT_DIR/backend/" 2>/dev/null
     cp "$EXTRACTED_DIR/backend/requirements.txt" "$SCRIPT_DIR/backend/" 2>/dev/null
@@ -131,7 +134,7 @@ apply_update() {
     cp "$EXTRACTED_DIR/whatsapp-service/package.json" "$SCRIPT_DIR/whatsapp-service/" 2>/dev/null
     
     # Update shell scripts
-    for script in setup.sh start.sh stop.sh status.sh logs.sh fix-whatsapp.sh update.sh; do
+    for script in setup.sh start.sh stop.sh status.sh logs.sh fix-whatsapp.sh update.sh auto-updater.sh; do
         if [ -f "$EXTRACTED_DIR/$script" ]; then
             cp "$EXTRACTED_DIR/$script" "$SCRIPT_DIR/"
             chmod +x "$SCRIPT_DIR/$script"
