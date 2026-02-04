@@ -409,7 +409,10 @@ function SettingsPage() {
               </div>
             </div>
             {updateInfo?.has_update && (
-              <Badge className="bg-green-500">Update Available</Badge>
+              <Badge className="bg-green-500">
+                {updateInfo?.update_type === 'major' ? 'Major Update' : 
+                 updateInfo?.update_type === 'minor' ? 'Update Available' : 'Patch Available'}
+              </Badge>
             )}
           </div>
         </CardHeader>
@@ -418,20 +421,49 @@ function SettingsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 rounded-lg bg-secondary/30">
               <p className="text-xs text-muted-foreground mb-1">Current Version</p>
-              <p className="font-mono font-semibold">
-                {updateInfo?.local_version === 'none' ? 'Not tracked' : updateInfo?.local_version || '...'}
+              <p className="font-mono font-semibold text-lg">
+                v{updateInfo?.local?.version || versionInfo?.version || '...'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Build {updateInfo?.local?.build || versionInfo?.build || '?'}
+                {updateInfo?.local?.sha && updateInfo.local.sha !== 'none' && (
+                  <span className="ml-2">({updateInfo.local.sha})</span>
+                )}
               </p>
             </div>
             <div className="p-4 rounded-lg bg-secondary/30">
               <p className="text-xs text-muted-foreground mb-1">Latest Version</p>
-              <p className="font-mono font-semibold text-primary">{updateInfo?.remote_version || '...'}</p>
-              {updateInfo?.remote_message && (
-                <p className="text-xs text-muted-foreground mt-1 truncate" title={updateInfo.remote_message}>
-                  {updateInfo.remote_message}
+              <p className="font-mono font-semibold text-lg text-primary">
+                v{updateInfo?.remote?.version || '...'}
+              </p>
+              {updateInfo?.remote?.build && (
+                <p className="text-xs text-muted-foreground">
+                  Build {updateInfo.remote.build}
+                  {updateInfo.remote.sha && <span className="ml-2">({updateInfo.remote.sha})</span>}
+                </p>
+              )}
+              {updateInfo?.commit_message && (
+                <p className="text-xs text-muted-foreground mt-1 truncate" title={updateInfo.commit_message}>
+                  {updateInfo.commit_message}
                 </p>
               )}
             </div>
           </div>
+
+          {/* Changelog Preview */}
+          {updateInfo?.has_update && updateInfo?.remote?.changelog?.length > 0 && (
+            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+              <h4 className="font-medium text-green-500 mb-2">What's New in v{updateInfo.remote.version}</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {updateInfo.remote.changelog[0]?.changes?.slice(0, 5).map((change, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-green-500">•</span>
+                    {change}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Update Actions */}
           <div className="flex gap-3">
