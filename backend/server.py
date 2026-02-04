@@ -692,7 +692,7 @@ async def sync_whatsapp_contacts():
     """Sync contacts from WhatsApp"""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{WHATSAPP_SERVICE}/contacts", timeout=30.0)
+            response = await client.get(f"{WA_SERVICE_URL}/contacts", timeout=30.0)
             
             if response.status_code != 200:
                 return {"success": False, "error": "Failed to fetch WhatsApp contacts", "imported": 0}
