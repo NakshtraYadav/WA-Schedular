@@ -1,10 +1,19 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 4,
+  "build": 5,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "1.4.0",
+      "date": "2026-02-04",
+      "changes": [
+        "Fixed update check not detecting new versions (cache-busting)",
+        "Added logging for update check debugging",
+        "Improved error handling in version comparison"
+      ]
+    },
     {
       "version": "1.3.0",
       "date": "2026-02-04",
