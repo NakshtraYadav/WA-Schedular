@@ -424,29 +424,40 @@ function SettingsPage() {
             <div className="p-4 rounded-lg bg-secondary/30">
               <p className="text-xs text-muted-foreground mb-1">Current Version</p>
               <p className="font-mono font-semibold text-lg">
-                v{updateInfo?.local?.version || versionInfo?.version || '...'}
+                v{updateInfo?.local?.version || versionInfo?.version || '1.0.0'}
               </p>
               <p className="text-xs text-muted-foreground">
-                Build {updateInfo?.local?.build || versionInfo?.build || '?'}
+                Build {updateInfo?.local?.build || versionInfo?.build || 1}
                 {updateInfo?.local?.sha && updateInfo.local.sha !== 'none' && (
                   <span className="ml-2">({updateInfo.local.sha})</span>
                 )}
               </p>
             </div>
             <div className="p-4 rounded-lg bg-secondary/30">
-              <p className="text-xs text-muted-foreground mb-1">Latest Version</p>
-              <p className="font-mono font-semibold text-lg text-primary">
-                v{updateInfo?.remote?.version || '...'}
-              </p>
-              {updateInfo?.remote?.build && (
-                <p className="text-xs text-muted-foreground">
-                  Build {updateInfo.remote.build}
-                  {updateInfo.remote.sha && <span className="ml-2">({updateInfo.remote.sha})</span>}
-                </p>
+              <p className="text-xs text-muted-foreground mb-1">Latest on GitHub</p>
+              {updateInfo?.remote?.build ? (
+                <>
+                  <p className="font-mono font-semibold text-lg text-primary">
+                    v{updateInfo.remote.version}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Build {updateInfo.remote.build}
+                    {updateInfo.remote.sha && <span className="ml-2">({updateInfo.remote.sha})</span>}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-mono font-semibold text-sm text-muted-foreground">
+                    {updateInfo?.remote?.sha || '...'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    No version.json in repo yet
+                  </p>
+                </>
               )}
               {updateInfo?.commit_message && (
                 <p className="text-xs text-muted-foreground mt-1 truncate" title={updateInfo.commit_message}>
-                  {updateInfo.commit_message}
+                  Latest: {updateInfo.commit_message}
                 </p>
               )}
             </div>
