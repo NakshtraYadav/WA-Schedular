@@ -57,3 +57,9 @@ export const getDiagnostics = () => api.get('/diagnostics');
 export const getLogsSummary = () => api.get('/diagnostics/logs');
 export const getServiceLogs = (service, lines = 100) => api.get(`/diagnostics/logs/${service}?lines=${lines}`);
 export const clearServiceLogs = (service) => api.post(`/diagnostics/clear-logs/${service}`);
+
+// Updates
+export const checkForUpdates = () => api.get('/updates/check');
+export const installUpdate = () => api.post('/updates/install');
+export const getAutoUpdaterStatus = () => api.get('/updates/auto-updater/status');
+export const controlAutoUpdater = (action) => api.post(`/updates/auto-updater/${action}`);
