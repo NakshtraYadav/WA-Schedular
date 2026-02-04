@@ -1,22 +1,117 @@
-# WA Scheduler
+<div align="center">
 
-A self-hosted WhatsApp message scheduler with Telegram bot integration. Schedule one-time or recurring messages, manage contacts, and control everything via Telegram.
+# 📱 WA Scheduler
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green.svg)
-![Python](https://img.shields.io/badge/python-%3E%3D3.8-blue.svg)
+**Schedule and automate your WhatsApp messages**
 
-## Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20WSL-lightgrey)](https://ubuntu.com/)
+
+[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Documentation](#documentation)
+
+</div>
+
+---
+
+## ✨ Features
 
 - 📅 **Schedule Messages** - One-time or recurring (cron-based)
-- 📱 **Send Now** - Instant message sending
+- ⚡ **Send Now** - Instant message sending
 - 👥 **Contact Management** - Store and organize contacts
-- 📝 **Message Templates** - Save and reuse message templates
-- 🤖 **Telegram Bot** - Control scheduler remotely via Telegram
-- 📊 **Dashboard** - Real-time statistics and message history
-- 🔧 **Diagnostics** - Monitor service health and view logs
+- 📝 **Message Templates** - Save and reuse templates
+- 🤖 **Telegram Bot** - Control remotely via Telegram
+- 📊 **Dashboard** - Real-time stats and message history
+- 🔄 **Auto-Updates** - Stay updated automatically
+- 🔧 **Diagnostics** - Monitor service health
 
-## Architecture
+## 🖥️ Screenshots
+
+| Dashboard | Scheduler | Settings |
+|-----------|-----------|----------|
+| Real-time stats | Create schedules | Telegram & updates |
+
+## 🚀 Installation
+
+### Quick Start (Ubuntu/WSL)
+
+```bash
+# Clone the repository
+git clone https://github.com/NakshtraYadav/WA-Schedular.git
+cd WA-Schedular
+
+# Run setup
+chmod +x *.sh
+./setup.sh
+
+# Start all services
+./start.sh
+```
+
+### Open in Browser
+
+- **Dashboard:** http://localhost:3000
+- **Connect WhatsApp:** http://localhost:3000/connect
+
+📖 See [Installation Guide](docs/INSTALLATION.md) for detailed instructions.
+
+## 📋 Usage
+
+### Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `./setup.sh` | Install all dependencies |
+| `./start.sh` | Start all services |
+| `./start.sh -a` | Start with auto-updater |
+| `./stop.sh` | Stop all services |
+| `./status.sh` | Check service status |
+| `./update.sh` | Check and install updates |
+
+### Connect WhatsApp
+
+1. Start the services: `./start.sh`
+2. Open http://localhost:3000/connect
+3. Scan the QR code with your WhatsApp mobile app
+4. You're connected! 🎉
+
+### Schedule a Message
+
+1. Go to **Contacts** → Add a contact
+2. Go to **Scheduler** → Click "New Schedule"
+3. Select contact, enter message, choose time
+4. Done! The message will be sent automatically.
+
+## 🤖 Telegram Bot
+
+Control your scheduler remotely via Telegram!
+
+```
+/status    - Check WhatsApp connection
+/contacts  - List all contacts
+/schedules - List active schedules
+/send John Hello!  - Send message now
+```
+
+📖 See [Telegram Setup Guide](docs/TELEGRAM.md)
+
+## 🔄 Auto-Updates
+
+WA Scheduler can automatically update itself from GitHub.
+
+```bash
+# Enable auto-updates (checks every 30 min)
+./start.sh --auto-update
+
+# Or manually check
+./update.sh check
+
+# Install update
+./update.sh install
+```
+
+## 🏗️ Architecture
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
@@ -31,166 +126,57 @@ A self-hosted WhatsApp message scheduler with Telegram bot integration. Schedule
                         └─────────────────┘
 ```
 
-## Quick Start (Ubuntu/WSL)
+## 📁 Project Structure
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/yourusername/wa-scheduler.git
-cd wa-scheduler
+```
+WA-Schedular/
+├── backend/              # FastAPI Python backend
+│   ├── server.py         # Main API server
+│   └── requirements.txt  # Python dependencies
+├── frontend/             # React frontend
+│   ├── src/
+│   │   ├── pages/        # Page components
+│   │   ├── components/   # UI components
+│   │   └── lib/          # API client
+│   └── package.json
+├── whatsapp-service/     # WhatsApp automation
+│   ├── index.js          # WhatsApp Web client
+│   └── package.json
+├── docs/                 # Documentation
+├── logs/                 # Service logs
+└── *.sh                  # Shell scripts
 ```
 
-### 2. Run setup (installs everything)
-```bash
-chmod +x *.sh
-./setup.sh
-```
+## 📚 Documentation
 
-This installs:
-- Node.js 20.x
-- Python 3 + pip + venv
-- Chromium browser + puppeteer dependencies
-- MongoDB (optional - can use Atlas)
-- All project dependencies
+- [Installation Guide](docs/INSTALLATION.md)
+- [Telegram Bot Setup](docs/TELEGRAM.md)
+- [API Reference](docs/API.md)
 
-### 3. Start all services
-```bash
-./start.sh
-```
+## ⚠️ Disclaimer
 
-### 4. Open in browser
-- **Dashboard:** http://localhost:3000
-- **Connect WhatsApp:** http://localhost:3000/connect
-- **Diagnostics:** http://localhost:3000/diagnostics
+This tool uses WhatsApp Web automation via [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js).
 
-### 5. Scan QR code
-Open the Connect page and scan the QR code with your WhatsApp mobile app.
-
-## Available Scripts
-
-| Script | Description |
-|--------|-------------|
-| `./setup.sh` | Full installation from scratch |
-| `./start.sh` | Start all services |
-| `./start.sh -a` | Start with auto-updater enabled |
-| `./stop.sh` | Stop all services |
-| `./status.sh` | Check service status |
-| `./logs.sh` | View service logs |
-| `./update.sh` | Check and install updates |
-| `./auto-updater.sh` | Control auto-update daemon |
-| `./fix-whatsapp.sh` | Clear WhatsApp session and restart |
-
-## Auto-Updates
-
-WA Scheduler can automatically check for updates from GitHub every 30 minutes.
-
-### Enable Auto-Updates
-
-**Option 1:** Start with auto-updater
-```bash
-./start.sh --auto-update
-```
-
-**Option 2:** Start auto-updater separately
-```bash
-./auto-updater.sh start
-```
-
-### Manual Update
-```bash
-# Check for updates
-./update.sh check
-
-# Install update
-./update.sh install
-
-# Force update and restart
-./update.sh force
-```
-
-### Control Auto-Updater
-```bash
-./auto-updater.sh start    # Start daemon
-./auto-updater.sh stop     # Stop daemon
-./auto-updater.sh status   # Check status
-```
-
-You can also control updates from the **Settings** page in the web dashboard.
-
-## Telegram Bot Setup
-
-1. Create a bot via [@BotFather](https://t.me/BotFather)
-2. Copy the bot token
-3. Go to Settings in the web dashboard
-4. Paste the token and enable Telegram
-5. Send `/start` to your bot
-
-### Available Commands
-- `/start` - Initialize bot and save chat ID
-- `/status` - Check WhatsApp connection
-- `/contacts` - List all contacts
-- `/schedules` - List active schedules
-- `/logs` - Recent message history
-- `/send <name> <message>` - Send message immediately
-
-## Configuration
-
-### Environment Variables
-
-**Backend** (`backend/.env`):
-```env
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=whatsapp_scheduler
-WA_SERVICE_URL=http://localhost:3001
-```
-
-**Frontend** (`frontend/.env`):
-```env
-REACT_APP_BACKEND_URL=http://localhost:8001
-```
-
-## API Endpoints
-
-### WhatsApp
-- `GET /api/whatsapp/status` - Connection status
-- `GET /api/whatsapp/qr` - Get QR code
-- `POST /api/whatsapp/logout` - Logout
-
-### Contacts
-- `GET /api/contacts` - List all
-- `POST /api/contacts` - Create
-- `PUT /api/contacts/:id` - Update
-- `DELETE /api/contacts/:id` - Delete
-
-### Schedules
-- `GET /api/schedules` - List all
-- `POST /api/schedules` - Create
-- `PUT /api/schedules/:id/toggle` - Toggle active
-- `DELETE /api/schedules/:id` - Delete
-
-### Messages
-- `POST /api/send-now` - Send immediately
-- `GET /api/logs` - Message history
-
-## Tech Stack
-
-- **Frontend:** React, Tailwind CSS, shadcn/ui
-- **Backend:** Python, FastAPI, APScheduler
-- **WhatsApp:** whatsapp-web.js, Puppeteer
-- **Database:** MongoDB
-- **Bot:** Telegram Bot API
-
-## Disclaimer
-
-This tool uses WhatsApp Web automation via [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js). Use responsibly:
-
+**Please use responsibly:**
 - Don't send spam or bulk unsolicited messages
 - Respect WhatsApp's Terms of Service
 - Excessive automation may result in account restrictions
 
-## License
+## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Contributing
+## 🙏 Acknowledgments
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+- [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) - WhatsApp Web API
+- [FastAPI](https://fastapi.tiangolo.com/) - Backend framework
+- [React](https://reactjs.org/) - Frontend framework
+- [shadcn/ui](https://ui.shadcn.com/) - UI components
+
+---
+
+<div align="center">
+
+Made with ❤️ by [Nakshtra Yadav](https://github.com/NakshtraYadav)
+
+</div>
