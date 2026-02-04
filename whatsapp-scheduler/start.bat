@@ -236,12 +236,30 @@ if exist "%SCRIPT_DIR%\backend\venv\Scripts\activate.bat" (
 )
 echo [%date% %time%] Backend start command issued >> "%START_LOG%"
 
-REM Wait for Backend
+REM Wait for Backend with better error checking
 set "BE_RETRIES=0"
 :be_health_loop
-timeout /t 2 /nobreak >nul
+timeout /t 3 /nobreak >nul
 set /a BE_RETRIES+=1
 
+REM First check if port is listening
+netstat -an 2>nul | findstr ":%BACKEND_PORT% " | findstr "LISTENING" >nul 2>&1
+if %errorLevel% neq 0 (
+    if %BE_RETRIES% GEQ 15 (
+        echo    [!!] Backend failed to start - checking error log...
+        if exist "%BE_LOG%" (
+            echo    --- Last 10 lines of backend log ---
+            powershell -Command "Get-Content '%BE_LOG%' -Tail 10" 2>nul
+            echo    --- End of log ---
+        )
+        echo [%date% %time%] ERROR: Backend failed to start >> "%START_LOG%"
+        goto :be_done
+    )
+    echo    [..] Waiting for Backend to start... ^(%BE_RETRIES%/15^)
+    goto :be_health_loop
+)
+
+REM Port is listening, check API response
 curl -s http://localhost:%BACKEND_PORT%/api/ >nul 2>&1
 if %errorLevel% equ 0 (
     echo    [OK] Backend API ready (port %BACKEND_PORT%)
@@ -250,12 +268,12 @@ if %errorLevel% equ 0 (
 )
 
 if %BE_RETRIES% LSS 20 (
-    echo    [..] Waiting for Backend API... ^(%BE_RETRIES%/20^)
+    echo    [..] Backend starting, waiting for API... ^(%BE_RETRIES%/20^)
     goto :be_health_loop
 )
 
-echo    [!] Backend slow to start - check logs
-echo [%date% %time%] WARNING: Backend health check timeout >> "%START_LOG%"
+echo    [!] Backend port open but API not responding
+echo [%date% %time%] WARNING: Backend API not responding >> "%START_LOG%"
 
 :be_done
 echo.
