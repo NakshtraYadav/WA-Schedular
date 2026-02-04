@@ -285,7 +285,7 @@ app.get('/status', (req, res) => {
         isInitializing,
         initAttempts,
         error: initError,
-        version: '3.0.0',
+        version: '1.6.0',
         library: 'whatsapp-web.js@1.34.6',
         hasSession: sessionExists,
         clientInfo: clientInfo ? {
