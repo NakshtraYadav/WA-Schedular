@@ -1,10 +1,28 @@
 {
-  "version": "1.7.0",
+  "version": "2.0.0.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 8,
+  "build": 9,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "2.0.0.0",
+      "date": "2026-02-04",
+      "changes": [
+        "MAJOR: Complete codebase modularization",
+        "Backend: server.py reduced from 1967 to 83 lines",
+        "Backend: New structure - core/, models/, routes/, services/, utils/",
+        "Backend: 45+ modular files with single responsibility",
+        "Frontend: App.js reduced from 235 to 45 lines",
+        "Frontend: New modular API layer with 11 domain-specific files",
+        "Frontend: Added context providers (Version, WhatsApp)",
+        "Frontend: Added custom hooks (useVersion, useWhatsAppStatus)",
+        "Frontend: Extracted layout components (Sidebar, Layout)",
+        "Frontend: Added shared components (StatusBadge, LoadingSpinner, etc.)",
+        "WhatsApp Service: Modularized into src/ structure",
+        "Improved code maintainability and scalability"
+      ]
+    },
     {
       "version": "1.7.0",
       "date": "2026-02-04",
