@@ -1,121 +1,70 @@
 # WhatsApp Scheduler - PRD
 
-## Version: 1.0.0 (Build 1)
+## Version: 1.1.0 (Build 2)
 Release Date: 2026-02-04
 
-## Overview
-Local WhatsApp message scheduling application with Telegram remote control, auto-update system, and centralized version management.
+## What's New in v1.1.0
 
-## Architecture
-- **Frontend**: React 19 + Tailwind CSS + shadcn/ui
-- **Backend**: FastAPI + MongoDB
-- **WhatsApp**: Puppeteer-based WhatsApp Web automation
-- **Updates**: GitHub-based version checking with version.json
+### Features Added
+- **WhatsApp Contact Sync** - Import contacts directly from WhatsApp
+- **Telegram Interactive Schedule Creation** - Create schedules via /create command
+- **Custom Time for Recurring Schedules** - Pick any time, not just presets
+- **Rollback Support** - `./update.sh rollback` to revert failed updates
 
-## What's Been Implemented
+### Bug Fixes
+- Fixed version comparison (string vs numeric)
+- Fixed auto-updater timeout issue
+- Added lock file for concurrent update protection
+- Telegram setup instructions auto-hide when configured
 
-### Core Features (v1.0.0)
-- WhatsApp Web integration via QR code
-- Contact management (CRUD)
-- Message templates
-- One-time and recurring schedules (cron-based)
-- Telegram bot remote control
-- Message history logging
-- System diagnostics
+## Telegram Bot Commands (v1.1.0)
 
-### Version System (v1.0.0)
-- Centralized `version.json` at project root
-- `/api/version` endpoint with full version info + changelog
-- `/api/updates/check` compares local vs GitHub version.json
-- Semantic versioning (major.minor.patch) + build numbers
-- Sidebar version badge with update notification
-- Settings page with:
-  - Current vs Latest version comparison
-  - Build numbers and git SHA
-  - Changelog preview for updates
-  - Auto-updater daemon controls
+| Command | Description |
+|---------|-------------|
+| `/help` | Show all commands |
+| `/status` | Check WhatsApp connection |
+| `/contacts` | List all contacts |
+| `/schedules` | List active schedules |
+| `/send <name> <message>` | Send message now |
+| `/create` | **NEW** Create schedule interactively |
+| `/cancel` | Cancel current operation |
+| `/logs` | Recent message history |
 
-## Version.json Schema
-```json
-{
-  "version": "1.0.0",
-  "build": 1,
-  "name": "WhatsApp Scheduler",
-  "release_date": "2026-02-04",
-  "changelog": [
-    {
-      "version": "1.0.0",
-      "date": "2026-02-04",
-      "changes": ["Feature 1", "Feature 2"]
-    }
-  ],
-  "repository": "user/repo",
-  "branch": "main"
-}
-```
+### Interactive Schedule Creation Flow
+1. `/create` → Select contact (1-15)
+2. Enter message text
+3. Select schedule type (Daily, Weekdays, Weekly, Monthly, Once)
+4. Enter time (HH:MM)
+5. Confirm with "yes"
 
----
+## Update System
 
-## 🚀 FUTURE ROADMAP
+### How Updates Work
+1. Compares local `version.json` with GitHub's `version.json`
+2. Uses semantic versioning (major.minor.patch) + build number
+3. Falls back to git SHA comparison if no version.json
 
-### Phase 2: Enhanced Messaging (v1.1.0)
-- [ ] **Message personalization** - Variables like {name}, {date} in templates
-- [ ] **Media messages** - Send images, documents, voice notes
-- [ ] **Bulk messaging** - Send to contact groups
-- [ ] **Message status tracking** - Delivered, read receipts
-- [ ] **Reply detection** - Log and notify on replies
+### Commands
+- `./update.sh check` - Check for updates
+- `./update.sh install` - Install with confirmation
+- `./update.sh force` - Force update + restart
+- `./update.sh rollback` - Revert to backup
 
-### Phase 3: AI Integration (v1.2.0)
-- [ ] **AI message generation** - GPT-powered template suggestions
-- [ ] **Smart scheduling** - AI recommends optimal send times
-- [ ] **Sentiment analysis** - Analyze conversation tone
-- [ ] **Auto-replies** - AI-powered response suggestions
-
-### Phase 4: Business Features (v2.0.0)
-- [ ] **Multi-account support** - Manage multiple WhatsApp numbers
-- [ ] **Team collaboration** - User roles and permissions
-- [ ] **Analytics dashboard** - Message stats, engagement metrics
-- [ ] **API access** - REST API for external integrations
-- [ ] **Webhook support** - Trigger actions on message events
-
-### Phase 5: Platform Expansion (v2.5.0)
-- [ ] **Desktop app** - Electron wrapper for Windows/Mac/Linux
-- [ ] **Mobile companion** - React Native app for on-the-go control
-- [ ] **Cloud hosting option** - SaaS version with managed WhatsApp
-- [ ] **CRM integrations** - Sync with HubSpot, Salesforce, etc.
-
-### Monetization Ideas
-1. **Freemium model**: Free for personal use, paid for business features
-2. **Usage-based**: Free tier with message limits
-3. **Enterprise**: Self-hosted license with premium support
-4. **API access**: Pay-per-use API for developers
-
-### Technical Improvements
-- [ ] End-to-end encryption for stored messages
-- [ ] Backup/restore functionality
-- [ ] Message queuing with retry logic
-- [ ] Rate limiting to prevent WhatsApp bans
-- [ ] Health monitoring and alerting
-- [ ] Docker compose for easy deployment
-
----
-
-## How to Bump Version
-
-1. Edit `/app/version.json`:
-   - Increment `version` (semver)
-   - Increment `build` number
-   - Update `release_date`
-   - Add changelog entry
-
-2. Commit and push to GitHub
-
-3. Users will see update notification on next check
-
----
+### Robustness Features
+- Lock file prevents concurrent updates
+- Auto-backup before update
+- Rollback on build failure
+- Rate limit handling for GitHub API
 
 ## Files Reference
-- `/app/version.json` - Centralized version info
-- `/app/backend/server.py` - API endpoints
-- `/app/frontend/src/App.js` - Version context provider
-- `/app/frontend/src/pages/Settings.jsx` - Updates UI
+- `/app/version.json` - Version info (bump this to release)
+- `/app/backend/server.py` - API + Telegram bot
+- `/app/update.sh` - Update script
+- `/app/.backup/` - Backup directory
+
+## Next Features (Backlog)
+- [ ] Message variables ({name}, {date})
+- [ ] Bulk messaging to groups
+- [ ] Delivery status tracking
+- [ ] AI message suggestions
+- [ ] Contact groups/tags
