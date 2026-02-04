@@ -1,10 +1,21 @@
 {
-  "version": "2.0.0.0",
+  "version": "2.1.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 9,
+  "build": 10,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "2.1.0",
+      "date": "2026-02-04",
+      "changes": [
+        "Simplified update system - single start.sh script",
+        "Removed redundant update scripts (update.sh, auto-updater.sh, fast-update.sh)",
+        "UI Install Update button now uses fast hot-reload method",
+        "Update time reduced from 30-60s to ~3 seconds",
+        "WSL optimized for Windows users"
+      ]
+    },
     {
       "version": "2.0.0.0",
       "date": "2026-02-04",
