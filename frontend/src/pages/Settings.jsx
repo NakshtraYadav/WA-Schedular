@@ -80,7 +80,7 @@ function SettingsPage() {
       
       // Fetch Telegram status
       try {
-        const statusRes = await api.get('/telegram/status');
+        const statusRes = await getTelegramStatus();
         setTelegramStatus(statusRes.data);
       } catch (e) {
         console.error('Failed to fetch telegram status');
