@@ -791,23 +791,51 @@ async def get_timezone_info():
 
 # ============== UPDATE SYSTEM ==============
 
-GITHUB_REPO = "NakshtraYadav/WA-Schedular"
-GITHUB_BRANCH = "main"
-APP_VERSION = "1.0.0"  # Semantic version for the app
+# Load version info from version.json
+def get_version_info():
+    """Load version info from version.json"""
+    version_file = ROOT_DIR.parent / "version.json"
+    default_info = {
+        "version": "1.0.0",
+        "name": "WhatsApp Scheduler",
+        "build": 1,
+        "release_date": "unknown",
+        "changelog": []
+    }
+    
+    if version_file.exists():
+        try:
+            import json
+            with open(version_file, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load version.json: {e}")
+    return default_info
+
+VERSION_INFO = get_version_info()
+GITHUB_REPO = VERSION_INFO.get("repository", "NakshtraYadav/WA-Schedular")
+GITHUB_BRANCH = VERSION_INFO.get("branch", "main")
 
 @api_router.get("/version")
 async def get_app_version():
     """Get application version info"""
-    version_file = ROOT_DIR.parent / ".version"
+    # Reload version info to get latest
+    version_info = get_version_info()
+    
+    # Get git SHA if available
+    git_sha_file = ROOT_DIR.parent / ".version"
     git_sha = "unknown"
-    if version_file.exists():
-        git_sha = version_file.read_text().strip()[:7]
+    if git_sha_file.exists():
+        git_sha = git_sha_file.read_text().strip()[:7]
     
     return {
-        "version": APP_VERSION,
+        "version": version_info.get("version", "1.0.0"),
+        "build": version_info.get("build", 1),
+        "name": version_info.get("name", "WhatsApp Scheduler"),
+        "release_date": version_info.get("release_date", "unknown"),
         "git_sha": git_sha,
-        "app_name": "WhatsApp Scheduler",
-        "build_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        "repository": version_info.get("repository"),
+        "changelog": version_info.get("changelog", [])[:3]  # Last 3 versions
     }
 
 @api_router.get("/updates/check")
