@@ -183,9 +183,18 @@ restart_services() {
     log "${BLUE}Restarting services...${NC}"
     
     cd "$SCRIPT_DIR"
-    ./stop.sh > /dev/null 2>&1
-    sleep 2
-    ./start.sh > /dev/null 2>&1 &
+    
+    # Check if running in supervisor environment (Emergent)
+    if command -v supervisorctl &> /dev/null && supervisorctl status &> /dev/null; then
+        log "  Detected supervisor environment, restarting via supervisorctl..."
+        sudo supervisorctl restart backend 2>/dev/null || supervisorctl restart backend 2>/dev/null
+        sudo supervisorctl restart frontend 2>/dev/null || supervisorctl restart frontend 2>/dev/null
+    else
+        # Local development environment
+        ./stop.sh > /dev/null 2>&1
+        sleep 2
+        ./start.sh > /dev/null 2>&1 &
+    fi
     
     log "${GREEN}[OK] Services restarted${NC}"
 }
