@@ -990,6 +990,30 @@ async def debug_schedules():
         }
     }
 
+@api_router.post("/schedules/test-run/{schedule_id}")
+async def test_run_schedule(schedule_id: str):
+    """Manually trigger a schedule to test if it works"""
+    logger.info(f"🧪 TEST RUN: {schedule_id}")
+    
+    database = await get_database()
+    schedule = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
+    
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    # Execute immediately
+    await execute_scheduled_message(schedule_id)
+    
+    return {
+        "success": True,
+        "message": f"Test run executed for schedule {schedule_id}",
+        "schedule": {
+            "contact": schedule.get("contact_name"),
+            "phone": schedule.get("contact_phone"),
+            "message_preview": schedule.get("message", "")[:50]
+        }
+    }
+
 @api_router.get("/schedules", response_model=List[ScheduledMessage])
 async def get_schedules():
     """Get all scheduled messages"""
