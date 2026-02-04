@@ -119,18 +119,27 @@ function SettingsPage() {
   };
 
   const handleInstallUpdate = async () => {
-    if (!window.confirm('This will download the latest version and restart all services. Continue?')) {
+    if (!window.confirm('This will download the latest version and restart services. Continue?')) {
       return;
     }
     setInstallingUpdate(true);
+    
+    // Show progress toast
+    const toastId = toast.loading('Downloading update...', { duration: Infinity });
+    
     try {
       const res = await installUpdate();
       if (res.data.success) {
-        toast.success('Update started! Services will restart automatically.');
+        toast.dismiss(toastId);
+        toast.success('Update installed! Reloading...', { duration: 3000 });
+        // Wait and reload the page
+        setTimeout(() => window.location.reload(), 3000);
       } else {
+        toast.dismiss(toastId);
         toast.error(res.data.error || 'Failed to install update');
       }
     } catch (error) {
+      toast.dismiss(toastId);
       toast.error('Failed to install update');
     } finally {
       setInstallingUpdate(false);
