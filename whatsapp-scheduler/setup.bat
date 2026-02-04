@@ -18,8 +18,7 @@ if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 set "LOG_DIR=%SCRIPT_DIR%\logs\system"
 
 REM Create timestamp without special chars
-for /f "tokens=2 delims==" %%a in ('wmic os get localdatetime /value') do set "dt=%%a"
-set "TIMESTAMP=%dt:~0,8%_%dt:~8,6%"
+for /f "tokens=*" %%a in ('powershell -Command "Get-Date -Format 'yyyyMMdd_HHmmss'"') do set "TIMESTAMP=%%a"
 set "SETUP_LOG=%LOG_DIR%\setup_%TIMESTAMP%.log"
 
 set "MIN_NODE_VERSION=16"
