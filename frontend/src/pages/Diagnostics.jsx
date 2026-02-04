@@ -176,7 +176,7 @@ export default function Diagnostics() {
   const fetchServiceLogs = async (service) => {
     setLoadingLogs(prev => ({ ...prev, [service]: true }));
     try {
-      const response = await api.get(`/diagnostics/logs/${service}?lines=50`);
+      const response = await apiClient.get(`/api/diagnostics/logs/${service}?lines=50`);
       setLogs(prev => ({ ...prev, [service]: response.data }));
     } catch (error) {
       console.error(`Failed to fetch ${service} logs:`, error);
