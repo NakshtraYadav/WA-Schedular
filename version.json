@@ -1,20 +1,28 @@
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 7,
+  "build": 8,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "1.7.0",
+      "date": "2026-02-04",
+      "changes": [
+        "Added /api/schedules/debug - shows scheduler status & jobs",
+        "Added /api/schedules/test-run/{id} - manually trigger a schedule",
+        "Enhanced logging for schedule creation and execution",
+        "Telegram notification when scheduled message is sent",
+        "Better error messages for debugging schedule issues"
+      ]
+    },
     {
       "version": "1.6.0",
       "date": "2026-02-04",
       "changes": [
-        "HOT RELOAD: ./update.sh dev - instant code updates without restart",
-        "PREFETCH: Download updates in background, apply instantly",
-        "GRACEFUL RESTART: Backend reloads without dropping connections",
-        "PARALLEL INSTALLS: npm & pip run simultaneously",
-        "AUTO-DETECT: Skips restart if hot reload is active",
-        "Shows total update time"
+        "HOT RELOAD: ./update.sh dev - instant code updates",
+        "PREFETCH: Download updates in background",
+        "GRACEFUL RESTART: No dropped connections"
       ]
     },
     {
