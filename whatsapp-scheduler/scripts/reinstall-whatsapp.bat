@@ -1,7 +1,6 @@
 @echo off
 REM ============================================================================
-REM  WhatsApp Scheduler - Reinstall WhatsApp Dependencies
-REM  Use this if WhatsApp service keeps failing
+REM  WhatsApp Service - Full Reinstall (FIXED)
 REM ============================================================================
 setlocal enabledelayedexpansion
 
@@ -20,11 +19,10 @@ echo   =========================================================================
 echo.
 echo    This will:
 echo    1. Stop WhatsApp service
-echo    2. Delete node_modules
-echo    3. Delete session and cache
-echo    4. Reinstall all dependencies
+echo    2. Delete node_modules, session, cache
+echo    3. Reinstall all dependencies from npm
 echo.
-echo    This takes 5-10 minutes.
+echo    This takes 3-5 minutes.
 echo.
 set /p CONFIRM="    Continue? (Y/N): "
 
@@ -42,8 +40,8 @@ for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":3001 " ^| findstr "L
 )
 taskkill /FI "WINDOWTITLE eq WhatsApp-Scheduler-WA*" /F >nul 2>&1
 timeout /t 2 /nobreak >nul
-
 echo    [OK] Services stopped
+
 echo.
 echo    [2/5] Deleting node_modules...
 
@@ -66,16 +64,17 @@ if exist "yarn.lock" del yarn.lock 2>nul
 echo    [OK] Session and cache cleared
 
 echo.
-echo    [4/5] Installing dependencies (this takes 5-10 minutes)...
-echo    [i] Downloading whatsapp-web.js and Chromium...
+echo    [4/5] Installing dependencies from npm registry...
+echo    [i] This downloads ~200MB (puppeteer + chromium)...
 echo.
 
-call npm install 2>&1
+REM Use npm install with registry (not git)
+call npm install --registry https://registry.npmjs.org/ 2>&1
 
 if !errorLevel! neq 0 (
     echo.
-    echo    [!] npm install had issues, trying with --force...
-    call npm install --force 2>&1
+    echo    [!] First attempt failed, retrying with --legacy-peer-deps...
+    call npm install --legacy-peer-deps --registry https://registry.npmjs.org/ 2>&1
 )
 
 echo.
@@ -84,15 +83,20 @@ echo    [5/5] Verifying installation...
 if exist "node_modules\whatsapp-web.js" (
     echo    [OK] whatsapp-web.js installed
 ) else (
-    echo    [!!] whatsapp-web.js NOT installed - check errors above
+    echo    [!!] whatsapp-web.js NOT installed
+    echo    [!!] Please check your internet connection and try again
 )
 
 if exist "node_modules\puppeteer" (
     echo    [OK] puppeteer installed
-) else if exist "node_modules\puppeteer-core" (
-    echo    [OK] puppeteer-core installed
 ) else (
-    echo    [i] puppeteer will use system Chrome
+    echo    [!] puppeteer not found - will use system Chrome
+)
+
+if exist "node_modules\.cache\puppeteer" (
+    echo    [OK] Chromium downloaded
+) else (
+    echo    [i] Will use system Chrome/Edge
 )
 
 popd
@@ -103,6 +107,11 @@ echo                       REINSTALL COMPLETE!
 echo   ===========================================================================
 echo.
 echo    Now run start.bat to start the services.
+echo.
+echo    If WhatsApp still fails:
+echo    1. Make sure Chrome or Edge is installed
+echo    2. Run as Administrator
+echo    3. Temporarily disable antivirus
 echo.
 echo   ===========================================================================
 echo.

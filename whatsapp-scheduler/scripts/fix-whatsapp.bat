@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================================
-REM  WhatsApp Scheduler - Clear WhatsApp Session (Fixes "Frame Detached" error)
+REM  WhatsApp Scheduler - Fix WhatsApp (Clear Session)
 REM ============================================================================
 setlocal enabledelayedexpansion
 
@@ -10,98 +10,89 @@ if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 for %%a in ("%SCRIPT_DIR%") do set "PARENT_DIR=%%~dpa"
 if "%PARENT_DIR:~-1%"=="\" set "PARENT_DIR=%PARENT_DIR:~0,-1%"
 
-set "SESSION_DIR=%PARENT_DIR%\whatsapp-service\.wwebjs_auth"
-set "CACHE_DIR=%PARENT_DIR%\whatsapp-service\.wwebjs_cache"
+set "WA_DIR=%PARENT_DIR%\whatsapp-service"
+set "SESSION_DIR=%WA_DIR%\.wwebjs_auth"
+set "CACHE_DIR=%WA_DIR%\.wwebjs_cache"
 
 echo.
 echo   ===========================================================================
-echo        WhatsApp Session Clear - Fixes "Frame Detached" Error
+echo        WhatsApp Fix - Clear Session and Cache
 echo   ===========================================================================
 echo.
-echo    This will:
-echo    1. Stop any running WhatsApp service
-echo    2. Delete session data (.wwebjs_auth)
-echo    3. Delete cache data (.wwebjs_cache)
-echo    4. You will need to scan the QR code again
-echo.
-echo    This is the recommended fix for:
+echo    This fixes:
 echo    - "Navigating frame was detached"
 echo    - "Target closed"
- echo    - "Protocol error"
+echo    - "All connection attempts failed"
 echo    - WhatsApp not initializing
+echo.
+echo    You will need to scan the QR code again.
 echo.
 set /p CONFIRM="    Continue? (Y/N): "
 
 if /i not "%CONFIRM%"=="Y" (
-    echo.
     echo    Cancelled.
     pause
     exit /b 0
 )
 
 echo.
-echo    [..] Stopping WhatsApp service...
+echo    [1/3] Stopping WhatsApp service...
 
-REM Kill WhatsApp service by port
 for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":3001 " ^| findstr "LISTENING"') do (
     taskkill /F /PID %%a >nul 2>&1
 )
-
-REM Kill by window title
 taskkill /FI "WINDOWTITLE eq WhatsApp-Scheduler-WA*" /F >nul 2>&1
 
-REM Kill any node processes that might be holding files
+REM Kill any lingering node processes
 for /f "skip=1 tokens=2" %%a in ('wmic process where "name='node.exe' and commandline like '%%whatsapp%%'" get processid 2^>nul') do (
     if "%%a" neq "" taskkill /F /PID %%a >nul 2>&1
 )
 
 timeout /t 3 /nobreak >nul
-echo    [OK] Services stopped
+echo    [OK] Service stopped
 
 echo.
-echo    [..] Deleting session data...
+echo    [2/3] Deleting session data...
 
 if exist "%SESSION_DIR%" (
     rmdir /s /q "%SESSION_DIR%" 2>nul
+    timeout /t 1 /nobreak >nul
     if exist "%SESSION_DIR%" (
-        REM Try harder - sometimes files are locked
-        timeout /t 2 /nobreak >nul
+        echo    [!] Could not fully delete - trying again...
         rmdir /s /q "%SESSION_DIR%" 2>nul
     )
-    if exist "%SESSION_DIR%" (
-        echo    [!] Could not delete session - files may be locked
-        echo    [i] Try restarting your computer
+    if not exist "%SESSION_DIR%" (
+        echo    [OK] Session deleted
     ) else (
-        echo    [OK] Session data deleted
+        echo    [!] Some files locked - restart PC and try again
     )
 ) else (
-    echo    [i] No session data found
+    echo    [i] No session found
 )
 
 echo.
-echo    [..] Deleting cache data...
+echo    [3/3] Deleting cache data...
 
 if exist "%CACHE_DIR%" (
     rmdir /s /q "%CACHE_DIR%" 2>nul
-    if exist "%CACHE_DIR%" (
-        echo    [!] Could not delete cache completely
-    ) else (
-        echo    [OK] Cache data deleted
-    )
+    echo    [OK] Cache deleted
 ) else (
-    echo    [i] No cache data found
+    echo    [i] No cache found
 )
 
 echo.
 echo   ===========================================================================
-echo                           SESSION CLEARED!
+echo                           FIX COMPLETE!
 echo   ===========================================================================
 echo.
 echo    Next steps:
-echo    1. Run start.bat to restart all services
-echo    2. Go to http://localhost:3000/connect
-echo    3. Wait for the QR code (30-90 seconds)
-echo    4. Scan with your phone
+echo    1. Run start.bat to restart services
+echo    2. Wait 30-90 seconds for QR code
+echo    3. Scan QR code with your phone
+echo.
+echo    If it still fails:
+echo    - Run scripts\reinstall-whatsapp.bat
+echo    - Make sure Chrome or Edge is installed
 echo.
 echo   ===========================================================================
 echo.

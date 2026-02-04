@@ -5,13 +5,14 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "clean": "node -e \"const fs=require('fs');const p='.wwebjs_auth';if(fs.existsSync(p)){fs.rmSync(p,{recursive:true});console.log('Session cleared')}\""
+    "clean": "node -e \"const fs=require('fs');['.wwebjs_auth','.wwebjs_cache'].forEach(p=>{if(fs.existsSync(p)){fs.rmSync(p,{recursive:true});console.log('Cleared:',p)}})\""
   },
   "dependencies": {
-    "whatsapp-web.js": "github:AkashManohar/whatsapp-web.js#webpack-exodus",
+    "whatsapp-web.js": "^1.25.0",
     "qrcode": "^1.5.3",
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "puppeteer": "^22.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

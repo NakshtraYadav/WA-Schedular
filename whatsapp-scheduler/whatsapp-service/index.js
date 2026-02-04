@@ -20,66 +20,104 @@ let initAttempts = 0;
 const MAX_INIT_ATTEMPTS = 3;
 
 console.log('================================================');
-console.log('  WhatsApp Web Service v2.0 (Hardened)');
+console.log('  WhatsApp Web Service v2.1 (Windows Hardened)');
 console.log('================================================');
 console.log('');
 
-// Session path
+// Paths
 const SESSION_PATH = path.join(__dirname, '.wwebjs_auth');
+const CACHE_PATH = path.join(__dirname, '.wwebjs_cache');
 
-// Function to clear corrupted session
+// Clear corrupted session
 function clearSession() {
+    let cleared = false;
     try {
         if (fs.existsSync(SESSION_PATH)) {
             fs.rmSync(SESSION_PATH, { recursive: true, force: true });
-            console.log('[Session] Cleared corrupted session data');
-            return true;
+            console.log('[Session] Cleared session data');
+            cleared = true;
+        }
+        if (fs.existsSync(CACHE_PATH)) {
+            fs.rmSync(CACHE_PATH, { recursive: true, force: true });
+            console.log('[Session] Cleared cache data');
+            cleared = true;
         }
     } catch (err) {
-        console.error('[Session] Error clearing session:', err.message);
+        console.error('[Session] Error clearing:', err.message);
     }
-    return false;
+    return cleared;
+}
+
+// Find Chrome executable on Windows
+function findChrome() {
+    const possiblePaths = [
+        process.env.CHROME_PATH,
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+        path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
+        path.join(process.env.PROGRAMFILES || '', 'Google\\Chrome\\Application\\chrome.exe'),
+        path.join(process.env['PROGRAMFILES(X86)'] || '', 'Google\\Chrome\\Application\\chrome.exe'),
+        // Edge as fallback
+        'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    ].filter(Boolean);
+
+    for (const chromePath of possiblePaths) {
+        if (fs.existsSync(chromePath)) {
+            console.log('[Chrome] Found at:', chromePath);
+            return chromePath;
+        }
+    }
+    
+    console.log('[Chrome] Not found in common locations, using bundled Chromium');
+    return null;
 }
 
 // Create client with robust configuration
 function createClient() {
-    console.log('[Client] Creating WhatsApp client with hardened config...');
+    console.log('[Client] Creating WhatsApp client...');
     
+    const chromePath = findChrome();
+    
+    const puppeteerArgs = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-software-rasterizer',
+        '--disable-features=site-per-process',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins',
+        '--disable-site-isolation-trials',
+        '--ignore-certificate-errors',
+        '--disable-blink-features=AutomationControlled',
+        '--window-size=1920,1080'
+    ];
+
     const clientConfig = {
         authStrategy: new LocalAuth({
             dataPath: SESSION_PATH
         }),
         puppeteer: {
             headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu',
-                '--disable-extensions',
-                '--disable-software-rasterizer',
-                '--disable-features=site-per-process',
-                '--disable-web-security',
-                '--disable-features=IsolateOrigins',
-                '--disable-site-isolation-trials',
-                '--ignore-certificate-errors',
-                '--ignore-certificate-errors-spki-list',
-                '--disable-blink-features=AutomationControlled'
-            ],
+            args: puppeteerArgs,
             defaultViewport: null,
             ignoreHTTPSErrors: true,
+            timeout: 60000,
         },
-        // Critical: Use local web version to avoid "frame detached" errors
-        webVersionCache: {
-            type: 'local',
-            path: path.join(__dirname, '.wwebjs_cache')
-        },
-        // Increase timeouts
         qrMaxRetries: 5,
+        takeoverOnConflict: true,
+        takeoverTimeoutMs: 10000,
     };
+
+    // Use system Chrome if found
+    if (chromePath) {
+        clientConfig.puppeteer.executablePath = chromePath;
+    }
     
     return new Client(clientConfig);
 }
@@ -92,7 +130,9 @@ function setupClientEvents(clientInstance) {
         console.log('  QR CODE RECEIVED!');
         console.log('================================================');
         console.log('');
-        console.log('Scan with WhatsApp: Settings > Linked Devices > Link a Device');
+        console.log('Scan with WhatsApp:');
+        console.log('  Settings > Linked Devices > Link a Device');
+        console.log('');
         console.log('Or open: http://localhost:3000/connect');
         console.log('');
         
@@ -101,12 +141,13 @@ function setupClientEvents(clientInstance) {
             isAuthenticated = false;
             isReady = false;
             initError = null;
+            isInitializing = false;
         } catch (err) {
             console.error('[QR] Error generating QR code:', err.message);
         }
     });
 
-    // Loading screen event
+    // Loading screen
     clientInstance.on('loading_screen', (percent, message) => {
         console.log(`[Loading] ${percent}% - ${message}`);
     });
@@ -115,7 +156,7 @@ function setupClientEvents(clientInstance) {
     clientInstance.on('ready', () => {
         console.log('');
         console.log('================================================');
-        console.log('  WHATSAPP CONNECTED!');
+        console.log('  WHATSAPP CONNECTED SUCCESSFULLY!');
         console.log('================================================');
         
         isReady = true;
@@ -127,16 +168,18 @@ function setupClientEvents(clientInstance) {
         clientInfo = clientInstance.info;
         
         if (clientInfo) {
-            console.log(`Logged in as: ${clientInfo.pushname}`);
-            console.log(`Phone: ${clientInfo.wid?.user}`);
+            console.log(`  Logged in as: ${clientInfo.pushname}`);
+            console.log(`  Phone: ${clientInfo.wid?.user}`);
         }
-        console.log('You can now send messages!');
+        console.log('');
+        console.log('  You can now send messages!');
+        console.log('================================================');
         console.log('');
     });
 
     // Authenticated event
     clientInstance.on('authenticated', () => {
-        console.log('[Auth] WhatsApp authenticated successfully');
+        console.log('[Auth] WhatsApp authenticated');
         isAuthenticated = true;
         initError = null;
     });
@@ -147,13 +190,13 @@ function setupClientEvents(clientInstance) {
         isAuthenticated = false;
         isReady = false;
         isInitializing = false;
-        initError = 'Authentication failed. Clearing session...';
+        initError = 'Authentication failed: ' + msg;
         
-        // Clear session and retry
+        // Clear corrupted session
         clearSession();
         
         if (initAttempts < MAX_INIT_ATTEMPTS) {
-            console.log('[Auth] Will retry initialization in 5 seconds...');
+            console.log('[Auth] Retrying in 5 seconds...');
             setTimeout(() => initializeClient(), 5000);
         }
     });
@@ -166,22 +209,22 @@ function setupClientEvents(clientInstance) {
         qrCodeDataUrl = null;
         clientInfo = null;
         
-        // Handle specific disconnect reasons
         if (reason === 'NAVIGATION' || reason === 'LOGOUT' || reason === 'CONFLICT') {
-            console.log('[Disconnect] Will attempt to reconnect in 10 seconds...');
+            console.log('[Disconnect] Auto-reconnecting in 10 seconds...');
             setTimeout(() => initializeClient(), 10000);
         }
     });
 
-    // Change state event
+    // Change state
     clientInstance.on('change_state', (state) => {
-        console.log('[State] WhatsApp state changed to:', state);
+        console.log('[State] Changed to:', state);
     });
 
     // Message received
     clientInstance.on('message', (msg) => {
         if (!msg.isStatus) {
-            console.log(`[Message] From ${msg.from}: ${msg.body?.substring(0, 50) || '(media)'}...`);
+            const preview = msg.body?.substring(0, 50) || '(media)';
+            console.log(`[Message] From ${msg.from}: ${preview}...`);
         }
     });
 }
@@ -194,8 +237,9 @@ async function initializeClient() {
     
     isInitializing = true;
     initAttempts++;
+    initError = null;
     
-    console.log(`[Init] Initialization attempt ${initAttempts}/${MAX_INIT_ATTEMPTS}`);
+    console.log(`[Init] Attempt ${initAttempts}/${MAX_INIT_ATTEMPTS}`);
     
     try {
         // Destroy existing client
@@ -204,25 +248,23 @@ async function initializeClient() {
             try { 
                 await client.destroy(); 
             } catch (e) {
-                console.log('[Init] Client destroy warning:', e.message);
+                console.log('[Init] Destroy warning:', e.message);
             }
             client = null;
-            
-            // Wait for cleanup
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(r => setTimeout(r, 2000));
         }
         
         client = createClient();
         setupClientEvents(client);
         
         console.log('[Init] Starting WhatsApp client...');
-        console.log('[Init] This may take 30-90 seconds on first run...');
+        console.log('[Init] This may take 30-90 seconds...');
         console.log('');
         
         // Initialize with timeout
         const initPromise = client.initialize();
         const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Initialization timeout after 120 seconds')), 120000)
+            setTimeout(() => reject(new Error('Initialization timeout (120s)')), 120000)
         );
         
         await Promise.race([initPromise, timeoutPromise]);
@@ -232,46 +274,41 @@ async function initializeClient() {
         console.error('================================================');
         console.error('  INITIALIZATION ERROR');
         console.error('================================================');
-        console.error(`Error: ${err.message}`);
+        console.error('Error:', err.message);
         console.error('');
         
         isInitializing = false;
         
-        // Handle "Navigating frame was detached" specifically
-        if (err.message.includes('frame was detached') || 
-            err.message.includes('Navigating frame') ||
+        // Handle frame detachment and similar errors
+        const isRecoverableError = 
+            err.message.includes('frame') ||
+            err.message.includes('detached') ||
             err.message.includes('Target closed') ||
-            err.message.includes('Protocol error')) {
-            
-            initError = 'WhatsApp Web navigation error. Clearing session and retrying...';
-            console.log('[Error] Frame detachment detected - clearing session');
+            err.message.includes('Protocol error') ||
+            err.message.includes('Navigation') ||
+            err.message.includes('timeout') ||
+            err.message.includes('Session');
+        
+        if (isRecoverableError && initAttempts < MAX_INIT_ATTEMPTS) {
+            initError = `Attempt ${initAttempts} failed: ${err.message}. Retrying...`;
+            console.log('[Error] Recoverable error, clearing session...');
             clearSession();
-            
-            if (initAttempts < MAX_INIT_ATTEMPTS) {
-                console.log(`[Error] Retrying in 5 seconds... (attempt ${initAttempts + 1}/${MAX_INIT_ATTEMPTS})`);
-                setTimeout(() => initializeClient(), 5000);
-                return;
-            }
+            console.log(`[Error] Retrying in 5 seconds (attempt ${initAttempts + 1}/${MAX_INIT_ATTEMPTS})...`);
+            setTimeout(() => initializeClient(), 5000);
+            return;
         }
         
-        initError = err.message;
+        initError = `All connection attempts failed`;
         
-        console.log('TROUBLESHOOTING:');
-        console.log('1. Run: npm run clean (clears session)');
-        console.log('2. Close ALL Chrome/browser windows');
-        console.log('3. Delete .wwebjs_auth and .wwebjs_cache folders manually');
-        console.log('4. Reinstall: npm install');
-        console.log('5. Restart your computer');
         console.log('');
-        
-        // Offer auto-retry
-        if (initAttempts < MAX_INIT_ATTEMPTS) {
-            console.log(`[Error] Auto-retrying in 10 seconds... (attempt ${initAttempts + 1}/${MAX_INIT_ATTEMPTS})`);
-            setTimeout(() => initializeClient(), 10000);
-        } else {
-            console.log('[Error] Max retry attempts reached. Please troubleshoot manually.');
-            initError = `Failed after ${MAX_INIT_ATTEMPTS} attempts: ${err.message}. Try deleting .wwebjs_auth folder and restart.`;
-        }
+        console.log('TROUBLESHOOTING STEPS:');
+        console.log('1. Make sure Google Chrome or Microsoft Edge is installed');
+        console.log('2. Close ALL browser windows');
+        console.log('3. Delete .wwebjs_auth and .wwebjs_cache folders');
+        console.log('4. Disable antivirus temporarily');
+        console.log('5. Restart your computer');
+        console.log('6. Run: npm run clean && npm start');
+        console.log('');
     }
 }
 
@@ -303,7 +340,11 @@ app.get('/qr', (req, res) => {
     } else if (initError) {
         res.json({ qrCode: null, error: initError });
     } else if (isInitializing) {
-        res.json({ qrCode: null, message: 'Initializing... Please wait (30-90 seconds)', isInitializing: true });
+        res.json({ 
+            qrCode: null, 
+            message: `Initializing... (attempt ${initAttempts}/${MAX_INIT_ATTEMPTS})`,
+            isInitializing: true 
+        });
     } else {
         res.json({ qrCode: null, message: 'Starting...' });
     }
@@ -313,33 +354,32 @@ app.post('/send', async (req, res) => {
     const { phone, message } = req.body;
     
     if (!isReady || !client) {
-        return res.status(400).json({ success: false, error: 'WhatsApp not ready. Please scan QR code first.' });
+        return res.status(400).json({ 
+            success: false, 
+            error: 'WhatsApp not ready. Please scan QR code first.' 
+        });
     }
     
     if (!phone || !message) {
-        return res.status(400).json({ success: false, error: 'Phone and message are required' });
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Phone and message are required' 
+        });
     }
     
     try {
-        // Clean phone number - remove all non-digits
         let cleanPhone = phone.replace(/\D/g, '');
         
-        // Ensure it has country code (assume +1 if not)
+        // Add country code if missing (default US)
         if (cleanPhone.length === 10) {
-            cleanPhone = '1' + cleanPhone; // Add US country code
+            cleanPhone = '1' + cleanPhone;
         }
         
         const formattedPhone = cleanPhone + '@c.us';
         console.log(`[Send] Sending to ${formattedPhone}...`);
         
-        // Check if number is registered on WhatsApp
-        const isRegistered = await client.isRegisteredUser(formattedPhone);
-        if (!isRegistered) {
-            console.log(`[Send] Warning: ${cleanPhone} may not be on WhatsApp`);
-        }
-        
         const result = await client.sendMessage(formattedPhone, message);
-        console.log(`[Send] Success! Message ID: ${result.id._serialized}`);
+        console.log(`[Send] Success! ID: ${result.id._serialized}`);
         
         res.json({ 
             success: true, 
@@ -354,7 +394,7 @@ app.post('/send', async (req, res) => {
 
 app.post('/logout', async (req, res) => {
     try {
-        if (client) {
+        if (client && isReady) {
             await client.logout();
         }
         isReady = false;
@@ -368,7 +408,7 @@ app.post('/logout', async (req, res) => {
 });
 
 app.post('/retry-init', async (req, res) => {
-    console.log('[Retry] Manual retry requested...');
+    console.log('[API] Manual retry requested');
     initError = null;
     qrCodeDataUrl = null;
     isInitializing = false;
@@ -378,15 +418,16 @@ app.post('/retry-init', async (req, res) => {
 });
 
 app.post('/clear-session', async (req, res) => {
-    console.log('[Clear] Session clear requested...');
+    console.log('[API] Clear session requested');
     
     try {
-        // Destroy client first
+        // Destroy client
         if (client) {
             try { await client.destroy(); } catch (e) {}
             client = null;
         }
         
+        // Reset state
         isReady = false;
         isAuthenticated = false;
         isInitializing = false;
@@ -395,19 +436,12 @@ app.post('/clear-session', async (req, res) => {
         clientInfo = null;
         initError = null;
         
-        // Clear session files
+        // Clear files
         clearSession();
         
-        // Also clear cache
-        const cachePath = path.join(__dirname, '.wwebjs_cache');
-        if (fs.existsSync(cachePath)) {
-            fs.rmSync(cachePath, { recursive: true, force: true });
-            console.log('[Clear] Cleared cache data');
-        }
+        res.json({ success: true, message: 'Session cleared' });
         
-        res.json({ success: true, message: 'Session cleared. Restart service to reinitialize.' });
-        
-        // Auto-restart initialization
+        // Restart
         setTimeout(() => initializeClient(), 2000);
         
     } catch (error) {
@@ -431,18 +465,16 @@ app.get('/health', (req, res) => {
 const PORT = process.env.WA_PORT || 3001;
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Server] WhatsApp service running on http://localhost:${PORT}`);
+    console.log(`[Server] Running on http://localhost:${PORT}`);
     console.log('');
     
-    // Delay initialization to let Express start cleanly
-    setTimeout(() => {
-        initializeClient();
-    }, 1000);
+    // Delay init to let Express start
+    setTimeout(() => initializeClient(), 1000);
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-    console.log('\n[Shutdown] Shutting down gracefully...');
+    console.log('\n[Shutdown] Graceful shutdown...');
     if (client) {
         try { await client.destroy(); } catch (e) {}
     }
@@ -450,19 +482,20 @@ process.on('SIGINT', async () => {
 });
 
 process.on('SIGTERM', async () => {
-    console.log('\n[Shutdown] Received SIGTERM...');
+    console.log('\n[Shutdown] SIGTERM received...');
     if (client) {
         try { await client.destroy(); } catch (e) {}
     }
     process.exit(0);
 });
 
-// Handle uncaught errors
+// Catch unhandled errors
 process.on('uncaughtException', (err) => {
     console.error('[Fatal] Uncaught exception:', err.message);
-    initError = 'Service crashed: ' + err.message;
+    initError = 'Service error: ' + err.message;
+    isInitializing = false;
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
     console.error('[Fatal] Unhandled rejection:', reason);
 });
