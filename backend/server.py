@@ -1327,10 +1327,10 @@ async def check_for_updates():
 
 @api_router.post("/updates/install")
 async def install_update():
-    """Trigger update installation (runs update.sh)
+    """Trigger fast update installation
     
-    Note: This starts the update in a completely detached process
-    so it survives the backend restart.
+    Uses git pull if available (fast), falls back to zip download (slow).
+    Only restarts services that have changes.
     """
     import subprocess
     import os
@@ -1340,23 +1340,25 @@ async def install_update():
     if not update_script.exists():
         return {"success": False, "error": "update.sh not found"}
     
+    # Check if it's a git repo (fast update possible)
+    is_git = (ROOT_DIR.parent / ".git").exists()
+    
     try:
         # Create a wrapper script that runs the update after a delay
-        # This allows the API to respond before the backend is killed
         wrapper_script = ROOT_DIR.parent / ".update_runner.sh"
         
         with open(wrapper_script, 'w') as f:
             f.write(f"""#!/bin/bash
 # Auto-generated update wrapper
-sleep 2  # Wait for API response to complete
+sleep 2  # Wait for API response
 cd "{ROOT_DIR.parent}"
-./update.sh force >> logs/system/update.log 2>&1
-rm -f "{wrapper_script}"  # Clean up
+./update.sh fast >> logs/system/update.log 2>&1
+rm -f "{wrapper_script}"
 """)
         
         os.chmod(wrapper_script, 0o755)
         
-        # Run the wrapper completely detached
+        # Run completely detached
         subprocess.Popen(
             ["nohup", "bash", str(wrapper_script)],
             cwd=str(ROOT_DIR.parent),
@@ -1369,8 +1371,9 @@ rm -f "{wrapper_script}"  # Clean up
         
         return {
             "success": True,
-            "message": "Update starting in 2 seconds. Page will reload when complete.",
-            "note": "Services will restart - please wait 1-2 minutes"
+            "method": "git_pull" if is_git else "zip_download",
+            "message": "Update starting..." + (" (fast mode)" if is_git else " (this may take a few minutes)"),
+            "estimated_time": "10-30 seconds" if is_git else "2-3 minutes"
         }
     except Exception as e:
         logger.error(f"Failed to start update: {e}")
