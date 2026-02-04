@@ -1004,6 +1004,8 @@ async def get_schedules():
 @api_router.post("/schedules", response_model=ScheduledMessage)
 async def create_schedule(input: ScheduledMessageCreate):
     """Create a new scheduled message"""
+    logger.info(f"📅 Creating schedule: type={input.schedule_type}, contact={input.contact_id}")
+    
     database = await get_database()
     contact = await database.contacts.find_one({"id": input.contact_id}, {"_id": 0})
     if not contact:
@@ -1026,9 +1028,11 @@ async def create_schedule(input: ScheduledMessageCreate):
             doc[field] = doc[field].isoformat()
     
     await database.schedules.insert_one(doc)
+    logger.info(f"✅ Schedule saved to DB: {schedule.id}")
     
     try:
         if input.schedule_type == "once" and input.scheduled_time:
+            logger.info(f"⏰ Adding one-time job for {input.scheduled_time}")
             scheduler.add_job(
                 execute_scheduled_message,
                 DateTrigger(run_date=input.scheduled_time),
@@ -1036,7 +1040,9 @@ async def create_schedule(input: ScheduledMessageCreate):
                 id=schedule.id,
                 replace_existing=True
             )
+            logger.info(f"✅ One-time job added to scheduler")
         elif input.schedule_type == "recurring" and input.cron_expression:
+            logger.info(f"🔄 Adding recurring job: {input.cron_expression}")
             scheduler.add_job(
                 execute_scheduled_message,
                 CronTrigger.from_crontab(input.cron_expression),
@@ -1044,8 +1050,13 @@ async def create_schedule(input: ScheduledMessageCreate):
                 id=schedule.id,
                 replace_existing=True
             )
+            logger.info(f"✅ Recurring job added to scheduler")
+            
+        # Log current scheduler state
+        jobs = scheduler.get_jobs()
+        logger.info(f"📋 Scheduler now has {len(jobs)} jobs")
     except Exception as e:
-        logger.warning(f"Failed to add job to scheduler: {e}")
+        logger.error(f"❌ Failed to add job to scheduler: {e}", exc_info=True)
     
     return schedule
 
