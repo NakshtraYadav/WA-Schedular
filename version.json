@@ -1,10 +1,23 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 1,
+  "build": 2,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-02-04",
+      "changes": [
+        "Added WhatsApp contact sync feature",
+        "Fixed version comparison bug (string vs numeric)",
+        "Added rollback support for updates",
+        "Improved recurring schedule with custom time picker",
+        "Telegram setup instructions auto-hide when configured",
+        "Fixed auto-updater timeout issues",
+        "Added lock file to prevent concurrent updates"
+      ]
+    },
     {
       "version": "1.0.0",
       "date": "2026-02-04",
