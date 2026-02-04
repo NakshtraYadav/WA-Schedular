@@ -219,7 +219,7 @@ export default function Diagnostics() {
   const testBrowser = async () => {
     toast.info('Testing browser launch...');
     try {
-      const response = await api.get('/whatsapp/test-browser');
+      const response = await apiClient.get('/api/whatsapp/test-browser');
       if (response.data.success) {
         toast.success(`Browser works! Version: ${response.data.browserVersion}`);
       } else {
