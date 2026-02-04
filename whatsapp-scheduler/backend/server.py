@@ -42,6 +42,7 @@ scheduler = AsyncIOScheduler()
 # Telegram polling state
 telegram_polling_task = None
 telegram_last_update_id = 0
+telegram_bot_running = False
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +50,240 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# ============== TELEGRAM BOT ==============
+
+async def send_telegram_message(token: str, chat_id: str, text: str, parse_mode: str = "HTML"):
+    """Send a message via Telegram bot"""
+    if not token or not chat_id:
+        return False
+    try:
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text": text,
+                    "parse_mode": parse_mode
+                },
+                timeout=10.0
+            )
+            return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Telegram send error: {e}")
+        return False
+
+async def process_telegram_command(token: str, chat_id: str, text: str):
+    """Process incoming Telegram commands"""
+    text = text.strip()
+    database = await get_database()
+    
+    if text == "/start":
+        # Save chat_id to settings
+        await database.settings.update_one(
+            {"id": "settings"},
+            {"$set": {"telegram_chat_id": chat_id}},
+            upsert=True
+        )
+        response = (
+            "🟢 <b>WA Scheduler Bot Connected!</b>\n\n"
+            "Your Chat ID has been saved automatically.\n\n"
+            "<b>Available Commands:</b>\n"
+            "/status - WhatsApp connection status\n"
+            "/contacts - List all contacts\n"
+            "/schedules - List active schedules\n"
+            "/send &lt;name&gt; &lt;message&gt; - Send message now\n"
+            "/help - Show this help"
+        )
+        await send_telegram_message(token, chat_id, response)
+        
+    elif text == "/help":
+        response = (
+            "📱 <b>WA Scheduler Commands</b>\n\n"
+            "/status - Check WhatsApp connection\n"
+            "/contacts - List all contacts\n"
+            "/schedules - List active schedules\n"
+            "/send &lt;name&gt; &lt;message&gt; - Send WhatsApp message\n"
+            "/logs - Recent message history\n"
+            "/help - Show this help"
+        )
+        await send_telegram_message(token, chat_id, response)
+        
+    elif text == "/status":
+        try:
+            async with httpx.AsyncClient() as http_client:
+                response = await http_client.get(f"{WA_SERVICE_URL}/status", timeout=5.0)
+                wa_status = response.json()
+                
+            if wa_status.get("isReady"):
+                info = wa_status.get("clientInfo", {})
+                name = info.get("pushname", "Unknown")
+                phone = info.get("phone", "Unknown")
+                msg = f"🟢 <b>WhatsApp Connected</b>\n\nName: {name}\nPhone: {phone}"
+            elif wa_status.get("isInitializing"):
+                msg = "🟡 <b>WhatsApp Initializing...</b>\n\nPlease wait for QR code."
+            elif wa_status.get("hasQrCode"):
+                msg = "🟡 <b>Waiting for QR Scan</b>\n\nOpen the web dashboard to scan QR code."
+            else:
+                error = wa_status.get("error", "Unknown")
+                msg = f"🔴 <b>WhatsApp Disconnected</b>\n\nError: {error}"
+        except:
+            msg = "🔴 <b>WhatsApp Service Unavailable</b>"
+        await send_telegram_message(token, chat_id, msg)
+        
+    elif text == "/contacts":
+        contacts = await database.contacts.find({}, {"_id": 0}).to_list(50)
+        if contacts:
+            lines = ["📋 <b>Contacts</b>\n"]
+            for c in contacts:
+                lines.append(f"• {c['name']}: {c['phone']}")
+            response = "\n".join(lines)
+        else:
+            response = "📋 <b>No contacts found</b>\n\nAdd contacts via the web dashboard."
+        await send_telegram_message(token, chat_id, response)
+        
+    elif text == "/schedules":
+        schedules = await database.schedules.find({"is_active": True}, {"_id": 0}).to_list(20)
+        if schedules:
+            lines = ["📅 <b>Active Schedules</b>\n"]
+            for s in schedules:
+                type_icon = "🔄" if s['schedule_type'] == "recurring" else "⏰"
+                schedule_info = s.get('cron_description') or s.get('scheduled_time', '')[:16]
+                lines.append(f"{type_icon} {s['contact_name']}: {schedule_info}")
+            response = "\n".join(lines)
+        else:
+            response = "📅 <b>No active schedules</b>\n\nCreate schedules via the web dashboard."
+        await send_telegram_message(token, chat_id, response)
+        
+    elif text == "/logs":
+        logs = await database.logs.find({}, {"_id": 0}).sort("sent_at", -1).to_list(10)
+        if logs:
+            lines = ["📝 <b>Recent Messages</b>\n"]
+            for l in logs:
+                status_icon = "✅" if l['status'] == "sent" else "❌"
+                lines.append(f"{status_icon} {l['contact_name']}: {l['message'][:30]}...")
+            response = "\n".join(lines)
+        else:
+            response = "📝 <b>No message history</b>"
+        await send_telegram_message(token, chat_id, response)
+        
+    elif text.startswith("/send "):
+        parts = text[6:].strip().split(" ", 1)
+        if len(parts) < 2:
+            await send_telegram_message(token, chat_id, "❌ Usage: /send &lt;contact_name&gt; &lt;message&gt;")
+            return
+            
+        contact_name, message = parts[0], parts[1]
+        
+        # Find contact by name (case-insensitive partial match)
+        contact = await database.contacts.find_one(
+            {"name": {"$regex": contact_name, "$options": "i"}},
+            {"_id": 0}
+        )
+        
+        if not contact:
+            await send_telegram_message(token, chat_id, f"❌ Contact '{contact_name}' not found")
+            return
+            
+        # Send the message
+        result = await send_whatsapp_message(contact['phone'], message)
+        
+        if result.get('success'):
+            # Log the message
+            log = MessageLog(
+                contact_id=contact['id'],
+                contact_name=contact['name'],
+                contact_phone=contact['phone'],
+                message=message,
+                status="sent"
+            )
+            log_doc = log.model_dump()
+            log_doc['sent_at'] = log_doc['sent_at'].isoformat()
+            await database.logs.insert_one(log_doc)
+            
+            await send_telegram_message(token, chat_id, f"✅ Message sent to {contact['name']}")
+        else:
+            error = result.get('error', 'Unknown error')
+            await send_telegram_message(token, chat_id, f"❌ Failed to send: {error}")
+    else:
+        await send_telegram_message(token, chat_id, "❓ Unknown command. Type /help for available commands.")
+
+async def telegram_polling_loop():
+    """Long-polling loop for Telegram updates"""
+    global telegram_last_update_id, telegram_bot_running
+    
+    while telegram_bot_running:
+        try:
+            database = await get_database()
+            settings = await database.settings.find_one({"id": "settings"}, {"_id": 0})
+            
+            if not settings or not settings.get('telegram_enabled') or not settings.get('telegram_token'):
+                await asyncio.sleep(10)
+                continue
+                
+            token = settings['telegram_token']
+            
+            async with httpx.AsyncClient() as http_client:
+                response = await http_client.get(
+                    f"https://api.telegram.org/bot{token}/getUpdates",
+                    params={
+                        "offset": telegram_last_update_id + 1,
+                        "timeout": 30
+                    },
+                    timeout=35.0
+                )
+                
+                if response.status_code != 200:
+                    logger.error(f"Telegram API error: {response.status_code}")
+                    await asyncio.sleep(5)
+                    continue
+                    
+                data = response.json()
+                
+                if not data.get('ok'):
+                    logger.error(f"Telegram API returned error: {data}")
+                    await asyncio.sleep(5)
+                    continue
+                
+                for update in data.get('result', []):
+                    telegram_last_update_id = update['update_id']
+                    
+                    message = update.get('message', {})
+                    text = message.get('text', '')
+                    chat_id = str(message.get('chat', {}).get('id', ''))
+                    
+                    if text and chat_id:
+                        await process_telegram_command(token, chat_id, text)
+                        
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Telegram polling error: {e}")
+            await asyncio.sleep(5)
+
+async def start_telegram_bot():
+    """Start the Telegram bot polling"""
+    global telegram_polling_task, telegram_bot_running
+    
+    if telegram_polling_task and not telegram_polling_task.done():
+        return
+        
+    telegram_bot_running = True
+    telegram_polling_task = asyncio.create_task(telegram_polling_loop())
+    logger.info("Telegram bot polling started")
+
+async def stop_telegram_bot():
+    """Stop the Telegram bot polling"""
+    global telegram_polling_task, telegram_bot_running
+    
+    telegram_bot_running = False
+    if telegram_polling_task:
+        telegram_polling_task.cancel()
+        try:
+            await telegram_polling_task
+        except asyncio.CancelledError:
+            pass
+    logger.info("Telegram bot polling stopped")
 
 # ============== DATABASE CONNECTION ==============
 
