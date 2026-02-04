@@ -208,7 +208,7 @@ export default function Diagnostics() {
 
   const clearWhatsAppSession = async () => {
     try {
-      await api.post('/whatsapp/clear-session');
+      await apiClient.post('/api/whatsapp/clear-session');
       toast.success('WhatsApp session cleared, reinitializing...');
       setTimeout(fetchDiagnostics, 3000);
     } catch (error) {
