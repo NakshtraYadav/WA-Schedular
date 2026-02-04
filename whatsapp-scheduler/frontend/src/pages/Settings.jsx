@@ -16,9 +16,14 @@ import {
   XCircle,
   Loader2,
   Send,
-  AlertCircle
+  AlertCircle,
+  Download,
+  RefreshCw,
+  Github,
+  Play,
+  Square
 } from 'lucide-react';
-import { getSettings, updateSettings, getTimezoneInfo, api } from '../lib/api';
+import { getSettings, updateSettings, getTimezoneInfo, api, checkForUpdates, installUpdate, getAutoUpdaterStatus, controlAutoUpdater } from '../lib/api';
 import { toast } from 'sonner';
 
 function SettingsPage() {
