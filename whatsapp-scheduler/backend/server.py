@@ -824,10 +824,83 @@ async def update_settings(input: SettingsUpdate):
         upsert=True
     )
     
+    # Start or stop Telegram bot based on settings
+    if input.telegram_enabled and input.telegram_token:
+        await start_telegram_bot()
+    else:
+        await stop_telegram_bot()
+    
     settings = await database.settings.find_one({"id": "settings"}, {"_id": 0})
     if isinstance(settings.get('updated_at'), str):
         settings['updated_at'] = datetime.fromisoformat(settings['updated_at'])
     return Settings(**settings)
+
+@api_router.post("/telegram/test")
+async def test_telegram_bot():
+    """Test Telegram bot connection"""
+    database = await get_database()
+    settings = await database.settings.find_one({"id": "settings"}, {"_id": 0})
+    
+    if not settings or not settings.get('telegram_token'):
+        return {"success": False, "error": "Telegram bot token not configured"}
+    
+    token = settings['telegram_token']
+    
+    try:
+        async with httpx.AsyncClient() as http_client:
+            # Test getMe endpoint
+            response = await http_client.get(
+                f"https://api.telegram.org/bot{token}/getMe",
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('ok'):
+                    bot_info = data.get('result', {})
+                    
+                    # If chat_id exists, send a test message
+                    chat_id = settings.get('telegram_chat_id')
+                    if chat_id:
+                        await send_telegram_message(
+                            token, chat_id,
+                            "✅ <b>Test successful!</b>\n\nYour WA Scheduler Telegram bot is working correctly."
+                        )
+                        return {
+                            "success": True,
+                            "bot_name": bot_info.get('first_name'),
+                            "bot_username": bot_info.get('username'),
+                            "message_sent": True
+                        }
+                    
+                    return {
+                        "success": True,
+                        "bot_name": bot_info.get('first_name'),
+                        "bot_username": bot_info.get('username'),
+                        "message_sent": False,
+                        "note": "Send /start to the bot to set chat ID"
+                    }
+                else:
+                    return {"success": False, "error": data.get('description', 'Unknown error')}
+            else:
+                return {"success": False, "error": f"HTTP {response.status_code}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@api_router.get("/telegram/status")
+async def get_telegram_status():
+    """Get Telegram bot status"""
+    global telegram_bot_running
+    
+    database = await get_database()
+    settings = await database.settings.find_one({"id": "settings"}, {"_id": 0})
+    
+    return {
+        "enabled": settings.get('telegram_enabled', False) if settings else False,
+        "has_token": bool(settings.get('telegram_token')) if settings else False,
+        "has_chat_id": bool(settings.get('telegram_chat_id')) if settings else False,
+        "polling_active": telegram_bot_running
+    }
 
 # ============== DASHBOARD STATS ==============
 
