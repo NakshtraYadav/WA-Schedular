@@ -300,7 +300,9 @@ async def process_telegram_command(token: str, chat_id: str, text: str):
                 message = state["data"]["message"]
                 preset = state["data"]["preset"]
                 
+                schedule_id = str(uuid.uuid4())
                 schedule_data = {
+                    "id": schedule_id,
                     "contact_id": contact["id"],
                     "contact_name": contact["name"],
                     "contact_phone": contact["phone"],
@@ -315,6 +317,18 @@ async def process_telegram_command(token: str, chat_id: str, text: str):
                     schedule_data["schedule_type"] = "once"
                     schedule_data["scheduled_time"] = scheduled_time.isoformat()
                     schedule_data["cron_description"] = f"Once at {scheduled_time.strftime('%H:%M')}"
+                    
+                    # Add to APScheduler
+                    try:
+                        scheduler.add_job(
+                            execute_scheduled_message,
+                            DateTrigger(run_date=scheduled_time),
+                            args=[schedule_id],
+                            id=schedule_id,
+                            replace_existing=True
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to add one-time job to scheduler: {e}")
                 else:
                     # Recurring schedule
                     time_str = state["data"].get("time", "09:00")
@@ -328,8 +342,19 @@ async def process_telegram_command(token: str, chat_id: str, text: str):
                     schedule_data["schedule_type"] = "recurring"
                     schedule_data["cron_expression"] = cron
                     schedule_data["cron_description"] = f"{preset['label']} at {time_str}"
+                    
+                    # Add to APScheduler
+                    try:
+                        scheduler.add_job(
+                            execute_scheduled_message,
+                            CronTrigger.from_crontab(cron),
+                            args=[schedule_id],
+                            id=schedule_id,
+                            replace_existing=True
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to add recurring job to scheduler: {e}")
                 
-                schedule_data["id"] = str(uuid.uuid4())
                 await database.schedules.insert_one(schedule_data)
                 
                 del telegram_user_state[chat_id]
