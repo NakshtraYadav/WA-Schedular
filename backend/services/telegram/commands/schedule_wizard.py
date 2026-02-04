@@ -175,6 +175,9 @@ async def _handle_select_time(token: str, chat_id: str, text: str, state: dict):
 
 
 async def _handle_confirm(token: str, chat_id: str, text: str, state: dict, database):
+    # Import here to avoid circular import
+    from services.scheduler.executor import execute_scheduled_message
+    
     if text.strip().lower() == "yes":
         contact = state["data"]["contact"]
         message = state["data"]["message"]
