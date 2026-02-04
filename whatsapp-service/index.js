@@ -244,8 +244,20 @@ async function initializeClient() {
         
         if (initAttempts < MAX_INIT_ATTEMPTS) {
             initError = `Attempt ${initAttempts} failed: ${err.message}`;
-            log('INFO', 'Clearing session and retrying in 5 seconds...');
-            clearSession();
+            
+            // Only clear session if it's an auth-related error, not a browser error
+            const shouldClearSession = err.message.toLowerCase().includes('auth') || 
+                                       err.message.toLowerCase().includes('session') ||
+                                       err.message.toLowerCase().includes('protocol');
+            
+            if (shouldClearSession) {
+                log('INFO', 'Auth error detected, clearing session...');
+                clearSession();
+            } else {
+                log('INFO', 'Browser/timeout error - keeping session for retry');
+            }
+            
+            log('INFO', 'Retrying in 5 seconds...');
             setTimeout(() => initializeClient(), 5000);
         } else {
             initError = 'All initialization attempts failed. Suggestions:\n' +
