@@ -946,6 +946,50 @@ async def execute_scheduled_message(schedule_id: str):
     except Exception as e:
         logger.error(f"❌ Execute scheduled message error: {e}", exc_info=True)
 
+@api_router.get("/schedules/debug")
+async def debug_schedules():
+    """Debug endpoint to see scheduler status"""
+    database = await get_database()
+    
+    # Get all schedules from DB
+    db_schedules = await database.schedules.find({}, {"_id": 0}).to_list(100)
+    
+    # Get all jobs from APScheduler
+    scheduler_jobs = []
+    for job in scheduler.get_jobs():
+        next_run = job.next_run_time
+        scheduler_jobs.append({
+            "id": job.id,
+            "name": job.name,
+            "next_run": next_run.isoformat() if next_run else None,
+            "trigger": str(job.trigger)
+        })
+    
+    return {
+        "database": {
+            "total_schedules": len(db_schedules),
+            "active_schedules": len([s for s in db_schedules if s.get('is_active')]),
+            "schedules": [{
+                "id": s["id"],
+                "contact": s.get("contact_name"),
+                "type": s.get("schedule_type"),
+                "is_active": s.get("is_active"),
+                "cron": s.get("cron_expression"),
+                "scheduled_time": s.get("scheduled_time"),
+                "last_run": s.get("last_run")
+            } for s in db_schedules]
+        },
+        "scheduler": {
+            "running": scheduler.running,
+            "job_count": len(scheduler_jobs),
+            "jobs": scheduler_jobs
+        },
+        "server_time": {
+            "utc": datetime.now(timezone.utc).isoformat(),
+            "local": datetime.now().isoformat()
+        }
+    }
+
 @api_router.get("/schedules", response_model=List[ScheduledMessage])
 async def get_schedules():
     """Get all scheduled messages"""
