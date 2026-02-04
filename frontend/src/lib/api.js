@@ -63,3 +63,6 @@ export const checkForUpdates = () => api.get('/updates/check');
 export const installUpdate = () => api.post('/updates/install');
 export const getAutoUpdaterStatus = () => api.get('/updates/auto-updater/status');
 export const controlAutoUpdater = (action) => api.post(`/updates/auto-updater/${action}`);
+
+// Version
+export const getAppVersion = () => api.get('/version');
