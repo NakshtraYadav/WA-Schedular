@@ -20,7 +20,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../api';
+import { apiClient } from '../api';
 
 const ServiceCard = ({ name, icon: Icon, status, details, port, onAction, actionLabel, actionIcon: ActionIcon }) => {
   const statusColors = {
