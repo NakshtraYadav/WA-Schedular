@@ -156,24 +156,34 @@ apply_update() {
 install_dependencies() {
     log "${BLUE}Checking dependencies...${NC}"
     
-    # Check if package.json changed and needs npm install
+    # Check if package.json changed and needs install
     cd "$SCRIPT_DIR/frontend"
     if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
         log "  Installing frontend dependencies..."
-        npm install --legacy-peer-deps --silent 2>/dev/null
+        # Use yarn if available, fallback to npm
+        if command -v yarn &> /dev/null; then
+            yarn install --silent 2>/dev/null
+        else
+            npm install --legacy-peer-deps --silent 2>/dev/null
+        fi
     fi
     
-    cd "$SCRIPT_DIR/whatsapp-service"
-    if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
-        log "  Installing WhatsApp service dependencies..."
-        npm install --silent 2>/dev/null
+    cd "$SCRIPT_DIR/whatsapp-service" 2>/dev/null
+    if [ -d "$SCRIPT_DIR/whatsapp-service" ]; then
+        if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
+            log "  Installing WhatsApp service dependencies..."
+            npm install --silent 2>/dev/null
+        fi
     fi
     
     cd "$SCRIPT_DIR/backend"
+    # Check for virtual environment or global pip
     if [ -d "venv" ]; then
         source venv/bin/activate
         pip install -q -r requirements.txt 2>/dev/null
         deactivate
+    else
+        pip install -q -r requirements.txt 2>/dev/null
     fi
     
     log "${GREEN}[OK] Dependencies updated${NC}"
