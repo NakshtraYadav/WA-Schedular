@@ -156,18 +156,30 @@ function Contacts() {
           <h1 className="font-heading text-3xl font-bold text-foreground">Contacts</h1>
           <p className="text-muted-foreground mt-1">Manage your WhatsApp contacts</p>
         </div>
-        <Button 
-          onClick={() => {
-            setSelectedContact(null);
-            setFormData({ name: '', phone: '', notes: '' });
-            setDialogOpen(true);
-          }}
-          className="btn-glow"
-          data-testid="add-contact-btn"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Contact
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            variant="outline"
+            onClick={handleSyncContacts}
+            disabled={syncing || !waConnected}
+            data-testid="sync-contacts-btn"
+            title={!waConnected ? "Connect WhatsApp first" : "Import contacts from WhatsApp"}
+          >
+            {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+            Sync from WhatsApp
+          </Button>
+          <Button 
+            onClick={() => {
+              setSelectedContact(null);
+              setFormData({ name: '', phone: '', notes: '' });
+              setDialogOpen(true);
+            }}
+            className="btn-glow"
+            data-testid="add-contact-btn"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Contact
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-card border-border">
