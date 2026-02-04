@@ -306,8 +306,8 @@ function SettingsPage() {
             </p>
           </div>
 
-          {/* Setup Instructions - Hide when bot is fully configured */}
-          {!(settings.telegram_enabled && settings.telegram_token && settings.telegram_chat_id && telegramStatus?.polling_active) && (
+          {/* Setup Instructions - Hide when bot is fully configured (has token + chat_id + enabled) */}
+          {!(settings.telegram_enabled && settings.telegram_token && settings.telegram_chat_id) && (
             <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
               <h4 className="font-medium text-blue-500 mb-3 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
