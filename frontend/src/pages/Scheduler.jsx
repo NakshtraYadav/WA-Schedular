@@ -204,6 +204,7 @@ function Scheduler() {
     setScheduleType('once');
     setSelectedDate(null);
     setSelectedTime('09:00');
+    setRecurringTime('09:00');
     setSelectedCronPreset('');
     setCustomCron('');
   };
