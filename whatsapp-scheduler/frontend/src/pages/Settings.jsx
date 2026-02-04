@@ -91,11 +91,61 @@ function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchUpdateInfo]);
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true);
+    try {
+      const res = await checkForUpdates();
+      setUpdateInfo(res.data);
+      if (res.data.has_update) {
+        toast.success('Update available!');
+      } else {
+        toast.info('You are up to date');
+      }
+    } catch (error) {
+      toast.error('Failed to check for updates');
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (!window.confirm('This will download the latest version and restart all services. Continue?')) {
+      return;
+    }
+    setInstallingUpdate(true);
+    try {
+      const res = await installUpdate();
+      if (res.data.success) {
+        toast.success('Update started! Services will restart automatically.');
+      } else {
+        toast.error(res.data.error || 'Failed to install update');
+      }
+    } catch (error) {
+      toast.error('Failed to install update');
+    } finally {
+      setInstallingUpdate(false);
+    }
+  };
+
+  const handleAutoUpdaterControl = async (action) => {
+    try {
+      const res = await controlAutoUpdater(action);
+      if (res.data.success) {
+        toast.success(res.data.output || `Auto-updater ${action}ed`);
+        fetchUpdateInfo();
+      } else {
+        toast.error(res.data.error || 'Failed');
+      }
+    } catch (error) {
+      toast.error(`Failed to ${action} auto-updater`);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
