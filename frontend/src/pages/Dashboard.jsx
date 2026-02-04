@@ -13,7 +13,7 @@ import {
   RefreshCw,
   ArrowRight
 } from 'lucide-react';
-import { getDashboardStats, getWhatsAppStatus } from '../lib/api';
+import { getDashboardStats, getWhatsAppStatus } from '../api';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
