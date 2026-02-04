@@ -198,7 +198,7 @@ export default function Diagnostics() {
 
   const retryWhatsApp = async () => {
     try {
-      await api.post('/whatsapp/retry');
+      await apiClient.post('/api/whatsapp/retry');
       toast.success('WhatsApp initialization retry triggered');
       setTimeout(fetchDiagnostics, 2000);
     } catch (error) {
