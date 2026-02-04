@@ -1,5 +1,6 @@
 import "./App.css";
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
+import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { 
   LayoutDashboard, 
@@ -10,8 +11,11 @@ import {
   Settings,
   Radio,
   MessageCircle,
-  Activity
+  Activity,
+  ArrowUpCircle
 } from "lucide-react";
+import { getAppVersion, checkForUpdates } from "./lib/api";
+import { toast } from "sonner";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
