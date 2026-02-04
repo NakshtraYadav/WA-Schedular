@@ -393,6 +393,54 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Get all WhatsApp contacts
+app.get('/contacts', async (req, res) => {
+    if (!isReady || !client) {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'WhatsApp not connected',
+            contacts: []
+        });
+    }
+    
+    try {
+        log('INFO', 'Fetching contacts...');
+        const contacts = await client.getContacts();
+        
+        // Filter to only real contacts (not groups, broadcasts)
+        const realContacts = contacts.filter(c => 
+            c.isUser && 
+            !c.isGroup && 
+            !c.isBroadcast && 
+            c.id._serialized.endsWith('@c.us')
+        );
+        
+        const formattedContacts = realContacts.map(c => ({
+            id: c.id._serialized,
+            number: c.id.user,
+            name: c.name || c.pushname || c.id.user,
+            pushname: c.pushname,
+            isMyContact: c.isMyContact,
+            isBlocked: c.isBlocked
+        }));
+        
+        log('INFO', `Found ${formattedContacts.length} contacts`);
+        
+        res.json({
+            success: true,
+            contacts: formattedContacts,
+            total: formattedContacts.length
+        });
+    } catch (error) {
+        log('ERROR', 'Failed to get contacts:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            contacts: []
+        });
+    }
+});
+
 // Test browser endpoint for diagnostics
 app.get('/test-browser', async (req, res) => {
     log('INFO', 'Testing browser launch...');
