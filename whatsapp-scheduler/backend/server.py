@@ -15,15 +15,17 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 import pytz
-from tzlocal import get_localzone_name
 
+# Load environment
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# MongoDB connection - with error handling
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+db_name = os.environ.get('DB_NAME', 'whatsapp_scheduler')
+
+client = None
+db = None
 
 # WhatsApp service URL
 WA_SERVICE_URL = os.environ.get('WA_SERVICE_URL', 'http://localhost:3001')
@@ -48,6 +50,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ============== DATABASE CONNECTION ==============
+
+async def get_database():
+    """Get or create database connection"""
+    global client, db
+    if client is None:
+        try:
+            client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000)
+            # Test connection
+            await client.admin.command('ping')
+            db = client[db_name]
+            logger.info(f"Connected to MongoDB: {mongo_url}")
+        except Exception as e:
+            logger.error(f"MongoDB connection failed: {e}")
+            raise HTTPException(status_code=503, detail=f"Database unavailable: {e}")
+    return db
+
 # ============== MODELS ==============
 
 class Contact(BaseModel):
@@ -66,19 +85,15 @@ class ContactCreate(BaseModel):
     @field_validator('phone')
     @classmethod
     def validate_phone(cls, v):
-        # Remove all non-digit except + at start
         cleaned = v.strip()
         if not cleaned:
             raise ValueError('Phone number is required')
-        # Must start with + or digit, contain only digits after
         if cleaned[0] == '+':
             digits = cleaned[1:]
         else:
             digits = cleaned
-        if not digits.isdigit():
-            raise ValueError('Phone number must contain only digits (optionally starting with +)')
-        if len(digits) < 7 or len(digits) > 15:
-            raise ValueError('Phone number must be 7-15 digits')
+        if not digits.replace(' ', '').replace('-', '').isdigit():
+            raise ValueError('Phone number must contain only digits')
         return cleaned
 
 class MessageTemplate(BaseModel):
@@ -99,9 +114,9 @@ class ScheduledMessage(BaseModel):
     contact_name: str
     contact_phone: str
     message: str
-    schedule_type: str  # "once" or "recurring"
-    scheduled_time: Optional[datetime] = None  # For one-time
-    cron_expression: Optional[str] = None  # For recurring
+    schedule_type: str
+    scheduled_time: Optional[datetime] = None
+    cron_expression: Optional[str] = None
     cron_description: Optional[str] = None
     is_active: bool = True
     last_run: Optional[datetime] = None
@@ -123,7 +138,7 @@ class MessageLog(BaseModel):
     contact_name: str
     contact_phone: str
     message: str
-    status: str  # "sent", "failed", "pending"
+    status: str
     error_message: Optional[str] = None
     scheduled_message_id: Optional[str] = None
     sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -134,7 +149,7 @@ class Settings(BaseModel):
     telegram_token: Optional[str] = None
     telegram_chat_id: Optional[str] = None
     telegram_enabled: bool = False
-    timezone: Optional[str] = None  # If None, uses system timezone
+    timezone: Optional[str] = None
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class SettingsUpdate(BaseModel):
@@ -142,6 +157,42 @@ class SettingsUpdate(BaseModel):
     telegram_chat_id: Optional[str] = None
     telegram_enabled: bool = False
     timezone: Optional[str] = None
+
+# ============== HEALTH CHECK ==============
+
+@api_router.get("/")
+async def root():
+    """API root - health check"""
+    return {"message": "WhatsApp Scheduler API", "status": "running"}
+
+@api_router.get("/health")
+async def health_check():
+    """Detailed health check"""
+    health = {
+        "status": "healthy",
+        "api": True,
+        "database": False,
+        "whatsapp_service": False
+    }
+    
+    # Check database
+    try:
+        database = await get_database()
+        await database.command('ping')
+        health["database"] = True
+    except Exception as e:
+        health["status"] = "degraded"
+        health["database_error"] = str(e)
+    
+    # Check WhatsApp service
+    try:
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.get(f"{WA_SERVICE_URL}/health", timeout=3.0)
+            health["whatsapp_service"] = response.status_code == 200
+    except:
+        pass
+    
+    return health
 
 # ============== WHATSAPP STATUS ==============
 
@@ -178,23 +229,13 @@ async def logout_whatsapp():
         logger.error(f"WhatsApp logout error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.post("/whatsapp/simulate-connect")
-async def simulate_whatsapp_connect():
-    """Simulate WhatsApp connection (for demo/testing)"""
-    try:
-        async with httpx.AsyncClient() as http_client:
-            response = await http_client.post(f"{WA_SERVICE_URL}/simulate-connect", timeout=10.0)
-            return response.json()
-    except Exception as e:
-        logger.error(f"WhatsApp simulate connect error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 # ============== CONTACTS ==============
 
 @api_router.get("/contacts", response_model=List[Contact])
 async def get_contacts():
     """Get all contacts"""
-    contacts = await db.contacts.find({}, {"_id": 0}).to_list(1000)
+    database = await get_database()
+    contacts = await database.contacts.find({}, {"_id": 0}).to_list(1000)
     for c in contacts:
         if isinstance(c.get('created_at'), str):
             c['created_at'] = datetime.fromisoformat(c['created_at'])
@@ -203,23 +244,25 @@ async def get_contacts():
 @api_router.post("/contacts", response_model=Contact)
 async def create_contact(input: ContactCreate):
     """Create a new contact"""
+    database = await get_database()
     contact = Contact(**input.model_dump())
     doc = contact.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
-    await db.contacts.insert_one(doc)
+    await database.contacts.insert_one(doc)
     return contact
 
 @api_router.put("/contacts/{contact_id}", response_model=Contact)
 async def update_contact(contact_id: str, input: ContactCreate):
     """Update a contact"""
-    existing = await db.contacts.find_one({"id": contact_id}, {"_id": 0})
+    database = await get_database()
+    existing = await database.contacts.find_one({"id": contact_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Contact not found")
     
     update_data = input.model_dump()
-    await db.contacts.update_one({"id": contact_id}, {"$set": update_data})
+    await database.contacts.update_one({"id": contact_id}, {"$set": update_data})
     
-    updated = await db.contacts.find_one({"id": contact_id}, {"_id": 0})
+    updated = await database.contacts.find_one({"id": contact_id}, {"_id": 0})
     if isinstance(updated.get('created_at'), str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     return Contact(**updated)
@@ -227,7 +270,8 @@ async def update_contact(contact_id: str, input: ContactCreate):
 @api_router.delete("/contacts/{contact_id}")
 async def delete_contact(contact_id: str):
     """Delete a contact"""
-    result = await db.contacts.delete_one({"id": contact_id})
+    database = await get_database()
+    result = await database.contacts.delete_one({"id": contact_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Contact not found")
     return {"success": True}
@@ -237,7 +281,8 @@ async def delete_contact(contact_id: str):
 @api_router.get("/templates", response_model=List[MessageTemplate])
 async def get_templates():
     """Get all message templates"""
-    templates = await db.templates.find({}, {"_id": 0}).to_list(1000)
+    database = await get_database()
+    templates = await database.templates.find({}, {"_id": 0}).to_list(1000)
     for t in templates:
         if isinstance(t.get('created_at'), str):
             t['created_at'] = datetime.fromisoformat(t['created_at'])
@@ -246,23 +291,25 @@ async def get_templates():
 @api_router.post("/templates", response_model=MessageTemplate)
 async def create_template(input: MessageTemplateCreate):
     """Create a new message template"""
+    database = await get_database()
     template = MessageTemplate(**input.model_dump())
     doc = template.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
-    await db.templates.insert_one(doc)
+    await database.templates.insert_one(doc)
     return template
 
 @api_router.put("/templates/{template_id}", response_model=MessageTemplate)
 async def update_template(template_id: str, input: MessageTemplateCreate):
     """Update a template"""
-    existing = await db.templates.find_one({"id": template_id}, {"_id": 0})
+    database = await get_database()
+    existing = await database.templates.find_one({"id": template_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Template not found")
     
     update_data = input.model_dump()
-    await db.templates.update_one({"id": template_id}, {"$set": update_data})
+    await database.templates.update_one({"id": template_id}, {"$set": update_data})
     
-    updated = await db.templates.find_one({"id": template_id}, {"_id": 0})
+    updated = await database.templates.find_one({"id": template_id}, {"_id": 0})
     if isinstance(updated.get('created_at'), str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     return MessageTemplate(**updated)
@@ -270,7 +317,8 @@ async def update_template(template_id: str, input: MessageTemplateCreate):
 @api_router.delete("/templates/{template_id}")
 async def delete_template(template_id: str):
     """Delete a template"""
-    result = await db.templates.delete_one({"id": template_id})
+    database = await get_database()
+    result = await database.templates.delete_one({"id": template_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Template not found")
     return {"success": True}
@@ -293,60 +341,39 @@ async def send_whatsapp_message(phone: str, message: str):
 
 async def execute_scheduled_message(schedule_id: str):
     """Execute a scheduled message"""
-    schedule = await db.schedules.find_one({"id": schedule_id}, {"_id": 0})
-    if not schedule or not schedule.get('is_active'):
-        return
-    
-    # Send the message
-    result = await send_whatsapp_message(schedule['contact_phone'], schedule['message'])
-    
-    # Log the message
-    log = MessageLog(
-        contact_id=schedule['contact_id'],
-        contact_name=schedule['contact_name'],
-        contact_phone=schedule['contact_phone'],
-        message=schedule['message'],
-        status="sent" if result.get('success') else "failed",
-        error_message=result.get('error'),
-        scheduled_message_id=schedule_id
-    )
-    log_doc = log.model_dump()
-    log_doc['sent_at'] = log_doc['sent_at'].isoformat()
-    await db.logs.insert_one(log_doc)
-    
-    # Update schedule last_run
-    await db.schedules.update_one(
-        {"id": schedule_id},
-        {"$set": {"last_run": datetime.now(timezone.utc).isoformat()}}
-    )
-    
-    # Send Telegram notification if enabled
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-    if settings and settings.get('telegram_enabled') and settings.get('telegram_token'):
-        await send_telegram_notification(
-            settings['telegram_token'],
-            settings.get('telegram_chat_id'),
-            f"📤 Message sent to {schedule['contact_name']}\n{'✅ Success' if result.get('success') else '❌ Failed: ' + str(result.get('error', 'Unknown error'))}"
-        )
-
-async def send_telegram_notification(token: str, chat_id: str, message: str):
-    """Send a Telegram notification"""
-    if not chat_id:
-        return
     try:
-        async with httpx.AsyncClient() as http_client:
-            await http_client.post(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                json={"chat_id": chat_id, "text": message, "parse_mode": "HTML"},
-                timeout=10.0
-            )
+        database = await get_database()
+        schedule = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
+        if not schedule or not schedule.get('is_active'):
+            return
+        
+        result = await send_whatsapp_message(schedule['contact_phone'], schedule['message'])
+        
+        log = MessageLog(
+            contact_id=schedule['contact_id'],
+            contact_name=schedule['contact_name'],
+            contact_phone=schedule['contact_phone'],
+            message=schedule['message'],
+            status="sent" if result.get('success') else "failed",
+            error_message=result.get('error'),
+            scheduled_message_id=schedule_id
+        )
+        log_doc = log.model_dump()
+        log_doc['sent_at'] = log_doc['sent_at'].isoformat()
+        await database.logs.insert_one(log_doc)
+        
+        await database.schedules.update_one(
+            {"id": schedule_id},
+            {"$set": {"last_run": datetime.now(timezone.utc).isoformat()}}
+        )
     except Exception as e:
-        logger.error(f"Telegram notification error: {e}")
+        logger.error(f"Execute scheduled message error: {e}")
 
 @api_router.get("/schedules", response_model=List[ScheduledMessage])
 async def get_schedules():
     """Get all scheduled messages"""
-    schedules = await db.schedules.find({}, {"_id": 0}).to_list(1000)
+    database = await get_database()
+    schedules = await database.schedules.find({}, {"_id": 0}).to_list(1000)
     for s in schedules:
         for field in ['scheduled_time', 'last_run', 'next_run', 'created_at']:
             if isinstance(s.get(field), str):
@@ -356,8 +383,8 @@ async def get_schedules():
 @api_router.post("/schedules", response_model=ScheduledMessage)
 async def create_schedule(input: ScheduledMessageCreate):
     """Create a new scheduled message"""
-    # Get contact info
-    contact = await db.contacts.find_one({"id": input.contact_id}, {"_id": 0})
+    database = await get_database()
+    contact = await database.contacts.find_one({"id": input.contact_id}, {"_id": 0})
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
     
@@ -377,39 +404,41 @@ async def create_schedule(input: ScheduledMessageCreate):
         if doc.get(field):
             doc[field] = doc[field].isoformat()
     
-    await db.schedules.insert_one(doc)
+    await database.schedules.insert_one(doc)
     
-    # Add to scheduler
-    if input.schedule_type == "once" and input.scheduled_time:
-        scheduler.add_job(
-            execute_scheduled_message,
-            DateTrigger(run_date=input.scheduled_time),
-            args=[schedule.id],
-            id=schedule.id,
-            replace_existing=True
-        )
-    elif input.schedule_type == "recurring" and input.cron_expression:
-        scheduler.add_job(
-            execute_scheduled_message,
-            CronTrigger.from_crontab(input.cron_expression),
-            args=[schedule.id],
-            id=schedule.id,
-            replace_existing=True
-        )
+    try:
+        if input.schedule_type == "once" and input.scheduled_time:
+            scheduler.add_job(
+                execute_scheduled_message,
+                DateTrigger(run_date=input.scheduled_time),
+                args=[schedule.id],
+                id=schedule.id,
+                replace_existing=True
+            )
+        elif input.schedule_type == "recurring" and input.cron_expression:
+            scheduler.add_job(
+                execute_scheduled_message,
+                CronTrigger.from_crontab(input.cron_expression),
+                args=[schedule.id],
+                id=schedule.id,
+                replace_existing=True
+            )
+    except Exception as e:
+        logger.warning(f"Failed to add job to scheduler: {e}")
     
     return schedule
 
 @api_router.put("/schedules/{schedule_id}/toggle")
 async def toggle_schedule(schedule_id: str):
     """Toggle a schedule active/inactive"""
-    schedule = await db.schedules.find_one({"id": schedule_id}, {"_id": 0})
+    database = await get_database()
+    schedule = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
     
     new_status = not schedule.get('is_active', True)
-    await db.schedules.update_one({"id": schedule_id}, {"$set": {"is_active": new_status}})
+    await database.schedules.update_one({"id": schedule_id}, {"$set": {"is_active": new_status}})
     
-    # Update scheduler
     try:
         if new_status:
             if schedule['schedule_type'] == "once" and schedule.get('scheduled_time'):
@@ -432,7 +461,10 @@ async def toggle_schedule(schedule_id: str):
                     replace_existing=True
                 )
         else:
-            scheduler.remove_job(schedule_id)
+            try:
+                scheduler.remove_job(schedule_id)
+            except:
+                pass
     except Exception as e:
         logger.warning(f"Scheduler update warning: {e}")
     
@@ -441,7 +473,8 @@ async def toggle_schedule(schedule_id: str):
 @api_router.delete("/schedules/{schedule_id}")
 async def delete_schedule(schedule_id: str):
     """Delete a scheduled message"""
-    result = await db.schedules.delete_one({"id": schedule_id})
+    database = await get_database()
+    result = await database.schedules.delete_one({"id": schedule_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Schedule not found")
     
@@ -455,15 +488,15 @@ async def delete_schedule(schedule_id: str):
 # ============== SEND NOW ==============
 
 @api_router.post("/send-now")
-async def send_message_now(contact_id: str, message: str, background_tasks: BackgroundTasks):
+async def send_message_now(contact_id: str, message: str):
     """Send a message immediately"""
-    contact = await db.contacts.find_one({"id": contact_id}, {"_id": 0})
+    database = await get_database()
+    contact = await database.contacts.find_one({"id": contact_id}, {"_id": 0})
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
     
     result = await send_whatsapp_message(contact['phone'], message)
     
-    # Log the message
     log = MessageLog(
         contact_id=contact_id,
         contact_name=contact['name'],
@@ -474,7 +507,7 @@ async def send_message_now(contact_id: str, message: str, background_tasks: Back
     )
     log_doc = log.model_dump()
     log_doc['sent_at'] = log_doc['sent_at'].isoformat()
-    await db.logs.insert_one(log_doc)
+    await database.logs.insert_one(log_doc)
     
     return result
 
@@ -483,7 +516,8 @@ async def send_message_now(contact_id: str, message: str, background_tasks: Back
 @api_router.get("/logs", response_model=List[MessageLog])
 async def get_logs(limit: int = 100):
     """Get message logs"""
-    logs = await db.logs.find({}, {"_id": 0}).sort("sent_at", -1).to_list(limit)
+    database = await get_database()
+    logs = await database.logs.find({}, {"_id": 0}).sort("sent_at", -1).to_list(limit)
     for l in logs:
         if isinstance(l.get('sent_at'), str):
             l['sent_at'] = datetime.fromisoformat(l['sent_at'])
@@ -492,7 +526,8 @@ async def get_logs(limit: int = 100):
 @api_router.delete("/logs")
 async def clear_logs():
     """Clear all logs"""
-    await db.logs.delete_many({})
+    database = await get_database()
+    await database.logs.delete_many({})
     return {"success": True}
 
 # ============== SETTINGS ==============
@@ -501,26 +536,16 @@ async def clear_logs():
 async def get_timezone_info():
     """Get system timezone and available timezones"""
     try:
+        from tzlocal import get_localzone_name
         system_tz = get_localzone_name()
     except:
         system_tz = "UTC"
     
-    # Common timezones for dropdown
     common_timezones = [
-        "UTC",
-        "America/New_York",
-        "America/Chicago", 
-        "America/Denver",
-        "America/Los_Angeles",
-        "Europe/London",
-        "Europe/Paris",
-        "Europe/Berlin",
-        "Asia/Tokyo",
-        "Asia/Shanghai",
-        "Asia/Kolkata",
-        "Asia/Dubai",
-        "Australia/Sydney",
-        "Pacific/Auckland"
+        "UTC", "America/New_York", "America/Chicago", "America/Denver",
+        "America/Los_Angeles", "Europe/London", "Europe/Paris", "Europe/Berlin",
+        "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata", "Asia/Dubai",
+        "Australia/Sydney", "Pacific/Auckland"
     ]
     
     return {
@@ -532,237 +557,63 @@ async def get_timezone_info():
 @api_router.get("/settings", response_model=Settings)
 async def get_settings():
     """Get application settings"""
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    database = await get_database()
+    settings = await database.settings.find_one({"id": "settings"}, {"_id": 0})
     if not settings:
-        # Default to system timezone
         try:
+            from tzlocal import get_localzone_name
             system_tz = get_localzone_name()
         except:
             system_tz = None
         default_settings = Settings(timezone=system_tz)
         settings = default_settings.model_dump()
         settings['updated_at'] = settings['updated_at'].isoformat()
-        await db.settings.insert_one(settings)
+        await database.settings.insert_one(settings)
         settings['updated_at'] = datetime.fromisoformat(settings['updated_at'])
     else:
         if isinstance(settings.get('updated_at'), str):
             settings['updated_at'] = datetime.fromisoformat(settings['updated_at'])
-        # If timezone not set, use system timezone
-        if not settings.get('timezone'):
-            try:
-                settings['timezone'] = get_localzone_name()
-            except:
-                settings['timezone'] = None
     return Settings(**settings)
 
 @api_router.put("/settings", response_model=Settings)
 async def update_settings(input: SettingsUpdate):
     """Update application settings"""
-    global telegram_polling_task
+    database = await get_database()
     
     update_data = input.model_dump()
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
-    await db.settings.update_one(
+    await database.settings.update_one(
         {"id": "settings"},
         {"$set": update_data},
         upsert=True
     )
     
-    # Restart telegram polling if settings changed
-    if input.telegram_enabled and input.telegram_token:
-        await restart_telegram_polling()
-    else:
-        await stop_telegram_polling()
-    
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    settings = await database.settings.find_one({"id": "settings"}, {"_id": 0})
     if isinstance(settings.get('updated_at'), str):
         settings['updated_at'] = datetime.fromisoformat(settings['updated_at'])
     return Settings(**settings)
-
-# ============== TELEGRAM BOT POLLING ==============
-
-async def handle_telegram_message(token: str, message: dict):
-    """Handle incoming Telegram message"""
-    text = message.get('text', '')
-    chat_id = str(message.get('chat', {}).get('id', ''))
-    
-    if not text or not chat_id:
-        return
-    
-    # Auto-save chat_id
-    await db.settings.update_one(
-        {"id": "settings"},
-        {"$set": {"telegram_chat_id": chat_id}}
-    )
-    
-    response_text = None
-    
-    if text.startswith('/start'):
-        response_text = """🤖 <b>WhatsApp Scheduler Bot</b>
-
-<b>Commands:</b>
-/status - Check WhatsApp connection
-/contacts - List all contacts
-/schedules - List active schedules
-/send &lt;name&gt; &lt;message&gt; - Send message now
-/help - Show this help"""
-    
-    elif text.startswith('/help'):
-        response_text = """📋 <b>Available Commands:</b>
-
-/status - Check if WhatsApp is connected
-/contacts - Show all your contacts
-/schedules - Show active scheduled messages
-/send John Hello! - Send "Hello!" to contact named John
-/help - Show this help message"""
-    
-    elif text.startswith('/status'):
-        try:
-            async with httpx.AsyncClient() as http_client:
-                resp = await http_client.get(f"{WA_SERVICE_URL}/status", timeout=5.0)
-                wa_status = resp.json()
-                if wa_status.get('isReady'):
-                    name = wa_status.get('clientInfo', {}).get('pushname', 'Unknown')
-                    response_text = f"✅ <b>WhatsApp Connected</b>\n👤 Logged in as: {name}"
-                else:
-                    response_text = "❌ <b>WhatsApp Not Connected</b>\n\nPlease scan the QR code in the web dashboard."
-        except Exception as e:
-            response_text = f"❌ Could not check WhatsApp status\nError: {str(e)}"
-    
-    elif text.startswith('/contacts'):
-        contacts = await db.contacts.find({}, {"_id": 0}).to_list(20)
-        if contacts:
-            contact_list = "\n".join([f"• {c['name']} ({c['phone']})" for c in contacts])
-            response_text = f"📇 <b>Contacts ({len(contacts)}):</b>\n\n{contact_list}"
-        else:
-            response_text = "📇 No contacts found.\n\nAdd contacts via the web dashboard."
-    
-    elif text.startswith('/schedules'):
-        schedules = await db.schedules.find({"is_active": True}, {"_id": 0}).to_list(20)
-        if schedules:
-            schedule_list = "\n".join([f"• {s['contact_name']}: {s['message'][:30]}..." for s in schedules])
-            response_text = f"📅 <b>Active Schedules ({len(schedules)}):</b>\n\n{schedule_list}"
-        else:
-            response_text = "📅 No active schedules.\n\nCreate schedules via the web dashboard."
-    
-    elif text.startswith('/send '):
-        parts = text[6:].split(' ', 1)
-        if len(parts) == 2:
-            contact_name, msg = parts
-            contact = await db.contacts.find_one(
-                {"name": {"$regex": f"^{contact_name}", "$options": "i"}}, 
-                {"_id": 0}
-            )
-            if contact:
-                result = await send_whatsapp_message(contact['phone'], msg)
-                if result.get('success'):
-                    response_text = f"✅ <b>Message sent to {contact['name']}</b>\n\n📱 {contact['phone']}\n💬 {msg}"
-                    
-                    # Log the message
-                    log = MessageLog(
-                        contact_id=contact['id'],
-                        contact_name=contact['name'],
-                        contact_phone=contact['phone'],
-                        message=msg,
-                        status="sent"
-                    )
-                    log_doc = log.model_dump()
-                    log_doc['sent_at'] = log_doc['sent_at'].isoformat()
-                    await db.logs.insert_one(log_doc)
-                else:
-                    response_text = f"❌ <b>Failed to send message</b>\n\nError: {result.get('error', 'Unknown error')}"
-            else:
-                response_text = f"❌ Contact '<b>{contact_name}</b>' not found.\n\nUse /contacts to see available contacts."
-        else:
-            response_text = "❌ <b>Invalid format</b>\n\nUsage: /send &lt;contact_name&gt; &lt;message&gt;\nExample: /send John Hello, how are you?"
-    
-    else:
-        response_text = "❓ Unknown command. Type /help to see available commands."
-    
-    # Send response
-    if response_text:
-        await send_telegram_notification(token, chat_id, response_text)
-
-async def telegram_polling_loop():
-    """Main polling loop for Telegram updates"""
-    global telegram_last_update_id
-    
-    while True:
-        try:
-            settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-            if not settings or not settings.get('telegram_enabled') or not settings.get('telegram_token'):
-                await asyncio.sleep(5)
-                continue
-            
-            token = settings['telegram_token']
-            
-            async with httpx.AsyncClient() as http_client:
-                url = f"https://api.telegram.org/bot{token}/getUpdates"
-                params = {"offset": telegram_last_update_id + 1, "timeout": 30}
-                
-                response = await http_client.get(url, params=params, timeout=35.0)
-                data = response.json()
-                
-                if data.get('ok') and data.get('result'):
-                    for update in data['result']:
-                        telegram_last_update_id = update['update_id']
-                        
-                        if 'message' in update:
-                            await handle_telegram_message(token, update['message'])
-        
-        except asyncio.CancelledError:
-            logger.info("Telegram polling cancelled")
-            break
-        except Exception as e:
-            logger.error(f"Telegram polling error: {e}")
-            await asyncio.sleep(5)
-
-async def start_telegram_polling():
-    """Start Telegram polling task"""
-    global telegram_polling_task
-    
-    if telegram_polling_task is None or telegram_polling_task.done():
-        telegram_polling_task = asyncio.create_task(telegram_polling_loop())
-        logger.info("Telegram polling started")
-
-async def stop_telegram_polling():
-    """Stop Telegram polling task"""
-    global telegram_polling_task
-    
-    if telegram_polling_task and not telegram_polling_task.done():
-        telegram_polling_task.cancel()
-        try:
-            await telegram_polling_task
-        except asyncio.CancelledError:
-            pass
-        logger.info("Telegram polling stopped")
-
-async def restart_telegram_polling():
-    """Restart Telegram polling"""
-    await stop_telegram_polling()
-    await start_telegram_polling()
 
 # ============== DASHBOARD STATS ==============
 
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats():
     """Get dashboard statistics"""
-    contacts_count = await db.contacts.count_documents({})
-    templates_count = await db.templates.count_documents({})
-    active_schedules = await db.schedules.count_documents({"is_active": True})
-    total_messages = await db.logs.count_documents({})
-    sent_messages = await db.logs.count_documents({"status": "sent"})
-    failed_messages = await db.logs.count_documents({"status": "failed"})
+    database = await get_database()
     
-    # Get recent logs
-    recent_logs = await db.logs.find({}, {"_id": 0}).sort("sent_at", -1).to_list(5)
+    contacts_count = await database.contacts.count_documents({})
+    templates_count = await database.templates.count_documents({})
+    active_schedules = await database.schedules.count_documents({"is_active": True})
+    total_messages = await database.logs.count_documents({})
+    sent_messages = await database.logs.count_documents({"status": "sent"})
+    failed_messages = await database.logs.count_documents({"status": "failed"})
+    
+    recent_logs = await database.logs.find({}, {"_id": 0}).sort("sent_at", -1).to_list(5)
     for l in recent_logs:
         if isinstance(l.get('sent_at'), str):
             l['sent_at'] = datetime.fromisoformat(l['sent_at'])
     
-    # Get upcoming schedules
-    upcoming = await db.schedules.find({"is_active": True}, {"_id": 0}).to_list(5)
+    upcoming = await database.schedules.find({"is_active": True}, {"_id": 0}).to_list(5)
     for s in upcoming:
         for field in ['scheduled_time', 'last_run', 'next_run', 'created_at']:
             if isinstance(s.get(field), str):
@@ -779,13 +630,8 @@ async def get_dashboard_stats():
         "upcoming_schedules": upcoming
     }
 
-# ============== ROOT ==============
+# ============== INCLUDE ROUTER ==============
 
-@api_router.get("/")
-async def root():
-    return {"message": "WhatsApp Scheduler API"}
-
-# Include the router in the main app
 app.include_router(api_router)
 
 app.add_middleware(
@@ -798,43 +644,56 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
+    global client, db
+    
+    # Try to connect to MongoDB
+    try:
+        client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000)
+        await client.admin.command('ping')
+        db = client[db_name]
+        logger.info(f"Connected to MongoDB: {mongo_url}")
+    except Exception as e:
+        logger.warning(f"MongoDB not available at startup: {e}")
+        logger.warning("API will retry connection on first request")
+    
+    # Start scheduler
     scheduler.start()
     logger.info("Scheduler started")
     
-    # Start Telegram polling
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-    if settings and settings.get('telegram_enabled') and settings.get('telegram_token'):
-        await start_telegram_polling()
-    
-    # Reload existing schedules
-    schedules = await db.schedules.find({"is_active": True}, {"_id": 0}).to_list(1000)
-    for schedule in schedules:
+    # Reload existing schedules if DB is available
+    if db is not None:
         try:
-            if schedule['schedule_type'] == "once" and schedule.get('scheduled_time'):
-                sched_time = schedule['scheduled_time']
-                if isinstance(sched_time, str):
-                    sched_time = datetime.fromisoformat(sched_time)
-                if sched_time > datetime.now(timezone.utc):
-                    scheduler.add_job(
-                        execute_scheduled_message,
-                        DateTrigger(run_date=sched_time),
-                        args=[schedule['id']],
-                        id=schedule['id'],
-                        replace_existing=True
-                    )
-            elif schedule['schedule_type'] == "recurring" and schedule.get('cron_expression'):
-                scheduler.add_job(
-                    execute_scheduled_message,
-                    CronTrigger.from_crontab(schedule['cron_expression']),
-                    args=[schedule['id']],
-                    id=schedule['id'],
-                    replace_existing=True
-                )
+            schedules = await db.schedules.find({"is_active": True}, {"_id": 0}).to_list(1000)
+            for schedule in schedules:
+                try:
+                    if schedule['schedule_type'] == "once" and schedule.get('scheduled_time'):
+                        sched_time = schedule['scheduled_time']
+                        if isinstance(sched_time, str):
+                            sched_time = datetime.fromisoformat(sched_time)
+                        if sched_time > datetime.now(timezone.utc):
+                            scheduler.add_job(
+                                execute_scheduled_message,
+                                DateTrigger(run_date=sched_time),
+                                args=[schedule['id']],
+                                id=schedule['id'],
+                                replace_existing=True
+                            )
+                    elif schedule['schedule_type'] == "recurring" and schedule.get('cron_expression'):
+                        scheduler.add_job(
+                            execute_scheduled_message,
+                            CronTrigger.from_crontab(schedule['cron_expression']),
+                            args=[schedule['id']],
+                            id=schedule['id'],
+                            replace_existing=True
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to reload schedule {schedule['id']}: {e}")
         except Exception as e:
-            logger.warning(f"Failed to reload schedule {schedule['id']}: {e}")
+            logger.warning(f"Could not reload schedules: {e}")
 
 @app.on_event("shutdown")
 async def shutdown():
-    await stop_telegram_polling()
     scheduler.shutdown()
-    client.close()
+    if client:
+        client.close()
+    logger.info("Server shutdown complete")
