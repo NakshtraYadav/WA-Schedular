@@ -157,7 +157,7 @@ export default function Diagnostics() {
 
   const fetchDiagnostics = useCallback(async () => {
     try {
-      const response = await api.get('/diagnostics');
+      const response = await apiClient.get('/api/diagnostics');
       setDiagnostics(response.data);
     } catch (error) {
       console.error('Failed to fetch diagnostics:', error);
