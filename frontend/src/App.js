@@ -36,6 +36,54 @@ const navItems = [
   { path: "/settings", icon: Settings, label: "Settings" },
 ];
 
+// Version Context
+const VersionContext = createContext(null);
+
+export const useVersion = () => useContext(VersionContext);
+
+function VersionProvider({ children }) {
+  const [versionInfo, setVersionInfo] = useState(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState(null);
+
+  const checkVersion = useCallback(async () => {
+    try {
+      const [versionRes, updateRes] = await Promise.all([
+        getAppVersion(),
+        checkForUpdates()
+      ]);
+      setVersionInfo(versionRes.data);
+      setUpdateInfo(updateRes.data);
+      
+      if (updateRes.data?.has_update) {
+        setUpdateAvailable(true);
+        toast.info("Update available! Go to Settings to install.", {
+          duration: 5000,
+          action: {
+            label: "View",
+            onClick: () => window.location.href = "/settings"
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Failed to check version:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkVersion();
+    // Check every 30 minutes
+    const interval = setInterval(checkVersion, 30 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [checkVersion]);
+
+  return (
+    <VersionContext.Provider value={{ versionInfo, updateAvailable, updateInfo, checkVersion }}>
+      {children}
+    </VersionContext.Provider>
+  );
+}
+
 function Sidebar() {
   const location = useLocation();
   
