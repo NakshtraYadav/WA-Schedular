@@ -13,7 +13,7 @@ import {
   Trash2,
   AlertTriangle
 } from 'lucide-react';
-import { getWhatsAppStatus, getWhatsAppQR, logoutWhatsApp, simulateConnect } from '../lib/api';
+import { getWhatsAppStatus, getWhatsAppQR, logoutWhatsApp } from '../lib/api';
 import { toast } from 'sonner';
 import axios from 'axios';
 

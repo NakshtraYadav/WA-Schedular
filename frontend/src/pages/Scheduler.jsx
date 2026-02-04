@@ -203,7 +203,7 @@ function Scheduler() {
     }
   };
 
-  const useTemplate = (templateId, target = 'schedule') => {
+  const applyTemplate = (templateId, target = 'schedule') => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
       if (target === 'schedule') {
@@ -438,7 +438,7 @@ function Scheduler() {
               <div className="flex items-center justify-between">
                 <Label>Message</Label>
                 {templates.length > 0 && (
-                  <Select onValueChange={(v) => useTemplate(v, 'sendNow')}>
+                  <Select onValueChange={(v) => applyTemplate(v, 'sendNow')}>
                     <SelectTrigger className="w-[180px] h-8">
                       <SelectValue placeholder="Use template" />
                     </SelectTrigger>
@@ -514,7 +514,7 @@ function Scheduler() {
               <div className="flex items-center justify-between">
                 <Label>Message</Label>
                 {templates.length > 0 && (
-                  <Select onValueChange={(v) => useTemplate(v, 'schedule')}>
+                  <Select onValueChange={(v) => applyTemplate(v, 'schedule')}>
                     <SelectTrigger className="w-[180px] h-8" data-testid="select-template">
                       <SelectValue placeholder="Use template" />
                     </SelectTrigger>
