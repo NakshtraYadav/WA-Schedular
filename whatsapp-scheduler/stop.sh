@@ -62,9 +62,21 @@ echo -e "${GREEN}[OK]${NC} Ports cleared"
 echo ""
 
 # ============================================================================
+# STOP AUTO-UPDATER
+# ============================================================================
+if [ -f "$SCRIPT_DIR/.auto-updater.pid" ]; then
+    echo -e "${YELLOW}[3/4]${NC} Stopping auto-updater..."
+    "$SCRIPT_DIR/auto-updater.sh" stop 2>/dev/null || true
+    echo ""
+else
+    echo -e "${YELLOW}[3/4]${NC} Auto-updater not running"
+    echo ""
+fi
+
+# ============================================================================
 # KILL ORPHAN PROCESSES
 # ============================================================================
-echo -e "${YELLOW}[3/3]${NC} Cleaning up orphan processes..."
+echo -e "${YELLOW}[4/4]${NC} Cleaning up orphan processes..."
 
 # Kill any node processes related to our services
 pkill -f "node.*index.js" 2>/dev/null && echo "  Killed WhatsApp node processes" || true
