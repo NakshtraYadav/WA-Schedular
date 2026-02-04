@@ -525,11 +525,31 @@ function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p><strong className="text-foreground">WA Scheduler</strong> v3.1</p>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-foreground">WA Scheduler</span>
+              <span className="font-mono text-primary">
+                v{versionInfo?.version || "1.0.0"}
+                {versionInfo?.git_sha && versionInfo.git_sha !== "unknown" && (
+                  <span className="text-muted-foreground text-xs ml-1">({versionInfo.git_sha})</span>
+                )}
+              </span>
+            </div>
             <p>A local tool for scheduling WhatsApp messages with Telegram remote control.</p>
-            <p className="text-xs mt-4">
-              Note: WhatsApp Web automation should be used responsibly. 
+            <div className="pt-2 border-t border-border">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground">App Name:</span>
+                  <span className="ml-2 text-foreground">{versionInfo?.app_name || "WhatsApp Scheduler"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Build Date:</span>
+                  <span className="ml-2 text-foreground">{versionInfo?.build_date || "N/A"}</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <strong className="text-amber-500">Note:</strong> WhatsApp Web automation should be used responsibly. 
               Excessive automated messaging may result in account restrictions.
             </p>
           </div>
