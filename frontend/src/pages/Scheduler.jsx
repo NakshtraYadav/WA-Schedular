@@ -50,13 +50,15 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 const SCHEDULE_PRESETS = [
-  { label: 'Every morning at 9 AM', value: '0 9 * * *', description: 'Daily at 9:00 AM' },
-  { label: 'Every evening at 6 PM', value: '0 18 * * *', description: 'Daily at 6:00 PM' },
-  { label: 'Every Monday at 9 AM', value: '0 9 * * 1', description: 'Weekly on Monday' },
-  { label: 'Every weekday at 9 AM', value: '0 9 * * 1-5', description: 'Mon-Fri at 9:00 AM' },
-  { label: 'First day of month', value: '0 9 1 * *', description: 'Monthly on the 1st' },
-  { label: 'Every 2 hours', value: '0 */2 * * *', description: 'Every 2 hours' },
-  { label: 'Custom', value: 'custom', description: 'Enter custom cron' },
+  { label: 'Daily', value: 'daily', cron: '0 {H} * * *', description: 'Every day' },
+  { label: 'Every weekday', value: 'weekday', cron: '0 {H} * * 1-5', description: 'Mon-Fri' },
+  { label: 'Every weekend', value: 'weekend', cron: '0 {H} * * 0,6', description: 'Sat-Sun' },
+  { label: 'Weekly on Monday', value: 'monday', cron: '0 {H} * * 1', description: 'Every Monday' },
+  { label: 'Weekly on Friday', value: 'friday', cron: '0 {H} * * 5', description: 'Every Friday' },
+  { label: 'First day of month', value: 'monthly', cron: '0 {H} 1 * *', description: 'Monthly on 1st' },
+  { label: 'Every hour', value: 'hourly', cron: '0 * * * *', description: 'Every hour', noTime: true },
+  { label: 'Every 2 hours', value: '2hourly', cron: '0 */2 * * *', description: 'Every 2 hours', noTime: true },
+  { label: 'Custom cron', value: 'custom', cron: '', description: 'Enter cron expression' },
 ];
 
 function Scheduler() {
