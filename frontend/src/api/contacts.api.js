@@ -12,5 +12,7 @@ export const syncWhatsAppContacts = () => apiClient.post('/api/contacts/sync-wha
 export const verifyWhatsAppNumber = (phone) => apiClient.get(`/api/contacts/verify/${encodeURIComponent(phone)}`);
 // Bulk verify needs longer timeout - each number takes ~1-2 seconds
 export const verifyBulkNumbers = (phones) => apiClient.post('/api/contacts/verify-bulk', phones, { timeout: 180000 });
+// Verify single contact and update DB
+export const verifySingleContact = (phone) => apiClient.post(`/api/contacts/verify-single/${encodeURIComponent(phone)}`, {}, { timeout: 30000 });
 // Delete all unverified contacts
 export const deleteUnverifiedContacts = () => apiClient.delete('/api/contacts/unverified');
