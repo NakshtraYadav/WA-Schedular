@@ -70,8 +70,8 @@ function Connect() {
     
     setClearingSession(true);
     try {
-      // Call the clear-session endpoint directly on WhatsApp service
-      await axios.post('http://localhost:3001/clear-session', {}, { timeout: 10000 });
+      // Call the clear-session endpoint via backend API
+      await axios.post(`${API_URL}/api/whatsapp/clear-session`, {}, { timeout: 10000 });
       toast.success('Session cleared! Click "Generate QR Code" to reconnect.');
       setQrCode(null);
       
@@ -80,15 +80,7 @@ function Connect() {
         fetchStatus();
       }, 3000);
     } catch (error) {
-      // Try via backend
-      try {
-        await axios.post(`${API_URL}/api/whatsapp/clear-session`, {}, { timeout: 10000 });
-        toast.success('Session cleared! Click "Generate QR Code" to reconnect.');
-        setQrCode(null);
-        setTimeout(() => fetchStatus(), 3000);
-      } catch (e) {
-        toast.error('Could not clear session. Try running scripts/fix-whatsapp.bat manually.');
-      }
+      toast.error('Could not clear session. Try running scripts/fix-whatsapp.bat manually.');
     } finally {
       setClearingSession(false);
     }
@@ -97,7 +89,7 @@ function Connect() {
   const handleGenerateQR = async () => {
     setGeneratingQR(true);
     try {
-      await axios.post('http://localhost:3001/generate-qr', {}, { timeout: 5000 });
+      await axios.post(`${API_URL}/api/whatsapp/generate-qr`, {}, { timeout: 5000 });
       toast.success('Generating QR code... Please wait 10-30 seconds.');
       
       // Start polling for QR code
