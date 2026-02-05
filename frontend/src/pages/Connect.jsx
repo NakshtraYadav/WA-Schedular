@@ -310,23 +310,20 @@ function Connect() {
                           <Trash2 className="w-4 h-4 mr-2" />
                           Clear Session
                         </Button>
-                        <Button onClick={handleRetryInit} variant="outline" disabled={retrying}>
-                          <RefreshCw className="w-4 h-4 mr-2" />
+                        <Button onClick={handleGenerateQR} variant="outline" disabled={generatingQR}>
+                          <RefreshCw className={`w-4 h-4 mr-2 ${generatingQR ? 'animate-spin' : ''}`} />
                           Retry
                         </Button>
                       </div>
                     </>
-                  ) : status?.isInitializing ? (
+                  ) : status?.isInitializing || generatingQR ? (
                     <>
                       <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
                       <p className="text-foreground font-medium">
-                        Initializing WhatsApp...
+                        Generating QR Code...
                       </p>
                       <p className="text-sm text-muted-foreground mt-2">
-                        {status.initAttempts > 1 
-                          ? `Attempt ${status.initAttempts}/3 - This may take longer...`
-                          : 'This may take 30-90 seconds on first run'
-                        }
+                        This may take 10-30 seconds
                       </p>
                       <div className="mt-4 w-64 bg-secondary rounded-full h-2 overflow-hidden">
                         <div className="bg-primary h-2 animate-pulse" style={{ width: '60%' }}></div>
