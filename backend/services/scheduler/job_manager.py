@@ -1,4 +1,5 @@
 """Schedule job management"""
+import asyncio
 from datetime import datetime, timezone
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
@@ -8,12 +9,30 @@ from core.logging import logger
 from .executor import execute_scheduled_message
 
 
+def run_scheduled_message(schedule_id: str):
+    """
+    Sync wrapper for async execute_scheduled_message.
+    APScheduler's AsyncIOScheduler will call this, and we schedule the coroutine
+    to run in the existing event loop.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # We're in an async context, schedule as a task
+            asyncio.create_task(execute_scheduled_message(schedule_id))
+        else:
+            # Fallback: run in a new loop
+            asyncio.run(execute_scheduled_message(schedule_id))
+    except Exception as e:
+        logger.error(f"❌ Error running scheduled message {schedule_id}: {e}", exc_info=True)
+
+
 def add_schedule_job(schedule_id: str, schedule_type: str, scheduled_time=None, cron_expression=None):
     """Add a job to the scheduler"""
     try:
         if schedule_type == "once" and scheduled_time:
             scheduler.add_job(
-                execute_scheduled_message,
+                run_scheduled_message,
                 DateTrigger(run_date=scheduled_time),
                 args=[schedule_id],
                 id=schedule_id,
@@ -22,7 +41,7 @@ def add_schedule_job(schedule_id: str, schedule_type: str, scheduled_time=None, 
             logger.info(f"📅 One-time job scheduled: {schedule_id} at {scheduled_time}")
         elif schedule_type == "recurring" and cron_expression:
             scheduler.add_job(
-                execute_scheduled_message,
+                run_scheduled_message,
                 CronTrigger.from_crontab(cron_expression),
                 args=[schedule_id],
                 id=schedule_id,
