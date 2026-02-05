@@ -359,16 +359,21 @@ const initWhatsApp = async () => {
     // Event: QR Code
     client.on('qr', (qr) => {
       log('INFO', 'QR Code received - scan required');
+      lastQrTime = Date.now();
       setState({
         qrCodeData: qr,
         isReady: false,
         isAuthenticated: false
       });
+      // Start auto-refresh timer for QR
+      startQrRefreshTimer();
     });
 
     // Event: Ready
     client.on('ready', async () => {
       log('INFO', '✓ WhatsApp client is READY!');
+      stopQrRefreshTimer(); // Stop QR refresh when connected
+      lastQrTime = null;
       setState({
         isReady: true,
         isAuthenticated: true,
