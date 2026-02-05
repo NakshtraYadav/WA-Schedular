@@ -1,10 +1,22 @@
 {
-  "version": "2.5.3",
+  "version": "2.5.4",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 26,
+  "build": 27,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.5.4",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: First QR code invalid issue - removed aggressive QR refresh that was destroying client",
+        "IMPROVED: QR codes now auto-refresh naturally via whatsapp-web.js (every ~20s)",
+        "ADDED: QR count tracking - shows which QR code number is displayed",
+        "ADDED: UI hint when first QR code is shown (wait for auto-refresh if scan fails)",
+        "ADDED: Loading screen and state change event logging for better debugging",
+        "IMPROVED: Better logging during WhatsApp initialization"
+      ]
+    },
     {
       "version": "2.5.3",
       "date": "2026-02-05",
