@@ -71,26 +71,32 @@ async def get_service_logs(service: str, lines: int = 100):
     if service not in service_map:
         raise HTTPException(status_code=400, detail=f"Invalid service: {service}")
     
+    # Check for log file directly (start.sh writes to logs/backend.log, not logs/backend/app.log)
+    direct_log = log_base / f"{service_map[service]}.log"
     log_dir = log_base / service_map[service]
     
-    if not log_dir.exists():
-        return {"service": service, "logs": [], "message": "Log directory not found"}
+    log_file = None
     
-    log_files = sorted(log_dir.glob("*.log"), key=lambda x: x.stat().st_mtime, reverse=True)
+    # First check direct log file (e.g., logs/backend.log)
+    if direct_log.exists():
+        log_file = direct_log
+    # Then check subdirectory (e.g., logs/backend/*.log)
+    elif log_dir.exists():
+        log_files = sorted(log_dir.glob("*.log"), key=lambda x: x.stat().st_mtime, reverse=True)
+        if log_files:
+            log_file = log_files[0]
     
-    if not log_files:
-        return {"service": service, "logs": [], "message": "No log files found"}
-    
-    latest_log = log_files[0]
+    if not log_file:
+        return {"service": service, "logs": [], "message": f"No log file found for {service}"}
     
     try:
-        with open(latest_log, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
             all_lines = f.readlines()
             recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
         
         return {
             "service": service,
-            "file": latest_log.name,
+            "file": log_file.name,
             "total_lines": len(all_lines),
             "logs": [line.strip() for line in recent_lines]
         }
