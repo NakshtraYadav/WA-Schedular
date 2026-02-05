@@ -116,17 +116,17 @@ function Contacts() {
       const res = await verifyBulkNumbers(phones);
       toast.dismiss(toastId);
 
-      if (res.data.success) {
+      if (res.data && res.data.success) {
         // Build verification map
         const results = {};
-        res.data.results.forEach(r => {
+        (res.data.results || []).forEach(r => {
           results[r.phone] = r.isRegistered;
           results[r.cleanNumber] = r.isRegistered;
         });
         setVerificationResults(results);
 
-        const registered = res.data.registered;
-        const notRegistered = res.data.notRegistered;
+        const registered = res.data.registered || 0;
+        const notRegistered = res.data.notRegistered || 0;
         
         if (notRegistered === 0) {
           toast.success(`All ${registered} contacts are on WhatsApp! ✓`);
@@ -134,11 +134,12 @@ function Contacts() {
           toast.warning(`${registered} on WhatsApp, ${notRegistered} not found`);
         }
       } else {
-        toast.error(res.data.error || 'Verification failed');
+        toast.error(res.data?.error || 'Verification failed - make sure WhatsApp is connected');
       }
     } catch (error) {
       toast.dismiss(toastId);
-      toast.error('Failed to verify contacts');
+      const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message || 'Failed to verify contacts';
+      toast.error(errorMsg);
     } finally {
       setVerifying(false);
     }
