@@ -329,7 +329,18 @@ function Contacts() {
           <h1 className="font-heading text-3xl font-bold text-foreground">Contacts</h1>
           <p className="text-muted-foreground mt-1">Manage your WhatsApp contacts</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
+          {selectedIds.size > 0 && (
+            <Button 
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              disabled={deletingSelected}
+              data-testid="delete-selected-btn"
+            >
+              {deletingSelected ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete Selected ({selectedIds.size})
+            </Button>
+          )}
           <Button 
             variant="outline"
             onClick={handleVerifyAll}
