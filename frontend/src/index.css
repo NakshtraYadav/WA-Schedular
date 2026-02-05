@@ -146,3 +146,78 @@ h1, h2, h3, h4, h5, h6, .font-heading {
         display: contents !important;
     }
 }
+
+/* Sonner Toast Styling - Match app theme */
+[data-sonner-toaster] {
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+[data-sonner-toast] {
+    --normal-bg: hsl(240 6% 10%);
+    --normal-border: hsl(240 4% 16%);
+    --normal-text: hsl(0 0% 98%);
+    
+    --success-bg: hsl(160 84% 10%);
+    --success-border: hsl(160 60% 25%);
+    --success-text: hsl(160 60% 80%);
+    
+    --error-bg: hsl(0 60% 12%);
+    --error-border: hsl(0 50% 30%);
+    --error-text: hsl(0 60% 85%);
+    
+    --warning-bg: hsl(43 60% 12%);
+    --warning-border: hsl(43 50% 30%);
+    --warning-text: hsl(43 60% 85%);
+    
+    background: var(--normal-bg) !important;
+    border: 1px solid var(--normal-border) !important;
+    color: var(--normal-text) !important;
+    border-radius: 0.5rem !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+    background: var(--success-bg) !important;
+    border-color: var(--success-border) !important;
+    color: var(--success-text) !important;
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] svg {
+    color: hsl(160 84% 50%) !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+    background: var(--error-bg) !important;
+    border-color: var(--error-border) !important;
+    color: var(--error-text) !important;
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] svg {
+    color: hsl(0 84% 60%) !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+    background: var(--warning-bg) !important;
+    border-color: var(--warning-border) !important;
+    color: var(--warning-text) !important;
+}
+
+[data-sonner-toast][data-type="warning"] [data-icon] svg {
+    color: hsl(43 96% 56%) !important;
+}
+
+[data-sonner-toast][data-type="loading"] {
+    background: var(--normal-bg) !important;
+    border-color: hsl(160 60% 25%) !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+    background: hsl(240 4% 16%) !important;
+    border-color: hsl(240 4% 25%) !important;
+    color: hsl(240 5% 65%) !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+    background: hsl(240 4% 20%) !important;
+    color: hsl(0 0% 98%) !important;
+}
+
