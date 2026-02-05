@@ -397,27 +397,35 @@ function Contacts() {
               <TableBody>
                 {contacts.map((contact) => {
                   const status = getVerificationStatus(contact);
+                  const isBeingVerified = verifyingContact === contact.id;
                   return (
-                  <TableRow key={contact.id} data-testid={`contact-row-${contact.id}`}>
+                  <TableRow key={contact.id} data-testid={`contact-row-${contact.id}`} className={isBeingVerified ? 'bg-primary/5' : ''}>
                     <TableCell className="font-medium">{contact.name}</TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">{contact.phone}</span>
                     </TableCell>
                     <TableCell>
-                      {status === 'verified' && (
+                      {isBeingVerified ? (
+                        <Badge className="bg-blue-500/20 text-blue-500 border-0">
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          Verifying...
+                        </Badge>
+                      ) : status === 'verified' ? (
                         <Badge className="bg-emerald-500/20 text-emerald-500 border-0">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           On WhatsApp
                         </Badge>
-                      )}
-                      {status === 'not_found' && (
+                      ) : status === 'not_found' ? (
                         <Badge variant="destructive" className="bg-red-500/20 text-red-500 border-0">
                           <XCircle className="w-3 h-3 mr-1" />
                           Not Found
                         </Badge>
-                      )}
-                      {status === 'unknown' && (
+                      ) : (
                         <Badge variant="outline" className="text-muted-foreground">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Not Verified
+                        </Badge>
+                      )}
                           <AlertCircle className="w-3 h-3 mr-1" />
                           Not Verified
                         </Badge>
