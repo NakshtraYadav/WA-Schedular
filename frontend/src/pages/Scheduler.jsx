@@ -69,6 +69,7 @@ function Scheduler() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sendNowDialogOpen, setSendNowDialogOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(null); // Track which schedule is being edited
   const [scheduleType, setScheduleType] = useState('once');
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState('09:00');
