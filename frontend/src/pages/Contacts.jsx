@@ -35,7 +35,8 @@ import {
   AlertCircle,
   ShieldCheck
 } from 'lucide-react';
-import { getContacts, createContact, updateContact, deleteContact, sendNow, getWhatsAppStatus, syncWhatsAppContacts, verifyBulkNumbers } from '../api';
+import { getContacts, createContact, updateContact, deleteContact, sendNow, syncWhatsAppContacts, verifyBulkNumbers } from '../api';
+import { useWhatsAppStatus } from '../hooks/useWhatsAppStatus';
 import { toast } from 'sonner';
 
 function Contacts() {
