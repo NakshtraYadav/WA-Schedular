@@ -668,21 +668,69 @@ main() {
         install_node
     fi
     
-    # Verify npm is available (should come with Node)
+    # Verify npm is available (should come with Node from NodeSource)
+    # Give it a moment and refresh PATH
+    sleep 1
+    hash -r 2>/dev/null || true
+    
     if ! check_npm; then
-        print_error "npm not found after Node.js installation"
-        print_info "Trying to install npm separately..."
-        local os=$(get_os)
-        case "$os" in
-            ubuntu|debian|pop)
-                run_sudo apt-get install -y npm
-                ;;
-            *)
-                print_error "Please install npm manually"
+        print_warning "npm not immediately available, checking alternative paths..."
+        
+        # Try to find npm in common locations
+        local npm_found=false
+        for npm_path in "/usr/bin/npm" "/usr/local/bin/npm" "$HOME/.nvm/versions/node/"*/bin/npm; do
+            if [ -x "$npm_path" ] 2>/dev/null; then
+                local npm_dir=$(dirname "$npm_path")
+                export PATH="$npm_dir:$PATH"
+                hash -r 2>/dev/null || true
+                print_info "Found npm at: $npm_path"
+                npm_found=true
+                break
+            fi
+        done
+        
+        if ! $npm_found && ! check_npm; then
+            print_warning "npm still not found, attempting reinstall..."
+            local os=$(get_os)
+            case "$os" in
+                ubuntu|debian|pop)
+                    # Don't install npm separately - it causes conflicts
+                    # Instead, reinstall nodejs which includes npm
+                    print_info "Reinstalling nodejs package..."
+                    run_sudo apt-get install -y --reinstall nodejs
+                    hash -r 2>/dev/null || true
+                    ;;
+                fedora|rhel|centos|rocky|alma)
+                    run_sudo dnf reinstall -y nodejs || run_sudo yum reinstall -y nodejs
+                    hash -r 2>/dev/null || true
+                    ;;
+                *)
+                    # For other systems, try installing npm globally via node
+                    if command_exists node; then
+                        print_info "Node exists but npm missing - unusual state"
+                    fi
+                    ;;
+            esac
+            
+            # Final check
+            sleep 1
+            if ! check_npm; then
+                print_error "npm installation failed"
+                print_info ""
+                print_info "Please install Node.js manually which includes npm:"
+                print_info "  1. Visit https://nodejs.org/"
+                print_info "  2. Download and install the LTS version"
+                print_info "  3. Run this setup script again"
+                print_info ""
+                print_info "Or try running these commands manually:"
+                print_info "  curl -fsSL https://deb.nodesource.com/setup_18.x | sudo bash -"
+                print_info "  sudo apt-get install -y nodejs"
                 exit 1
-                ;;
-        esac
+            fi
+        fi
     fi
+    
+    print_success "npm $(npm -v) is ready"
     
     # Python
     if ! check_python; then
