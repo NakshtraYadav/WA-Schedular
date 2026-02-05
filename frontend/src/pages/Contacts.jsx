@@ -441,6 +441,9 @@ function Contacts() {
           <CardTitle className="font-heading text-lg flex items-center gap-2">
             <Users className="w-5 h-5" />
             All Contacts ({contacts.length})
+            {selectedIds.size > 0 && (
+              <Badge variant="secondary" className="ml-2">{selectedIds.size} selected</Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -448,6 +451,13 @@ function Contacts() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">
+                    <Checkbox 
+                      checked={selectedIds.size === contacts.length && contacts.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
@@ -459,8 +469,20 @@ function Contacts() {
                 {contacts.map((contact) => {
                   const status = getVerificationStatus(contact);
                   const isBeingVerified = verifyingContact === contact.id;
+                  const isSelected = selectedIds.has(contact.id);
                   return (
-                  <TableRow key={contact.id} data-testid={`contact-row-${contact.id}`} className={isBeingVerified ? 'bg-primary/5' : ''}>
+                  <TableRow 
+                    key={contact.id} 
+                    data-testid={`contact-row-${contact.id}`} 
+                    className={`${isBeingVerified ? 'bg-primary/5' : ''} ${isSelected ? 'bg-muted/50' : ''}`}
+                  >
+                    <TableCell>
+                      <Checkbox 
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelectContact(contact.id)}
+                        aria-label={`Select ${contact.name}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{contact.name}</TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">{contact.phone}</span>
