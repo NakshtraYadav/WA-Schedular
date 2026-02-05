@@ -65,7 +65,7 @@ async def verify_contact_number(phone: str):
 
 
 @router.post("/verify-bulk")
-async def verify_bulk_numbers(phones: List[str] = Body(...)):
+async def verify_bulk_numbers(phones: List[str] = Body(...), update_db: bool = True):
     """Check multiple phone numbers at once. Send as JSON array: ["phone1", "phone2"]"""
     if not phones:
         return {"success": False, "error": "No phone numbers provided"}
@@ -77,9 +77,40 @@ async def verify_bulk_numbers(phones: List[str] = Body(...)):
                 json={"phones": phones},
                 timeout=180.0  # 3 minutes for bulk verification (~1-2s per number)
             )
-            return response.json()
+            result = response.json()
+            
+            # Update contacts in database with verification status
+            if update_db and result.get("success") and result.get("results"):
+                contacts_collection = get_contacts_collection()
+                for r in result["results"]:
+                    # Update by both original phone and clean number
+                    contacts_collection.update_many(
+                        {"$or": [{"phone": r["phone"]}, {"phone": r.get("cleanNumber", "")}]},
+                        {"$set": {
+                            "is_verified": r["isRegistered"],
+                            "whatsapp_id": r.get("whatsappId"),
+                            "verified_at": datetime.now(timezone.utc).isoformat() if r["isRegistered"] else None
+                        }}
+                    )
+            
+            return result
     except httpx.TimeoutException:
         return {"success": False, "error": f"Verification timed out. Try with fewer contacts (you sent {len(phones)})."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.delete("/unverified")
+async def delete_unverified_contacts():
+    """Delete all contacts that are not verified on WhatsApp"""
+    try:
+        contacts_collection = get_contacts_collection()
+        result = contacts_collection.delete_many({"is_verified": False})
+        return {
+            "success": True,
+            "deleted_count": result.deleted_count,
+            "message": f"Removed {result.deleted_count} unverified contacts"
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
