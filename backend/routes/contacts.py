@@ -60,13 +60,22 @@ async def verify_contact_number(phone: str):
 
 
 @router.post("/verify-bulk")
-async def verify_bulk_numbers(phones: List[str]):
+async def verify_bulk_numbers(phones: List[str] = None, request_body: dict = None):
     """Check multiple phone numbers at once"""
+    from fastapi import Request
+    # Handle both direct list and wrapped object
+    phone_list = phones
+    if not phone_list and request_body:
+        phone_list = request_body.get('phones', [])
+    
+    if not phone_list:
+        return {"success": False, "error": "No phone numbers provided"}
+    
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{WA_SERVICE_URL}/verify",
-                json={"phones": phones},
+                json={"phones": phone_list},
                 timeout=60.0  # Longer timeout for bulk
             )
             return response.json()
