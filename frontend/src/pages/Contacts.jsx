@@ -36,13 +36,14 @@ import {
   ShieldCheck,
   UserX
 } from 'lucide-react';
-import { getContacts, createContact, updateContact, deleteContact, sendNow, syncWhatsAppContacts, verifyBulkNumbers, deleteUnverifiedContacts } from '../api';
+import { getContacts, createContact, updateContact, deleteContact, sendNow, syncWhatsAppContacts, verifySingleContact, deleteUnverifiedContacts } from '../api';
 import { useWhatsAppStatus } from '../hooks/useWhatsAppStatus';
 import { toast } from 'sonner';
 
 function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [verifyingContact, setVerifyingContact] = useState(null); // Track which contact is being verified
   const [syncing, setSyncing] = useState(false);
   const [removingUnverified, setRemovingUnverified] = useState(false);
   const [verifying, setVerifying] = useState(false);
