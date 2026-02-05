@@ -63,28 +63,25 @@ const setState = (updates) => {
 };
 
 /**
- * Start QR refresh timer - regenerates QR every 30 seconds
+ * Start QR refresh timer - WhatsApp QR codes expire after ~20 seconds
+ * Instead of destroying the client, we just track expiry and let the client emit new QR
  */
 const startQrRefreshTimer = () => {
   stopQrRefreshTimer();
   
-  qrRefreshTimer = setInterval(async () => {
-    if (!isReady && !isAuthenticated && qrCodeData && client) {
-      const qrAge = lastQrTime ? (Date.now() - lastQrTime) / 1000 : 0;
-      if (qrAge >= 25) { // Refresh a bit before 30s to be safe
-        log('INFO', 'QR code expiring, requesting refresh...');
-        try {
-          // Destroy and reinitialize to get fresh QR
-          await gracefulShutdown();
-          setTimeout(() => initWhatsApp(), 2000);
-        } catch (e) {
-          log('WARN', 'QR refresh error:', e.message);
-        }
+  // WhatsApp Web.js client automatically emits new QR codes when the old one expires
+  // We just need to track the age for the UI
+  qrRefreshTimer = setInterval(() => {
+    if (!isReady && !isAuthenticated && qrCodeData) {
+      const qrAge = lastQrTime ? Math.floor((Date.now() - lastQrTime) / 1000) : 0;
+      // Just log - the client will emit a new 'qr' event automatically when it expires
+      if (qrAge > 0 && qrAge % 10 === 0) {
+        log('INFO', `QR code age: ${qrAge}s (auto-refreshes at ~20s)`);
       }
     }
   }, 5000); // Check every 5 seconds
   
-  log('INFO', 'QR auto-refresh timer started');
+  log('INFO', 'QR age tracking timer started');
 };
 
 const stopQrRefreshTimer = () => {
