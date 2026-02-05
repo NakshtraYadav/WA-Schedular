@@ -86,6 +86,7 @@ function Scheduler() {
     contact_id: '',
     message: '',
   });
+  const [runningScheduleId, setRunningScheduleId] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
