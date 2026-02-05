@@ -522,7 +522,7 @@ const initWhatsApp = async () => {
       }
     });
 
-    // Event: Disconnected
+    // Event: Disconnected - with exponential backoff
     client.on('disconnected', async (reason) => {
       log('WARN', 'Client disconnected:', reason);
       setState({
@@ -531,20 +531,27 @@ const initWhatsApp = async () => {
         clientInfo: null
       });
       
-      // Auto-reconnect unless intentional logout
-      if (reason !== 'LOGOUT' && !isShuttingDown) {
-        log('INFO', 'Will attempt reconnection in 10 seconds...');
-        setTimeout(() => {
-          if (!isShuttingDown && !isInitializing) {
-            initWhatsApp();
-          }
-        }, 10000);
+      // Don't reconnect for intentional logout or banned
+      const noReconnectReasons = ['LOGOUT', 'CONFLICT', 'BANNED'];
+      if (noReconnectReasons.includes(reason) || isShuttingDown) {
+        log('INFO', `Not auto-reconnecting: ${reason}`);
+        return;
       }
+      
+      // Exponential backoff: 5s, 10s, 20s, 40s, max 60s
+      const backoffSeconds = Math.min(5 * Math.pow(2, initRetries), 60);
+      log('INFO', `Will attempt reconnection in ${backoffSeconds} seconds (attempt ${initRetries + 1})...`);
+      
+      setTimeout(() => {
+        if (!isShuttingDown && !isInitializing) {
+          initWhatsApp();
+        }
+      }, backoffSeconds * 1000);
     });
 
     // Event: Remote session saved (WhatsApp Web multi-device)
     client.on('remote_session_saved', () => {
-      log('INFO', 'Remote session saved - persistence confirmed');
+      log('INFO', '✓ Remote session saved to MongoDB - will persist across restarts');
     });
 
     // Event: Loading screen - WhatsApp Web is loading
