@@ -327,7 +327,7 @@ function SettingsPage() {
                 <li>Open Telegram and search for <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@BotFather</a></li>
                 <li>Send <code className="bg-muted px-1 rounded">/newbot</code> and follow the prompts</li>
                 <li>Copy the bot token and paste it above</li>
-                <li>Click "Test" to verify the connection</li>
+                <li>Click Test to verify the connection</li>
                 <li>Open your new bot in Telegram and send <code className="bg-muted px-1 rounded">/start</code></li>
                 <li>Enable the toggle above and save settings</li>
               </ol>
