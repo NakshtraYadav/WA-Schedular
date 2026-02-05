@@ -302,6 +302,8 @@ const gracefulShutdown = async () => {
   
   client = null;
   isShuttingDown = false;
+  stopQrRefreshTimer();
+  lastQrTime = null;
   log('INFO', 'Graceful shutdown complete');
 };
 
