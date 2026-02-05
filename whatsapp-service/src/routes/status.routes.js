@@ -3,8 +3,9 @@
  */
 const express = require('express');
 const router = express.Router();
-const { getState, getClient, validateSessionStorage, checkExistingSession } = require('../services/whatsapp/client');
-const { getSessionInfo, cleanupOldBackups } = require('../services/session/manager');
+const { getState, getClient, validateSessionStorage, checkExistingSession, useMongoSession } = require('../services/whatsapp/client');
+const { getSessionInfo: getLocalSessionInfo, cleanupOldBackups } = require('../services/session/manager');
+const { getSessionInfo: getMongoSessionInfo, isConnected: isMongoConnected } = require('../services/session/mongoStore');
 const qrcode = require('qrcode');
 
 // GET /status
@@ -18,26 +19,55 @@ router.get('/status', (req, res) => {
     isInitializing: state.isInitializing,
     error: state.initError,
     clientInfo: state.clientInfo,
-    sessionPath: state.sessionPath
+    sessionPath: state.sessionPath,
+    sessionType: state.sessionType
   });
 });
 
 // GET /session-info - Detailed session persistence status
-router.get('/session-info', (req, res) => {
-  const sessionInfo = getSessionInfo();
-  const sessionStatus = checkExistingSession();
-  const storageValid = validateSessionStorage();
+router.get('/session-info', async (req, res) => {
+  const state = getState();
+  const usingMongo = useMongoSession();
+  
+  let sessionInfo;
+  let sessionStatus;
+  
+  if (usingMongo) {
+    // Get MongoDB session info
+    try {
+      sessionInfo = await getMongoSessionInfo('wa-scheduler');
+      sessionStatus = sessionInfo.exists ? 'valid' : 'none';
+    } catch (e) {
+      sessionInfo = { exists: false, error: e.message };
+      sessionStatus = 'error';
+    }
+  } else {
+    // Get filesystem session info
+    sessionInfo = getLocalSessionInfo();
+    sessionStatus = checkExistingSession();
+  }
   
   res.json({
     storage: {
-      valid: storageValid,
-      path: sessionInfo.path
+      type: usingMongo ? 'MongoDB (RemoteAuth)' : 'Filesystem (LocalAuth)',
+      mongoConnected: isMongoConnected(),
+      valid: usingMongo ? isMongoConnected() : validateSessionStorage()
     },
     session: {
       exists: sessionInfo.exists,
       status: sessionStatus,
-      created: sessionInfo.created,
-      modified: sessionInfo.modified,
+      entries: sessionInfo.entries || sessionInfo.fileCount || 0
+    },
+    persistence: {
+      willSurviveRestart: usingMongo ? isMongoConnected() : (validateSessionStorage() && sessionInfo.exists),
+      recommendation: !sessionInfo.exists 
+        ? 'Scan QR code to create persistent session' 
+        : sessionStatus === 'valid' 
+          ? `Session stored in ${usingMongo ? 'MongoDB' : 'filesystem'} - will persist` 
+          : 'Session may be corrupt, consider rescanning'
+    }
+  });
+});
       fileCount: sessionInfo.fileCount
     },
     persistence: {
