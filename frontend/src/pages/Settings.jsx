@@ -530,45 +530,6 @@ function SettingsPage() {
               </Button>
             </a>
           </div>
-
-          {/* Auto-Updater */}
-          <div className="p-4 rounded-lg bg-secondary/30 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium">Auto-Updater</h4>
-                <p className="text-sm text-muted-foreground">Automatically check for updates every 30 minutes</p>
-              </div>
-              <Badge variant={autoUpdaterStatus?.is_running ? "default" : "secondary"}>
-                {autoUpdaterStatus?.is_running ? (
-                  <><CheckCircle className="w-3 h-3 mr-1" /> Running</>
-                ) : (
-                  <><XCircle className="w-3 h-3 mr-1" /> Stopped</>
-                )}
-              </Badge>
-            </div>
-            
-            <div className="flex gap-2">
-              {autoUpdaterStatus?.is_running ? (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleAutoUpdaterControl('stop')}
-                >
-                  <Square className="w-4 h-4 mr-2" />
-                  Stop Auto-Updater
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleAutoUpdaterControl('start')}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Auto-Updater
-                </Button>
-              )}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
