@@ -54,25 +54,49 @@ const setState = (updates) => {
 
 /**
  * Validate session directory exists and is writable
+ * Falls back to local directory if preferred path fails
  */
 const validateSessionStorage = () => {
-  try {
-    // Ensure directory exists
-    if (!fs.existsSync(SESSION_PATH)) {
-      fs.mkdirSync(SESSION_PATH, { recursive: true, mode: 0o755 });
-      log('INFO', `Created session directory: ${SESSION_PATH}`);
-    }
+  const tryPath = (sessionPath) => {
+    try {
+      // Ensure directory exists
+      if (!fs.existsSync(sessionPath)) {
+        fs.mkdirSync(sessionPath, { recursive: true, mode: 0o755 });
+        log('INFO', `Created session directory: ${sessionPath}`);
+      }
 
-    // Verify writable
-    const testFile = path.join(SESSION_PATH, '.write-test');
-    fs.writeFileSync(testFile, 'test');
-    fs.unlinkSync(testFile);
-    
+      // Verify writable
+      const testFile = path.join(sessionPath, '.write-test');
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+      
+      return true;
+    } catch (error) {
+      log('WARN', `Cannot use path ${sessionPath}: ${error.message}`);
+      return false;
+    }
+  };
+
+  // Try preferred path first
+  if (tryPath(SESSION_PATH)) {
     log('INFO', `Session storage validated: ${SESSION_PATH}`);
     return true;
-  } catch (error) {
-    log('ERROR', `Session storage validation failed: ${error.message}`);
-    return false;
+  }
+
+  // Fallback: use local directory in whatsapp-service
+  const fallbackPath = path.resolve(__dirname, '..', '..', '..', 'session-data');
+  if (tryPath(fallbackPath)) {
+    log('INFO', `Using fallback session path: ${fallbackPath}`);
+    // Update SESSION_PATH for this session
+    Object.defineProperty(require('../../config/env'), 'SESSION_PATH', {
+      value: fallbackPath,
+      writable: false
+    });
+    return true;
+  }
+
+  log('ERROR', 'Session storage validation failed - no writable path found');
+  return false;
   }
 };
 
