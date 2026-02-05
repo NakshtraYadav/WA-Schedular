@@ -237,8 +237,8 @@ start_backend() {
     # WSL environment variables
     export WATCHFILES_FORCE_POLLING=true
     
-    # Start with detailed logging on error
-    nohup python3 -m uvicorn server:app \
+    # Start with detailed logging on error (using venv python)
+    nohup $PYTHON_CMD -m uvicorn server:app \
         --host 0.0.0.0 \
         --port 8001 \
         --reload \
