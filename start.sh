@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
 #  WA Scheduler - Start & Update (WSL Robust Version)
-#  v2.7.1 - Fixed Python virtual environment support
+#  v2.7.2 - Fixed Python virtual environment support
 # ============================================================================
 
 GREEN='\033[0;32m'
