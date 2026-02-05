@@ -77,6 +77,40 @@ async def generate_whatsapp_qr():
         return {"success": False, "error": str(e)}
 
 
+@router.get("/session/health")
+async def get_session_health():
+    """Get lightweight session health status"""
+    try:
+        http_client = await get_http_client()
+        response = await http_client.get(f"{WA_SERVICE_URL}/session/health", timeout=5.0)
+        return response.json()
+    except Exception as e:
+        return {"status": "error", "connected": False, "error": str(e)}
+
+
+@router.get("/session/observe")
+async def get_session_observability():
+    """Get full session observability data for dashboards"""
+    try:
+        http_client = await get_http_client()
+        response = await http_client.get(f"{WA_SERVICE_URL}/session/observe", timeout=5.0)
+        return response.json()
+    except Exception as e:
+        logger.error(f"Session observability error: {e}")
+        return {"error": str(e)}
+
+
+@router.get("/session/alerts")
+async def get_session_alerts():
+    """Get active session alerts"""
+    try:
+        http_client = await get_http_client()
+        response = await http_client.get(f"{WA_SERVICE_URL}/session/alerts", timeout=5.0)
+        return response.json()
+    except Exception as e:
+        return {"level": "error", "alerts": [{"code": "SERVICE_ERROR", "message": str(e)}]}
+
+
 @router.get("/test-browser")
 async def test_browser():
     """Test if browser can be launched"""
