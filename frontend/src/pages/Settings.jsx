@@ -31,7 +31,10 @@ function SettingsPage() {
     telegram_token: '',
     telegram_chat_id: '',
     telegram_enabled: false,
-    timezone: ''
+    timezone: '',
+    openai_api_key: '',
+    openai_model: 'gpt-4o-mini',
+    ai_enabled: false
   });
   const [timezoneInfo, setTimezoneInfo] = useState({
     system_timezone: '',
@@ -42,6 +45,7 @@ function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testingAI, setTestingAI] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [installingUpdate, setInstallingUpdate] = useState(false);
 
