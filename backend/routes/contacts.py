@@ -17,7 +17,7 @@ class PhoneList(BaseModel):
 
 @router.get("", response_model=List[Contact])
 async def get_contacts():
-    """Get all contacts"""
+    """Get all contacts sorted by name"""
     return await crud.get_all_contacts()
 
 
@@ -33,6 +33,42 @@ async def create_contact(data: ContactCreate, verify: bool = True):
                 detail=f"Phone number {data.phone} is not registered on WhatsApp"
             )
     return await crud.create_contact(data)
+
+
+# IMPORTANT: Static routes must come BEFORE dynamic routes like /{contact_id}
+@router.delete("/unverified")
+async def delete_unverified_contacts():
+    """Delete all contacts that are not verified on WhatsApp"""
+    try:
+        from core.database import get_database
+        database = await get_database()
+        result = await database.contacts.delete_many({"is_verified": False})
+        return {
+            "success": True,
+            "deleted_count": result.deleted_count,
+            "message": f"Removed {result.deleted_count} unverified contacts"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/bulk-delete")
+async def bulk_delete_contacts(contact_ids: List[str] = Body(...)):
+    """Delete multiple contacts by their IDs"""
+    if not contact_ids:
+        return {"success": False, "error": "No contact IDs provided"}
+    
+    try:
+        from core.database import get_database
+        database = await get_database()
+        result = await database.contacts.delete_many({"id": {"$in": contact_ids}})
+        return {
+            "success": True,
+            "deleted_count": result.deleted_count,
+            "message": f"Deleted {result.deleted_count} contacts"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 @router.put("/{contact_id}", response_model=Contact)
