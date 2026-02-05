@@ -134,7 +134,12 @@ function Contacts() {
           toast.warning(`${registered} on WhatsApp, ${notRegistered} not found`);
         }
       } else {
-        toast.error(res.data?.error || 'Verification failed - make sure WhatsApp is connected');
+        const errorMsg = res.data?.error || 'Verification failed';
+        if (errorMsg.toLowerCase().includes('not connected')) {
+          toast.error('WhatsApp is not connected. Go to Connect page and scan QR code first.');
+        } else {
+          toast.error(errorMsg);
+        }
       }
     } catch (error) {
       toast.dismiss(toastId);
