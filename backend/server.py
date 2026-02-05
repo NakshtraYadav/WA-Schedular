@@ -93,5 +93,10 @@ async def shutdown():
     logger.info("Shutting down...")
     await stop_telegram_bot()
     shutdown_scheduler()
+    
+    # Close shared HTTP client
+    from core.http_client import close_http_client
+    await close_http_client()
+    
     close_database()
     logger.info("Server shutdown complete")
