@@ -4,7 +4,7 @@
  */
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "./components/ui/toaster";
+import { Toaster } from "sonner";
 import { VersionProvider } from "./context";
 import { Layout } from "./components/layout";
 
@@ -34,7 +34,12 @@ function App() {
             <Route path="diagnostics" element={<Diagnostics />} />
           </Route>
         </Routes>
-        <Toaster />
+        <Toaster 
+          position="top-right"
+          richColors
+          closeButton
+          duration={4000}
+        />
       </BrowserRouter>
     </VersionProvider>
   );
