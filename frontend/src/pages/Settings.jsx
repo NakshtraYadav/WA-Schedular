@@ -121,22 +121,34 @@ function SettingsPage() {
       const res = await installUpdate();
       
       if (res.data.success) {
-        // Step 2: Show success
-        toast.success(
-          `Updated to v${res.data.new_version || 'latest'}! ${res.data.files_changed || 0} files changed.`,
-          { id: 'update', duration: 2000 }
-        );
+        const { restart_type, restart_message, full_restart_required } = res.data;
         
-        // Step 3: Auto-refresh if frontend changed
-        if (res.data.refresh_required !== false) {
-          toast.loading('Refreshing page...', { id: 'update' });
+        // Step 2: Show appropriate message based on restart type
+        if (full_restart_required) {
+          toast.success(
+            `Updated to v${res.data.new_version || 'latest'}! ${res.data.files_changed || 0} files changed.`,
+            { id: 'update', duration: 3000 }
+          );
+          toast.warning(restart_message, { duration: 10000 });
+        } else if (restart_type === 'frontend_refresh' || restart_type === 'both') {
+          toast.success(
+            `Updated to v${res.data.new_version || 'latest'}! Refreshing...`,
+            { id: 'update', duration: 2000 }
+          );
           setTimeout(() => {
-            // Hard refresh to bypass cache
             window.location.reload(true);
           }, 1500);
+        } else if (restart_type === 'backend_only') {
+          toast.success(
+            `Updated to v${res.data.new_version || 'latest'}! Backend auto-restarting.`,
+            { id: 'update' }
+          );
+          fetchUpdateInfo();
         } else {
-          // Just backend changed, no refresh needed
-          toast.success('Backend updated! No refresh needed.', { id: 'update' });
+          toast.success(
+            `Updated to v${res.data.new_version || 'latest'}! No restart needed.`,
+            { id: 'update' }
+          );
           fetchUpdateInfo();
         }
       } else {
