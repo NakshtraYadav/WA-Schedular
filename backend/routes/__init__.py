@@ -10,6 +10,7 @@ from .updates import router as updates_router
 from .diagnostics import router as diagnostics_router
 from .dashboard import router as dashboard_router
 from .telegram import router as telegram_router
+from .system import router as system_router
 
 # Create the main API router
 api_router = APIRouter(prefix="/api")
@@ -26,5 +27,6 @@ api_router.include_router(updates_router, tags=["Updates"])
 api_router.include_router(diagnostics_router, tags=["Diagnostics"])
 api_router.include_router(dashboard_router, tags=["Dashboard"])
 api_router.include_router(telegram_router, tags=["Telegram"])
+api_router.include_router(system_router, tags=["System"])
 
 __all__ = ['api_router']
