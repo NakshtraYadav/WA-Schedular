@@ -254,6 +254,55 @@ function Contacts() {
         </div>
       </div>
 
+      {/* Verification Summary - Show only after verification */}
+      {Object.keys(verificationResults).length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-card border-border">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {contacts.filter(c => getVerificationStatus(c.phone) === 'verified').length}
+                  </p>
+                  <p className="text-sm text-muted-foreground">On WhatsApp</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                  <XCircle className="w-5 h-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {contacts.filter(c => getVerificationStatus(c.phone) === 'not_found').length}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Not on WhatsApp</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{contacts.length}</p>
+                  <p className="text-sm text-muted-foreground">Total Contacts</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="font-heading text-lg flex items-center gap-2">
