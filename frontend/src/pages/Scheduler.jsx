@@ -165,13 +165,21 @@ function Scheduler() {
         }
       }
 
-      await createSchedule(data);
-      toast.success('Schedule created successfully');
+      if (editingSchedule) {
+        // Update existing schedule
+        await updateSchedule(editingSchedule.id, data);
+        toast.success('Schedule updated successfully');
+      } else {
+        // Create new schedule
+        await createSchedule(data);
+        toast.success('Schedule created successfully');
+      }
+      
       setDialogOpen(false);
       resetForm();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create schedule');
+      toast.error(error.response?.data?.detail || 'Failed to save schedule');
     }
   };
 
