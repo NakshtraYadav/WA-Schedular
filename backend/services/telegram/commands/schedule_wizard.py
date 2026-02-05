@@ -208,7 +208,7 @@ async def _handle_confirm(token: str, chat_id: str, text: str, state: dict, data
                     id=schedule_id,
                     replace_existing=True
                 )
-            except Exception as e:
+            except Exception:
                 pass
         else:
             time_str = state["data"].get("time", "09:00")
@@ -231,7 +231,7 @@ async def _handle_confirm(token: str, chat_id: str, text: str, state: dict, data
                     id=schedule_id,
                     replace_existing=True
                 )
-            except Exception as e:
+            except Exception:
                 pass
         
         await database.schedules.insert_one(schedule_data)
