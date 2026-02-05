@@ -191,6 +191,7 @@ function Contacts() {
       if (res.data?.success) {
         toast.success(res.data.message || `Removed ${res.data.deleted_count} contacts`);
         await fetchContacts();
+        setSelectedIds(new Set()); // Clear selection
       } else {
         toast.error(res.data?.error || 'Failed to remove contacts');
       }
@@ -198,6 +199,52 @@ function Contacts() {
       toast.error('Failed to remove unverified contacts');
     } finally {
       setRemovingUnverified(false);
+    }
+  };
+
+  // Multi-select handlers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === contacts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(contacts.map(c => c.id)));
+    }
+  };
+
+  const toggleSelectContact = (contactId) => {
+    const newSelection = new Set(selectedIds);
+    if (newSelection.has(contactId)) {
+      newSelection.delete(contactId);
+    } else {
+      newSelection.add(contactId);
+    }
+    setSelectedIds(newSelection);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) {
+      toast.info('No contacts selected');
+      return;
+    }
+    
+    if (!window.confirm(`Delete ${selectedIds.size} selected contacts? This cannot be undone.`)) {
+      return;
+    }
+    
+    setDeletingSelected(true);
+    try {
+      const res = await bulkDeleteContacts(Array.from(selectedIds));
+      if (res.data?.success) {
+        toast.success(`Deleted ${res.data.deleted_count} contacts`);
+        setSelectedIds(new Set());
+        await fetchContacts();
+      } else {
+        toast.error(res.data?.error || 'Failed to delete contacts');
+      }
+    } catch (error) {
+      toast.error('Failed to delete selected contacts');
+    } finally {
+      setDeletingSelected(false);
     }
   };
 
