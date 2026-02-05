@@ -221,6 +221,16 @@ function Contacts() {
         <div className="flex gap-3">
           <Button 
             variant="outline"
+            onClick={handleVerifyAll}
+            disabled={verifying || !waConnected || contacts.length === 0}
+            data-testid="verify-contacts-btn"
+            title={!waConnected ? "Connect WhatsApp first" : "Check which contacts are on WhatsApp"}
+          >
+            {verifying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+            Verify All
+          </Button>
+          <Button 
+            variant="outline"
             onClick={handleSyncContacts}
             disabled={syncing || !waConnected}
             data-testid="sync-contacts-btn"
