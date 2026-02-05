@@ -177,11 +177,11 @@ async def get_log_summary():
             {"sent_at": {"$gte": day_ago.isoformat()}},
             {"_id": 0, "status": 1}
         ).to_list(1000)
-    except:
+    except Exception:
         recent_logs = []
     
-    sent = len([l for l in recent_logs if l.get("status") == "sent"])
-    failed = len([l for l in recent_logs if l.get("status") == "failed"])
+    sent = len([log for log in recent_logs if log.get("status") == "sent"])
+    failed = len([log for log in recent_logs if log.get("status") == "failed"])
     
     # Get scheduler info
     scheduler_jobs = scheduler.get_jobs()
