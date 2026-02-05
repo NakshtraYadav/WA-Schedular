@@ -75,9 +75,11 @@ async def verify_bulk_numbers(phones: List[str] = Body(...)):
             response = await client.post(
                 f"{WA_SERVICE_URL}/verify",
                 json={"phones": phones},
-                timeout=60.0  # Longer timeout for bulk
+                timeout=180.0  # 3 minutes for bulk verification (~1-2s per number)
             )
             return response.json()
+    except httpx.TimeoutException:
+        return {"success": False, "error": f"Verification timed out. Try with fewer contacts (you sent {len(phones)})."}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
