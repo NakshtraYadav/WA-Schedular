@@ -109,7 +109,8 @@ function Contacts() {
     }
 
     setVerifying(true);
-    const toastId = toast.loading(`Verifying ${contacts.length} contacts...`);
+    const estimatedTime = Math.ceil(contacts.length / 5) * 2; // ~2 seconds per batch of 5
+    const toastId = toast.loading(`Verifying ${contacts.length} contacts... (est. ${estimatedTime}s)`);
 
     try {
       const phones = contacts.map(c => c.phone);
@@ -137,13 +138,18 @@ function Contacts() {
         const errorMsg = res.data?.error || 'Verification failed';
         if (errorMsg.toLowerCase().includes('not connected')) {
           toast.error('WhatsApp is not connected. Go to Connect page and scan QR code first.');
+        } else if (errorMsg.toLowerCase().includes('timeout')) {
+          toast.error('Verification timed out. Try with fewer contacts or check WhatsApp connection.');
         } else {
           toast.error(errorMsg);
         }
       }
     } catch (error) {
       toast.dismiss(toastId);
-      const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message || 'Failed to verify contacts';
+      let errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message || 'Failed to verify contacts';
+      if (error.code === 'ECONNABORTED' || errorMsg.includes('timeout')) {
+        errorMsg = `Verification timed out after 3 minutes. You have ${contacts.length} contacts - try verifying fewer at a time.`;
+      }
       toast.error(errorMsg);
     } finally {
       setVerifying(false);
