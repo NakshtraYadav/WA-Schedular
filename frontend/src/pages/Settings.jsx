@@ -151,20 +151,6 @@ function SettingsPage() {
     }
   };
 
-  const handleAutoUpdaterControl = async (action) => {
-    try {
-      const res = await controlAutoUpdater(action);
-      if (res.data.success) {
-        toast.success(res.data.output || `Auto-updater ${action}ed`);
-        fetchUpdateInfo();
-      } else {
-        toast.error(res.data.error || 'Failed');
-      }
-    } catch (error) {
-      toast.error(`Failed to ${action} auto-updater`);
-    }
-  };
-
   const handleSave = async () => {
     setSaving(true);
     try {
