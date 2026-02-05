@@ -1,10 +1,23 @@
 {
-  "version": "2.6.4",
+  "version": "2.7.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 33,
-  "release_date": "2026-02-05",
+  "build": 34,
+  "release_date": "2026-01-15",
   "changelog": [
+    {
+      "version": "2.7.0",
+      "date": "2026-01-15",
+      "changes": [
+        "NEW: Manual Run button (▶) for scheduled messages - trigger any schedule instantly",
+        "FIXED: Scheduled messages not sending - async execution wrapper for APScheduler",
+        "FIXED: WhatsApp session terminates after stop/start - graceful shutdown with SIGTERM",
+        "IMPROVED: stop.sh v2.2.0 - 15 second grace period before force kill for session save",
+        "IMPROVED: WhatsApp auto-initializes from cached session on startup",
+        "IMPROVED: start.sh shows WhatsApp session restoration status",
+        "ADDED: run_scheduled_message() wrapper using asyncio.create_task()"
+      ]
+    },
     {
       "version": "2.6.4",
       "date": "2026-02-05",
