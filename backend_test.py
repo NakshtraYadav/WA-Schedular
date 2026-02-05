@@ -213,6 +213,8 @@ class WhatsAppSchedulerTester:
             "whatsapp": self.test_whatsapp_endpoints(),
             "data": self.test_data_endpoints(),
             "updates": self.test_update_endpoints(),
+            "update_install": self.test_update_install_endpoint(),
+            "diagnostics": self.test_diagnostics_endpoints(),
         }
 
         # Print summary
@@ -222,7 +224,7 @@ class WhatsAppSchedulerTester:
         
         for category, passed in test_results.items():
             status = "✅ PASS" if passed else "❌ FAIL"
-            print(f"{category.upper():12} {status}")
+            print(f"{category.upper():15} {status}")
         
         print(f"\nOverall: {self.tests_passed}/{self.tests_run} tests passed")
         
