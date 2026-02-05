@@ -507,11 +507,14 @@ const initWhatsApp = async () => {
     client.on('authenticated', () => {
       log('INFO', '✓ Session authenticated successfully!');
       setState({ isAuthenticated: true, qrCodeData: null });
+      // Observability: auth method was QR if we had QR count, otherwise restore
+      updateObservabilityState('connected', { authMethod: qrCount > 0 ? 'qr_scan' : 'session_restore' });
     });
 
     // Event: Remote session saved (MongoDB)
     client.on('remote_session_saved', () => {
       log('INFO', '✓ Session saved to MongoDB - will persist across restarts');
+      recordCredentialWrite(); // Track credential freshness
     });
 
     // Event: Authentication failure
@@ -523,6 +526,10 @@ const initWhatsApp = async () => {
         initError: 'Authentication failed: ' + msg,
         isInitializing: false
       });
+      
+      // Observability: mark as corrupt
+      recordValidation(false);
+      updateObservabilityState('qr_required');
       
       // Clear corrupt session
       if (useMongoSession) {
@@ -545,12 +552,18 @@ const initWhatsApp = async () => {
         clientInfo: null
       });
       
+      // Observability: track disconnection
+      updateObservabilityState('disconnected');
+      
       // Don't reconnect for intentional logout or banned
       const noReconnectReasons = ['LOGOUT', 'CONFLICT', 'BANNED'];
       if (noReconnectReasons.includes(reason) || isShuttingDown) {
         log('INFO', `Not auto-reconnecting: ${reason}`);
         return;
       }
+      
+      // Observability: entering reconnect state
+      updateObservabilityState('reconnecting');
       
       // Exponential backoff: 5s, 10s, 20s, 40s, max 60s
       const backoffSeconds = Math.min(5 * Math.pow(2, initRetries), 60);
