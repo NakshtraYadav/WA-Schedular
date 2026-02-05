@@ -1,10 +1,22 @@
 {
-  "version": "2.5.4",
+  "version": "2.5.5",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 27,
+  "build": 28,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.5.5",
+      "date": "2026-02-05",
+      "changes": [
+        "NEW: On-demand QR code generation - click 'Generate QR Code' when ready to scan",
+        "NEW: QR placeholder UI with visual prompt to generate",
+        "IMPROVED: No more auto-initialization - QR is only generated when user requests",
+        "IMPROVED: QR is always fresh when displayed since it's generated on-demand",
+        "FIXED: First QR invalid issue completely resolved - no stale QR codes",
+        "ADDED: /generate-qr endpoint for manual QR generation trigger"
+      ]
+    },
     {
       "version": "2.5.4",
       "date": "2026-02-05",
