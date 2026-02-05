@@ -37,21 +37,24 @@ async def get_diagnostics():
         database = await get_database()
         await database.command('ping')
         diagnostics["services"]["mongodb"]["status"] = "running"
-    except:
+    except Exception as e:
         diagnostics["services"]["mongodb"]["status"] = "error"
+        diagnostics["services"]["mongodb"]["error"] = str(e)
     
     # Check WhatsApp
     try:
-        async with httpx.AsyncClient() as http_client:
-            response = await http_client.get(f"{WA_SERVICE_URL}/status", timeout=3.0)
-            if response.status_code == 200:
-                wa_status = response.json()
-                diagnostics["services"]["whatsapp"]["status"] = "running"
-                diagnostics["services"]["whatsapp"]["details"] = wa_status
-            else:
-                diagnostics["services"]["whatsapp"]["status"] = "error"
-    except:
+        from core.http_client import get_http_client
+        http_client = await get_http_client()
+        response = await http_client.get(f"{WA_SERVICE_URL}/status", timeout=3.0)
+        if response.status_code == 200:
+            wa_status = response.json()
+            diagnostics["services"]["whatsapp"]["status"] = "running"
+            diagnostics["services"]["whatsapp"]["details"] = wa_status
+        else:
+            diagnostics["services"]["whatsapp"]["status"] = "error"
+    except Exception as e:
         diagnostics["services"]["whatsapp"]["status"] = "stopped"
+        diagnostics["services"]["whatsapp"]["error"] = str(e)
     
     return diagnostics
 
