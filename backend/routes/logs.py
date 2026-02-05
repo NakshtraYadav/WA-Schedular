@@ -59,7 +59,7 @@ async def get_logs(limit: int = 100):
     database = await get_database()
     logs = await database.logs.find({}, {"_id": 0}).sort("sent_at", -1).to_list(limit)
     for log_entry in logs:
-        if isinstance(l.get('sent_at'), str):
+        if isinstance(log_entry.get('sent_at'), str):
             log_entry['sent_at'] = datetime.fromisoformat(log_entry['sent_at'])
     return logs
 
