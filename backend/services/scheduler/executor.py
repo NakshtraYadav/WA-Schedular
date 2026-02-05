@@ -8,8 +8,8 @@ from models.message_log import MessageLog
 
 
 async def execute_scheduled_message(schedule_id: str):
-    """Execute a scheduled message"""
-    logger.info(f"🔔 EXECUTING SCHEDULE: {schedule_id}")
+    """Execute a scheduled message - called by APScheduler"""
+    logger.info(f"⏰ EXECUTING scheduled message: {schedule_id}")
     try:
         database = await get_database()
         schedule = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
