@@ -36,9 +36,23 @@ function App() {
         </Routes>
         <Toaster 
           position="top-right"
-          richColors
           closeButton
           duration={4000}
+          theme="dark"
+          toastOptions={{
+            style: {
+              background: 'hsl(240 6% 10%)',
+              border: '1px solid hsl(240 4% 16%)',
+              color: 'hsl(0 0% 98%)',
+            },
+            classNames: {
+              toast: 'group',
+              success: 'bg-emerald-950 border-emerald-800 text-emerald-100',
+              error: 'bg-red-950 border-red-800 text-red-100',
+              warning: 'bg-amber-950 border-amber-800 text-amber-100',
+              info: 'bg-zinc-900 border-zinc-700 text-zinc-100',
+            },
+          }}
         />
       </BrowserRouter>
     </VersionProvider>
