@@ -3,10 +3,52 @@
  */
 const express = require('express');
 const router = express.Router();
-const { getClient, initWhatsApp, setState, gracefulShutdown, useMongoSession } = require('../services/whatsapp/client');
+const { getClient, getState, initWhatsApp, setState, gracefulShutdown, useMongoSession } = require('../services/whatsapp/client');
 const { clearSession: clearLocalSession, backupSession } = require('../services/session/manager');
 const { deleteSession: deleteMongoSession } = require('../services/session/mongoStore');
 const { log } = require('../utils/logger');
+
+// POST /generate-qr - On-demand QR code generation
+router.post('/generate-qr', async (req, res) => {
+  const state = getState();
+  
+  // If already ready, no need to generate QR
+  if (state.isReady) {
+    return res.json({ 
+      success: true, 
+      message: 'Already connected to WhatsApp',
+      isReady: true 
+    });
+  }
+  
+  // If already initializing, just wait
+  if (state.isInitializing) {
+    return res.json({ 
+      success: true, 
+      message: 'WhatsApp is already initializing, please wait...',
+      isInitializing: true 
+    });
+  }
+  
+  // If we have a QR code already, return it
+  if (state.qrCodeData) {
+    return res.json({ 
+      success: true, 
+      message: 'QR code already available',
+      hasQrCode: true 
+    });
+  }
+  
+  // Start initialization to generate QR
+  log('INFO', 'QR code generation requested by user');
+  initWhatsApp();
+  
+  res.json({ 
+    success: true, 
+    message: 'Generating QR code... Please wait 10-30 seconds.',
+    isInitializing: true
+  });
+});
 
 // POST /logout
 router.post('/logout', async (req, res) => {
