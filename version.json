@@ -1,10 +1,23 @@
 {
-  "version": "3.2.1",
+  "version": "3.2.2",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 42,
+  "build": 43,
   "release_date": "2026-02-06",
   "changelog": [
+    {
+      "version": "3.2.2",
+      "date": "2026-02-06",
+      "changes": [
+        "FIXED: npm not found after Node.js installation in setup.sh",
+        "FIXED: PATH not refreshed after NodeSource installation",
+        "FIXED: Removed conflicting separate npm installation",
+        "IMPROVED: Better npm detection with multiple path checks",
+        "IMPROVED: NVM fallback with proper PATH configuration",
+        "IMPROVED: More helpful error messages with manual install instructions",
+        "IMPROVED: Hash table refresh after installations"
+      ]
+    },
     {
       "version": "3.2.1",
       "date": "2026-02-06",
