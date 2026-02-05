@@ -50,16 +50,15 @@ function Contacts() {
   const [selectedContact, setSelectedContact] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', notes: '' });
   const [sendMessage, setSendMessage] = useState('');
-  const [waConnected, setWaConnected] = useState(false);
+  
+  // Use shared WhatsApp status hook for consistency with sidebar
+  const { status: waStatus } = useWhatsAppStatus();
+  const waConnected = waStatus?.isReady || false;
 
   const fetchContacts = useCallback(async () => {
     try {
-      const [contactsRes, statusRes] = await Promise.all([
-        getContacts(),
-        getWhatsAppStatus()
-      ]);
+      const contactsRes = await getContacts();
       setContacts(contactsRes.data);
-      setWaConnected(statusRes.data?.isReady || false);
     } catch (error) {
       toast.error('Failed to fetch contacts');
     } finally {
