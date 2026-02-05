@@ -96,7 +96,7 @@ const verifyNumber = async (phoneNumber) => {
 };
 
 /**
- * Verify multiple phone numbers at once
+ * Verify multiple phone numbers at once (optimized with parallel batches)
  */
 const verifyNumbers = async (phoneNumbers) => {
   const { isReady } = getState();
@@ -112,28 +112,39 @@ const verifyNumbers = async (phoneNumbers) => {
 
   try {
     const results = [];
+    const BATCH_SIZE = 5; // Process 5 numbers in parallel
     
-    for (const phone of phoneNumbers) {
+    // Helper to verify a single number
+    const verifySingleNumber = async (phone) => {
       const cleanNumber = phone.replace(/[\s\-\+]/g, '');
       try {
         const numberId = await client.getNumberId(cleanNumber);
-        results.push({
+        return {
           phone: phone,
           cleanNumber: cleanNumber,
           isRegistered: !!numberId,
           whatsappId: numberId ? numberId._serialized : null
-        });
+        };
       } catch (e) {
-        results.push({
+        return {
           phone: phone,
           cleanNumber: cleanNumber,
           isRegistered: false,
           error: e.message
-        });
+        };
       }
+    };
+
+    // Process in batches of BATCH_SIZE
+    for (let i = 0; i < phoneNumbers.length; i += BATCH_SIZE) {
+      const batch = phoneNumbers.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(batch.map(verifySingleNumber));
+      results.push(...batchResults);
       
-      // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Small delay between batches to avoid rate limiting
+      if (i + BATCH_SIZE < phoneNumbers.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
 
     const registered = results.filter(r => r.isRegistered).length;
