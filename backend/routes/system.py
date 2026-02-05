@@ -203,7 +203,7 @@ async def perform_update():
             try:
                 version_data = json.loads(version_file.read_text())
                 new_version = version_data.get("version", "unknown")
-            except:
+            except Exception:
                 pass
         
         # Complete
