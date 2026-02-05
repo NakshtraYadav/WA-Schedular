@@ -58,9 +58,9 @@ async def get_logs(limit: int = 100):
     """Get message logs"""
     database = await get_database()
     logs = await database.logs.find({}, {"_id": 0}).sort("sent_at", -1).to_list(limit)
-    for l in logs:
+    for log_entry in logs:
         if isinstance(l.get('sent_at'), str):
-            l['sent_at'] = datetime.fromisoformat(l['sent_at'])
+            log_entry['sent_at'] = datetime.fromisoformat(log_entry['sent_at'])
     return logs
 
 
@@ -196,7 +196,7 @@ async def get_log_summary():
         log_path = find_log_file(paths)
         if log_path:
             lines = read_log_file(log_path, 100)
-            error_count += len([l for l in lines if "error" in l.lower()])
+            error_count += len([l for line in lines if "error" in line.lower()])
     
     return {
         "timestamp": now.isoformat(),
