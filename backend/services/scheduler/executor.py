@@ -34,9 +34,9 @@ async def execute_scheduled_message(schedule_id: str):
         status = "sent" if result.get('success') else "failed"
         
         if result.get('success'):
-            logger.info(f"✅ Message sent successfully: {schedule_id} -> {schedule['contact_name']}")
+            logger.info(f"✅ Message sent successfully: {schedule_id} -> {contact_name}")
         else:
-            logger.error(f"❌ Message failed: {schedule_id} -> {schedule['contact_name']}: {result.get('error')}")
+            logger.error(f"❌ Message failed: {schedule_id} -> {contact_name}: {result.get('error')}")
         
         # Log the message
         log = MessageLog(
