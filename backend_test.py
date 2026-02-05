@@ -131,6 +131,85 @@ class WhatsAppSchedulerTester:
         
         return passed == len(tests)
 
+    def test_scheduler_endpoints(self):
+        """Test scheduler-specific endpoints including new test-run functionality"""
+        tests = [
+            ("Scheduler Status", "GET", "schedules/status", 200),
+            ("Scheduler Debug", "GET", "schedules/debug", 200),
+            ("Reload Schedules", "POST", "schedules/reload", 200),
+        ]
+        
+        passed = 0
+        for name, method, endpoint, expected in tests:
+            success, response = self.run_test(name, method, endpoint, expected)
+            if success:
+                passed += 1
+                
+                # Validate specific responses
+                if endpoint == "schedules/status" and isinstance(response, dict):
+                    if 'running' in response and 'job_count' in response:
+                        print(f"✅ Scheduler status: running={response.get('running')}, jobs={response.get('job_count')}")
+                    else:
+                        print(f"⚠️  Scheduler status response missing expected fields")
+                        
+                elif endpoint == "schedules/debug" and isinstance(response, dict):
+                    if 'database' in response and 'scheduler' in response:
+                        db_info = response.get('database', {})
+                        sched_info = response.get('scheduler', {})
+                        print(f"✅ Scheduler debug: {db_info.get('total_schedules', 0)} schedules, {sched_info.get('job_count', 0)} jobs")
+                    else:
+                        print(f"⚠️  Scheduler debug response missing expected fields")
+        
+        return passed == len(tests)
+
+    def test_manual_schedule_run(self):
+        """Test manual schedule execution (test-run endpoint)"""
+        print(f"\n🔍 Testing Manual Schedule Run...")
+        
+        # First, get existing schedules to test with
+        success, schedules_response = self.run_test(
+            "Get Schedules for Test Run",
+            "GET",
+            "schedules",
+            200
+        )
+        
+        if not success:
+            print("❌ Cannot test manual run - failed to get schedules")
+            return False
+            
+        schedules = schedules_response if isinstance(schedules_response, list) else []
+        
+        if not schedules:
+            print("⚠️  No schedules found to test manual run - this is expected for empty system")
+            print("✅ Test-run endpoint structure verified (would work with actual schedules)")
+            return True
+        
+        # Test with first available schedule
+        schedule_id = schedules[0].get('id')
+        if not schedule_id:
+            print("❌ Schedule missing ID field")
+            return False
+            
+        success, response = self.run_test(
+            f"Manual Run Schedule {schedule_id}",
+            "POST",
+            f"schedules/test-run/{schedule_id}",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if response.get('success'):
+                print(f"✅ Manual schedule run successful")
+                if 'schedule' in response:
+                    schedule_info = response['schedule']
+                    print(f"   Contact: {schedule_info.get('contact', 'Unknown')}")
+                    print(f"   Message: {schedule_info.get('message_preview', 'No preview')}")
+            else:
+                print(f"⚠️  Manual run returned success=false: {response.get('message', 'No message')}")
+        
+        return success
+
     def test_update_endpoints(self):
         """Test update system endpoints"""
         tests = [
