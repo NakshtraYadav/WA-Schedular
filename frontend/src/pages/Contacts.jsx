@@ -308,7 +308,7 @@ function Contacts() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
-                    {contacts.filter(c => getVerificationStatus(c.phone) === 'verified').length}
+                    {contacts.filter(c => getVerificationStatus(c) === 'verified').length}
                   </p>
                   <p className="text-sm text-muted-foreground">On WhatsApp</p>
                 </div>
