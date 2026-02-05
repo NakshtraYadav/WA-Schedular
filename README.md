@@ -4,7 +4,7 @@
 
 **Schedule and automate your WhatsApp messages**
 
-[![Version](https://img.shields.io/badge/Version-2.1.4-brightgreen)](https://github.com/NakshtraYadav/WA-Schedular/releases)
+[![Version](https://img.shields.io/badge/Version-2.2.0-brightgreen)](https://github.com/NakshtraYadav/WA-Schedular/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://python.org/)
@@ -29,6 +29,7 @@
 | 🔄 **One-Click Updates** | Update from UI in ~3 seconds |
 | 🔧 **Diagnostics** | Monitor service health |
 | ♻️ **Hot Reload** | Code changes apply instantly |
+| 💾 **Session Persistence** | WhatsApp stays connected across restarts |
 
 ---
 
@@ -48,8 +49,11 @@
 git clone https://github.com/NakshtraYadav/WA-Schedular.git
 cd WA-Schedular
 
-# Run setup (installs all dependencies)
-chmod +x start.sh
+# Full system setup (installs Node, Python, Chromium, MongoDB)
+chmod +x *.sh
+./setup.sh
+
+# OR quick setup (dependencies only, if system tools already installed)
 ./start.sh setup
 
 # Start all services
@@ -62,6 +66,8 @@ chmod +x start.sh
 |---------|-----|
 | **Dashboard** | http://localhost:3000 |
 | **Connect WhatsApp** | http://localhost:3000/connect |
+| **Settings** | http://localhost:3000/settings |
+| **Diagnostics** | http://localhost:3000/diagnostics |
 | **Backend API** | http://localhost:8001/api |
 
 ### Connect WhatsApp
@@ -69,27 +75,69 @@ chmod +x start.sh
 1. Open http://localhost:3000/connect
 2. Scan the QR code with WhatsApp on your phone
 3. You're connected! 🎉
+4. Session persists across restarts (no rescan needed)
 
 ---
 
 ## 📋 Commands
 
-All commands use a single script: `./start.sh`
+### Main Script: `./start.sh`
 
-| Command | Description |
-|---------|-------------|
-| `./start.sh` | Start all services |
-| `./start.sh setup` | Install all dependencies (first time) |
-| `./start.sh stop` | Stop all services |
-| `./start.sh restart` | Full restart |
-| `./start.sh update` | Pull latest from GitHub |
-| `./start.sh status` | Check service status |
-| `./start.sh logs` | View all logs |
-| `./start.sh logs backend` | View backend logs |
-| `./start.sh logs frontend` | View frontend logs |
-| `./start.sh diagnose` | Debug startup issues |
-| `./start.sh restart-frontend` | Restart frontend only |
-| `./start.sh restart-backend` | Restart backend only |
+This is the **primary control script** for everything:
+
+```bash
+./start.sh [command]
+```
+
+| Command | Shortcut | Description |
+|---------|----------|-------------|
+| `./start.sh` | | Start all services |
+| `./start.sh setup` | `install` | Install dependencies (first time) |
+| `./start.sh stop` | | Stop all services |
+| `./start.sh restart` | `r` | Full restart |
+| `./start.sh restart-frontend` | `rf` | Restart frontend only |
+| `./start.sh restart-backend` | `rb` | Restart backend only |
+| `./start.sh update` | `u`, `pull` | Pull latest from GitHub |
+| `./start.sh status` | `s` | Check service status |
+| `./start.sh logs` | `l` | View all logs |
+| `./start.sh logs backend` | `l b` | View backend logs only |
+| `./start.sh logs frontend` | `l f` | View frontend logs only |
+| `./start.sh logs whatsapp` | `l w` | View WhatsApp logs only |
+| `./start.sh diagnose` | `d`, `diag` | Debug startup issues |
+
+### Additional Scripts (Optional)
+
+These scripts provide extra functionality or interactive modes:
+
+| Script | Purpose | When to Use |
+|--------|---------|-------------|
+| `./setup.sh` | Full system setup | Fresh Ubuntu/WSL install (installs Node, Python, Chromium, MongoDB) |
+| `./stop.sh` | Forceful stop | When `./start.sh stop` doesn't fully stop services |
+| `./status.sh` | Detailed status | More detailed than `./start.sh status` (includes WhatsApp details) |
+| `./logs.sh` | Interactive log viewer | Browse logs with menu selection |
+| `./fix-whatsapp.sh` | Reset WhatsApp session | When WhatsApp won't connect (clears session, requires new QR scan) |
+
+### Quick Reference
+
+```bash
+# Daily usage
+./start.sh              # Start everything
+./start.sh stop         # Stop everything
+./start.sh status       # Check if running
+
+# Updates
+./start.sh update       # Pull latest code from GitHub
+
+# Troubleshooting
+./start.sh diagnose     # System diagnostics
+./start.sh logs         # View recent logs
+./start.sh restart      # Full restart
+
+# First time setup
+./setup.sh              # Full system setup (recommended)
+# OR
+./start.sh setup        # Just install dependencies
+```
 
 ---
 
@@ -158,52 +206,56 @@ Control your scheduler remotely via Telegram!
                         └─────────────────┘
 ```
 
+### Session Persistence (v2.2.0+)
+
+WhatsApp sessions are now stored persistently:
+- **Location:** `/app/data/whatsapp-sessions/`
+- **Survives:** Server restart, system reboot, days offline
+- **No more QR rescans** after initial connection
+
 ---
 
-## 📁 Project Structure (v2.0+)
-
-The codebase is fully modularized for maintainability:
+## 📁 Project Structure
 
 ```
 WA-Schedular/
 ├── backend/                    # FastAPI Python backend
-│   ├── server.py               # Entry point (~80 lines)
+│   ├── server.py               # Entry point
 │   ├── venv/                   # Python virtual environment
-│   ├── core/                   # Config, database, scheduler, logging
+│   ├── core/                   # Config, database, scheduler
 │   ├── models/                 # Pydantic models
-│   ├── routes/                 # API endpoints (13 modules)
-│   ├── services/               # Business logic
-│   │   ├── whatsapp/           # WhatsApp HTTP client
-│   │   ├── telegram/           # Telegram bot + commands
-│   │   ├── scheduler/          # Job execution
-│   │   ├── contacts/           # Contact CRUD
-│   │   ├── templates/          # Template CRUD
-│   │   └── updates/            # Update system
-│   ├── utils/                  # Helpers
-│   └── requirements.txt
+│   ├── routes/                 # API endpoints
+│   └── services/               # Business logic
+│       ├── whatsapp/           # WhatsApp HTTP client
+│       ├── telegram/           # Telegram bot
+│       ├── scheduler/          # Job execution
+│       └── updates/            # Update system
 │
 ├── frontend/                   # React frontend
-│   ├── src/
-│   │   ├── App.js              # Entry point (~45 lines)
-│   │   ├── api/                # API layer (11 modules)
-│   │   ├── components/
-│   │   │   ├── layout/         # Sidebar, Layout
-│   │   │   ├── shared/         # Reusable components
-│   │   │   └── ui/             # shadcn components
-│   │   ├── context/            # React contexts
-│   │   ├── hooks/              # Custom hooks
-│   │   └── pages/              # Page components
-│   └── package.json
+│   └── src/
+│       ├── api/                # API layer
+│       ├── components/         # UI components
+│       ├── context/            # React contexts
+│       ├── hooks/              # Custom hooks
+│       └── pages/              # Page components
 │
 ├── whatsapp-service/           # WhatsApp Web automation
-│   ├── index.js                # Entry point
 │   └── src/
 │       ├── routes/             # API routes
-│       ├── services/           # WhatsApp client
-│       └── utils/              # Helpers
+│       └── services/           # WhatsApp client
+│
+├── data/                       # Persistent data
+│   └── whatsapp-sessions/      # WhatsApp session storage
 │
 ├── logs/                       # Service logs
-├── start.sh                    # Single control script
+│
+├── start.sh                    # Main control script ⭐
+├── setup.sh                    # Full system setup
+├── stop.sh                     # Force stop services
+├── status.sh                   # Detailed status
+├── logs.sh                     # Interactive log viewer
+├── fix-whatsapp.sh             # Reset WhatsApp session
+│
 ├── version.json                # Version info
 └── README.md
 ```
@@ -215,25 +267,22 @@ WA-Schedular/
 ### Backend won't start
 
 ```bash
-# Check logs
-./start.sh logs backend
+./start.sh diagnose     # Check system status
+./start.sh logs backend # Check error logs
+./start.sh setup        # Reinstall dependencies
+```
 
-# Run diagnostics
-./start.sh diagnose
+### WhatsApp won't connect
 
-# Reinstall dependencies
-./start.sh setup
+```bash
+./fix-whatsapp.sh       # Clear session and restart (requires new QR scan)
 ```
 
 ### Port already in use
 
 ```bash
-# Kill process on port
-sudo kill -9 $(lsof -ti:8001)   # Backend
-sudo kill -9 $(lsof -ti:3000)   # Frontend
-
-# Restart
-./start.sh restart
+./stop.sh               # Force stop all services
+./start.sh              # Start fresh
 ```
 
 ### Frontend stuck
@@ -254,6 +303,14 @@ pip install -r requirements.txt
 deactivate
 cd ..
 ./start.sh
+```
+
+### Check what's running
+
+```bash
+./status.sh             # Detailed service status
+# OR
+./start.sh status       # Quick status check
 ```
 
 ---
@@ -304,7 +361,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**v2.1.4** • Made with ❤️ by [Nakshtra Yadav](https://github.com/NakshtraYadav)
+**v2.2.0** • Made with ❤️ by [Nakshtra Yadav](https://github.com/NakshtraYadav)
 
 ⭐ Star this repo if you find it useful!
 
