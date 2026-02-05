@@ -8,12 +8,114 @@ from core.logging import logger
 from models.schedule import ScheduledMessage, ScheduledMessageCreate
 from models.message_log import MessageLog
 from services.scheduler.executor import execute_scheduled_message
-from services.scheduler.job_manager import add_schedule_job, remove_schedule_job
+from services.scheduler.job_manager import add_schedule_job, remove_schedule_job, reload_schedules
 from services.whatsapp.message_sender import send_whatsapp_message
 
 router = APIRouter(prefix="/schedules")
 
 
+# STATIC ROUTES MUST COME FIRST (before /{schedule_id})
+@router.get("/debug")
+async def debug_schedules():
+    """Debug endpoint to see scheduler status"""
+    database = await get_database()
+    
+    db_schedules = await database.schedules.find({}, {"_id": 0}).to_list(100)
+    
+    scheduler_jobs = []
+    for job in scheduler.get_jobs():
+        next_run = job.next_run_time
+        scheduler_jobs.append({
+            "id": job.id,
+            "name": job.name,
+            "next_run": next_run.isoformat() if next_run else None,
+            "trigger": str(job.trigger)
+        })
+    
+    return {
+        "database": {
+            "total_schedules": len(db_schedules),
+            "active_schedules": len([s for s in db_schedules if s.get('is_active')]),
+            "schedules": [{
+                "id": s["id"],
+                "contact": s.get("contact_name"),
+                "type": s.get("schedule_type"),
+                "is_active": s.get("is_active"),
+                "cron": s.get("cron_expression"),
+                "scheduled_time": s.get("scheduled_time"),
+                "last_run": s.get("last_run")
+            } for s in db_schedules]
+        },
+        "scheduler": {
+            "running": scheduler.running,
+            "job_count": len(scheduler_jobs),
+            "jobs": scheduler_jobs
+        },
+        "server_time": {
+            "utc": datetime.now(timezone.utc).isoformat(),
+            "local": datetime.now().isoformat()
+        }
+    }
+
+
+@router.get("/status")
+async def get_scheduler_status():
+    """Get scheduler status and job info"""
+    jobs = []
+    for job in scheduler.get_jobs():
+        jobs.append({
+            "id": job.id,
+            "next_run": job.next_run_time.isoformat() if job.next_run_time else None,
+            "trigger": str(job.trigger)
+        })
+    
+    return {
+        "running": scheduler.running,
+        "job_count": len(jobs),
+        "jobs": jobs
+    }
+
+
+@router.post("/reload")
+async def reload_all_schedules():
+    """Manually reload all schedules from database"""
+    logger.info("🔄 Manual schedule reload requested")
+    await reload_schedules()
+    
+    job_count = len(scheduler.get_jobs())
+    return {
+        "success": True,
+        "message": f"Reloaded schedules. {job_count} jobs in scheduler.",
+        "job_count": job_count
+    }
+
+
+@router.post("/send-now")
+async def send_message_now(contact_id: str, message: str):
+    """Send a message immediately"""
+    database = await get_database()
+    contact = await database.contacts.find_one({"id": contact_id}, {"_id": 0})
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    result = await send_whatsapp_message(contact['phone'], message)
+    
+    log = MessageLog(
+        contact_id=contact_id,
+        contact_name=contact['name'],
+        contact_phone=contact['phone'],
+        message=message,
+        status="sent" if result.get('success') else "failed",
+        error_message=result.get('error')
+    )
+    log_doc = log.model_dump()
+    log_doc['sent_at'] = log_doc['sent_at'].isoformat()
+    await database.logs.insert_one(log_doc)
+    
+    return result
+
+
+# DYNAMIC ROUTES COME AFTER STATIC ROUTES
 @router.get("", response_model=List[ScheduledMessage])
 async def get_schedules():
     """Get all scheduled messages"""
