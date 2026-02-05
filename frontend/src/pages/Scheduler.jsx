@@ -475,6 +475,21 @@ function Scheduler() {
                         <Button 
                           variant="ghost" 
                           size="sm"
+                          onClick={() => handleRunNow(schedule.id)}
+                          disabled={runningScheduleId === schedule.id}
+                          className="text-emerald-500 hover:text-emerald-400"
+                          title="Run this schedule now"
+                          data-testid={`run-schedule-${schedule.id}`}
+                        >
+                          {runningScheduleId === schedule.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
                           onClick={() => handleEdit(schedule)}
                           className="text-muted-foreground hover:text-primary"
                           data-testid={`edit-schedule-${schedule.id}`}
