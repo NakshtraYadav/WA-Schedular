@@ -41,7 +41,6 @@ function SettingsPage() {
   });
   const [telegramStatus, setTelegramStatus] = useState(null);
   const [updateInfo, setUpdateInfo] = useState(null);
-  const [autoUpdaterStatus, setAutoUpdaterStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -50,12 +49,8 @@ function SettingsPage() {
 
   const fetchUpdateInfo = useCallback(async () => {
     try {
-      const [updateRes, autoUpdaterRes] = await Promise.all([
-        checkForUpdates(),
-        getAutoUpdaterStatus()
-      ]);
+      const updateRes = await checkForUpdates();
       setUpdateInfo(updateRes.data);
-      setAutoUpdaterStatus(autoUpdaterRes.data);
     } catch (e) {
       console.error('Failed to fetch update info');
     }
