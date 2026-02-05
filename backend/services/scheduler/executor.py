@@ -54,6 +54,14 @@ async def execute_scheduled_message(schedule_id: str):
             {"$set": {"last_run": datetime.now(timezone.utc).isoformat()}}
         )
         
+        # If one-time schedule, mark as completed
+        if schedule.get('schedule_type') == 'once':
+            await database.schedules.update_one(
+                {"id": schedule_id},
+                {"$set": {"is_active": False, "completed_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            logger.info(f"📝 One-time schedule marked complete: {schedule_id}")
+        
         # Send Telegram notification if enabled
         await send_telegram_notification(
             f"{'✅' if status == 'sent' else '❌'} Scheduled message {status}\n\n"
