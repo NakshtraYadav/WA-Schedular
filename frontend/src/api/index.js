@@ -32,7 +32,9 @@ export {
 // Schedules
 export {
   getSchedules,
+  getSchedule,
   createSchedule,
+  updateSchedule,
   toggleSchedule,
   deleteSchedule,
   testRunSchedule,
