@@ -1,13 +1,14 @@
 /**
  * WhatsApp client - Production-grade WWebJS integration
  * 
- * SESSION PERSISTENCE STRATEGY (v2.5.0):
+ * SESSION PERSISTENCE STRATEGY (v3.0.0):
  * 
  * Uses RemoteAuth with MongoDB instead of LocalAuth:
  * - Sessions stored in MongoDB (atomic writes, no corruption)
  * - Survives unclean shutdowns, kill signals, reboots
  * - No lock file issues
  * - Session validity verified before use
+ * - Observability metrics for monitoring
  * 
  * Fallback to LocalAuth if MongoDB unavailable.
  */
@@ -15,6 +16,12 @@ const { Client, LocalAuth, RemoteAuth } = require('whatsapp-web.js');
 const { log } = require('../../utils/logger');
 const { SESSION_PATH } = require('../../config/env');
 const { initSessionStore, getStore, hasExistingSession, deleteSession } = require('../session/mongoStore');
+const { 
+  updateState: updateObservabilityState, 
+  recordHeartbeat, 
+  recordCredentialWrite,
+  recordValidation 
+} = require('../session/observability');
 const fs = require('fs');
 const path = require('path');
 
