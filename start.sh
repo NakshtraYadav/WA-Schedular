@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
 #  WA Scheduler - Start & Update (WSL Robust Version)
-#  v2.1.1 - Fixed backend startup issues
+#  v2.1.2 - Fixed Python virtual environment support
 # ============================================================================
 
 GREEN='\033[0;32m'
@@ -13,8 +13,46 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/backend/venv"
 mkdir -p "$SCRIPT_DIR/logs"
 mkdir -p "$SCRIPT_DIR/.pids"
+
+# ============================================================================
+#  PYTHON VIRTUAL ENVIRONMENT SETUP
+# ============================================================================
+setup_venv() {
+    if [ ! -d "$VENV_DIR" ]; then
+        echo -e "  ${CYAN}→${NC} Creating Python virtual environment..."
+        python3 -m venv "$VENV_DIR"
+        
+        if [ ! -f "$VENV_DIR/bin/python" ]; then
+            echo -e "  ${RED}✗${NC} Failed to create virtual environment!"
+            echo -e "    Try: ${YELLOW}sudo apt install python3-venv python3-full${NC}"
+            return 1
+        fi
+    fi
+    return 0
+}
+
+# Get the correct Python/pip commands (uses venv if exists)
+get_python() {
+    if [ -f "$VENV_DIR/bin/python" ]; then
+        echo "$VENV_DIR/bin/python"
+    else
+        echo "python3"
+    fi
+}
+
+get_pip() {
+    if [ -f "$VENV_DIR/bin/pip" ]; then
+        echo "$VENV_DIR/bin/pip"
+    else
+        echo "pip3"
+    fi
+}
+
+PYTHON_CMD=$(get_python)
+PIP_CMD=$(get_pip)
 
 # ============================================================================
 #  HELPER: Kill process safely (WSL compatible)
