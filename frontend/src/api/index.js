@@ -18,7 +18,9 @@ export {
   createContact,
   updateContact,
   deleteContact,
-  syncWhatsAppContacts
+  syncWhatsAppContacts,
+  verifyWhatsAppNumber,
+  verifyBulkNumbers
 } from './contacts.api';
 
 // Templates
