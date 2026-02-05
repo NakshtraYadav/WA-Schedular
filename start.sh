@@ -207,15 +207,29 @@ start_backend() {
     
     cd "$SCRIPT_DIR/backend"
     
-    # Check if uvicorn is installed (critical dependency)
-    if ! python3 -c "import uvicorn" 2>/dev/null; then
+    # Update Python commands (in case venv was just created)
+    PYTHON_CMD=$(get_python)
+    PIP_CMD=$(get_pip)
+    
+    # Check if venv exists, create if not
+    if [ ! -f "$VENV_DIR/bin/python" ]; then
+        echo -e "  ${YELLOW}!${NC} Virtual environment not found, creating..."
+        if ! setup_venv; then
+            echo -e "  ${RED}✗${NC} Failed to create virtual environment"
+            return 1
+        fi
+        PYTHON_CMD=$(get_python)
+        PIP_CMD=$(get_pip)
+    fi
+    
+    # Check if uvicorn is installed
+    if ! $PYTHON_CMD -c "import uvicorn" 2>/dev/null; then
         echo -e "  ${YELLOW}!${NC} Installing Python dependencies..."
-        pip install -r requirements.txt
+        $PIP_CMD install -r requirements.txt
         
-        # Verify installation
-        if ! python3 -c "import uvicorn" 2>/dev/null; then
+        if ! $PYTHON_CMD -c "import uvicorn" 2>/dev/null; then
             echo -e "  ${RED}✗${NC} Failed to install dependencies!"
-            echo -e "    Try manually: ${YELLOW}cd backend && pip install -r requirements.txt${NC}"
+            echo -e "    Try: ${YELLOW}./start.sh setup${NC}"
             return 1
         fi
     fi
