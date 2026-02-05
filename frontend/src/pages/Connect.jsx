@@ -351,7 +351,7 @@ function Connect() {
                         Generate QR Code
                       </Button>
                       <p className="text-xs text-muted-foreground mt-4 max-w-xs text-center">
-                        Click when you're ready with your phone to scan. The QR code will be fresh and valid.
+                        Click when you are ready with your phone to scan. The QR code will be fresh and valid.
                       </p>
                     </>
                   )}
