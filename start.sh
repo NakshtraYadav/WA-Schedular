@@ -393,10 +393,23 @@ setup() {
     echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     
+    # Create virtual environment
+    echo -e "  ${CYAN}→${NC} Setting up Python virtual environment..."
+    if ! setup_venv; then
+        return 1
+    fi
+    echo -e "  ${GREEN}✓${NC} Virtual environment ready"
+    
+    # Update Python/pip commands after venv creation
+    PYTHON_CMD=$(get_python)
+    PIP_CMD=$(get_pip)
+    
     # Backend dependencies
+    echo ""
     echo -e "  ${CYAN}→${NC} Installing Python dependencies..."
     cd "$SCRIPT_DIR/backend"
-    pip install -r requirements.txt
+    $PIP_CMD install --upgrade pip 2>/dev/null
+    $PIP_CMD install -r requirements.txt
     
     if [ $? -eq 0 ]; then
         echo -e "  ${GREEN}✓${NC} Python dependencies installed"
