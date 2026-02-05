@@ -1,16 +1,26 @@
 {
-  "version": "2.2.0",
+  "version": "2.2.1",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 16,
+  "build": 17,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.2.1",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: Session path permission error on local machines",
+        "FIXED: Session path now relative to project directory (not /app)",
+        "ADDED: Fallback session path if preferred path not writable",
+        "FIXED: auto-updater.sh now uses ./start.sh update instead of deprecated ./update.sh"
+      ]
+    },
     {
       "version": "2.2.0",
       "date": "2026-02-05",
       "changes": [
         "MAJOR: WhatsApp session persistence - sessions now survive restarts",
-        "FIXED: Changed session path from relative to absolute (/app/data/whatsapp-sessions)",
+        "FIXED: Changed session path from relative to absolute",
         "ADDED: Graceful shutdown with 10s timeout for session save",
         "ADDED: Process signal handlers (SIGTERM, SIGINT, SIGHUP)",
         "ADDED: Session validation and corruption detection",
