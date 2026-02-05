@@ -38,22 +38,48 @@ const setState = (updates) => {
 };
 
 const createClient = () => {
+  // Find Chromium executable dynamically
+  const possiblePaths = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable'
+  ];
+  
+  let executablePath = null;
+  const fs = require('fs');
+  for (const path of possiblePaths) {
+    if (fs.existsSync(path)) {
+      executablePath = path;
+      break;
+    }
+  }
+  
+  const puppeteerArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--single-process',
+    '--disable-gpu'
+  ];
+  
+  const puppeteerOptions = {
+    headless: true,
+    args: puppeteerArgs
+  };
+  
+  // Only set executablePath if we found one
+  if (executablePath) {
+    puppeteerOptions.executablePath = executablePath;
+  }
+  
   return new Client({
     authStrategy: new LocalAuth({ dataPath: SESSION_PATH }),
-    puppeteer: {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ],
-      executablePath: '/usr/bin/chromium'
-    },
+    puppeteer: puppeteerOptions,
     webVersionCache: {
       type: 'remote',
       remotePath: 'https://raw.githubusercontent.com/AuroraDevelopmentTeam/AuroraAPI/main/AuroraWWeb/',
