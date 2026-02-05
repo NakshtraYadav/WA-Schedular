@@ -462,6 +462,8 @@ const initWhatsApp = async () => {
         isReady: false,
         isAuthenticated: false
       });
+      // Update observability
+      updateObservabilityState('qr_required');
       // Start age tracking timer
       startQrRefreshTimer();
     });
@@ -472,6 +474,7 @@ const initWhatsApp = async () => {
       stopQrRefreshTimer(); // Stop QR refresh when connected
       lastQrTime = null;
       qrCount = 0; // Reset QR count for next session
+      initRetries = 0; // Reset retry counter on success
       setState({
         isReady: true,
         isAuthenticated: true,
@@ -479,6 +482,10 @@ const initWhatsApp = async () => {
         initRetries: 0,
         isInitializing: false
       });
+      
+      // Update observability - connected state
+      updateObservabilityState('connected', { authMethod: 'session_restore' });
+      recordHeartbeat(); // First heartbeat on ready
 
       try {
         const info = client.info;
