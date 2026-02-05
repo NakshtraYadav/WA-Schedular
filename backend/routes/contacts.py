@@ -1,8 +1,10 @@
 """Contacts routes"""
 from fastapi import APIRouter, HTTPException
 from typing import List
+import httpx
 from models.contact import Contact, ContactCreate
 from services.contacts import crud, sync
+from core.config import WA_SERVICE_URL
 
 router = APIRouter(prefix="/contacts")
 
@@ -14,8 +16,16 @@ async def get_contacts():
 
 
 @router.post("", response_model=Contact)
-async def create_contact(data: ContactCreate):
-    """Create a new contact"""
+async def create_contact(data: ContactCreate, verify: bool = True):
+    """Create a new contact. Set verify=false to skip WhatsApp verification."""
+    if verify:
+        # Verify the number is on WhatsApp first
+        verification = await verify_whatsapp_number(data.phone)
+        if not verification.get("isRegistered"):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Phone number {data.phone} is not registered on WhatsApp"
+            )
     return await crud.create_contact(data)
 
 
@@ -41,3 +51,37 @@ async def delete_contact(contact_id: str):
 async def sync_whatsapp_contacts():
     """Sync contacts from WhatsApp"""
     return await sync.sync_from_whatsapp()
+
+
+@router.get("/verify/{phone}")
+async def verify_contact_number(phone: str):
+    """Check if a phone number is registered on WhatsApp"""
+    return await verify_whatsapp_number(phone)
+
+
+@router.post("/verify-bulk")
+async def verify_bulk_numbers(phones: List[str]):
+    """Check multiple phone numbers at once"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{WA_SERVICE_URL}/verify",
+                json={"phones": phones},
+                timeout=60.0  # Longer timeout for bulk
+            )
+            return response.json()
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+async def verify_whatsapp_number(phone: str) -> dict:
+    """Helper to verify a single number"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{WA_SERVICE_URL}/verify/{phone}",
+                timeout=10.0
+            )
+            return response.json()
+    except Exception as e:
+        return {"success": False, "error": str(e), "isRegistered": False}
