@@ -42,6 +42,8 @@ function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResults, setVerificationResults] = useState({}); // { phone: true/false }
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
