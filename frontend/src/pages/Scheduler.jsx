@@ -452,15 +452,26 @@ function Scheduler() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDelete(schedule.id)}
-                        className="text-destructive hover:text-destructive"
-                        data-testid={`delete-schedule-${schedule.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEdit(schedule)}
+                          className="text-muted-foreground hover:text-primary"
+                          data-testid={`edit-schedule-${schedule.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDelete(schedule.id)}
+                          className="text-destructive hover:text-destructive"
+                          data-testid={`delete-schedule-${schedule.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
