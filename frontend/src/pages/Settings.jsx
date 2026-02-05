@@ -476,7 +476,7 @@ function SettingsPage() {
           {/* Changelog Preview */}
           {updateInfo?.has_update && updateInfo?.remote?.changelog?.length > 0 && (
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-              <h4 className="font-medium text-green-500 mb-2">What's New in v{updateInfo.remote.version}</h4>
+              <h4 className="font-medium text-green-500 mb-2">What is New in v{updateInfo.remote.version}</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 {updateInfo.remote.changelog[0]?.changes?.slice(0, 5).map((change, i) => (
                   <li key={i} className="flex items-start gap-2">
