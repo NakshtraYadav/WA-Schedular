@@ -1,10 +1,30 @@
 {
-  "version": "2.8.1",
+  "version": "3.0.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 37,
+  "build": 38,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "3.0.0",
+      "date": "2026-02-05",
+      "changes": [
+        "MAJOR: Production-grade session persistence system",
+        "SESSION: Durable store with atomic writes and checksums",
+        "SESSION: Session sync reduced from 60s to 10s interval",
+        "SESSION: Forced session save on graceful shutdown",
+        "SESSION: Rehydration engine with exponential backoff",
+        "SESSION: Distributed locks prevent multi-instance conflicts",
+        "SESSION: Circuit breaker prevents reconnect storms",
+        "SESSION: Automatic corruption detection via SHA256 checksums",
+        "SESSION: Structured event logging for audit trail",
+        "RECONNECT: Exponential backoff (5s to 60s) instead of fixed 10s",
+        "RECONNECT: Max 10 attempts before requiring manual intervention",
+        "NEW: /services/session/durableStore.js - MongoDB session persistence",
+        "NEW: /services/session/rehydrationEngine.js - Boot recovery system",
+        "DOCS: Added WHATSAPP_SESSION_DESIGN.md (comprehensive design doc)"
+      ]
+    },
     {
       "version": "2.8.1",
       "date": "2026-02-05",
