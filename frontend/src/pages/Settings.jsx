@@ -19,9 +19,7 @@ import {
   AlertCircle,
   Download,
   RefreshCw,
-  Github,
-  Play,
-  Square
+  Github
 } from 'lucide-react';
 import { getSettings, updateSettings, getTimezoneInfo, checkForUpdates, installUpdate, getAppVersion, getTelegramStatus } from '../api';
 import { toast } from 'sonner';
