@@ -367,7 +367,7 @@ function Contacts() {
               </TableHeader>
               <TableBody>
                 {contacts.map((contact) => {
-                  const status = getVerificationStatus(contact.phone);
+                  const status = getVerificationStatus(contact);
                   return (
                   <TableRow key={contact.id} data-testid={`contact-row-${contact.id}`}>
                     <TableCell className="font-medium">{contact.name}</TableCell>
