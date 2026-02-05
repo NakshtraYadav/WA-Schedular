@@ -357,6 +357,9 @@ const initWhatsApp = async () => {
 
   log('INFO', '=== WhatsApp Initialization Starting ===');
 
+  // Step 0: Clean up stale browser locks (important for WSL)
+  await cleanupStaleBrowser();
+
   // Step 1: Validate storage
   if (!validateSessionStorage()) {
     setState({
