@@ -22,7 +22,11 @@ async def execute_scheduled_message(schedule_id: str):
             logger.info(f"⏸️ Schedule is inactive, skipping: {schedule_id}")
             return
         
-        logger.info(f"📤 Sending to {schedule['contact_name']} ({schedule['contact_phone']}): {schedule['message'][:50]}...")
+        contact_name = schedule.get('contact_name', 'Unknown')
+        contact_phone = schedule.get('contact_phone')
+        message = schedule.get('message', '')
+        
+        logger.info(f"📤 Sending to {contact_name} ({contact_phone}): {message[:50]}...")
         
         # Send the message
         result = await send_whatsapp_message(schedule['contact_phone'], schedule['message'])
