@@ -1,120 +1,81 @@
 # WhatsApp Scheduler - Product Requirements Document
 
 ## Original Problem Statement
-User requested modularization of the codebase for better file management, more folders, and improved code organization across backend, frontend, and WhatsApp service.
+1. Add feature to manually run scheduled messages
+2. Scheduled messages don't go (not working)
+3. WhatsApp connection terminates permanently after ./stop.sh and ./start.sh even though session is being cached
 
 ## Architecture Overview
+- **Frontend**: React.js (port 3000)
+- **Backend**: FastAPI Python (port 8001)  
+- **WhatsApp Service**: Node.js WhatsApp-web.js (port 3001)
+- **Database**: MongoDB
+- **Scheduler**: APScheduler (AsyncIOScheduler)
 
-### Backend Structure (FastAPI + MongoDB)
-```
-/app/backend/
-├── server.py (83 lines - entry point only)
-├── core/          - Config, DB, Scheduler, Logging
-├── models/        - Pydantic models (Contact, Template, Schedule, etc.)
-├── routes/        - API endpoints (13 route modules)
-├── services/      - Business logic
-│   ├── whatsapp/  - WhatsApp HTTP client
-│   ├── telegram/  - Telegram bot with command handlers
-│   ├── scheduler/ - Job execution and management
-│   ├── contacts/  - Contact CRUD + sync
-│   ├── templates/ - Template CRUD
-│   └── updates/   - Update system
-├── repositories/  - Data access layer
-└── utils/         - Helpers (datetime, validators, serializers)
-```
+## User Personas
+1. **Power User**: Schedules recurring WhatsApp messages for business/personal use
+2. **Casual User**: Sends one-time scheduled messages
 
-### Frontend Structure (React + TailwindCSS)
-```
-/app/frontend/src/
-├── App.js (45 lines - routing only)
-├── api/           - Modular API layer (11 endpoint files)
-├── components/
-│   ├── layout/    - Sidebar, Layout
-│   ├── shared/    - StatusBadge, LoadingSpinner, EmptyState
-│   └── ui/        - shadcn components
-├── context/       - VersionContext, WhatsAppContext
-├── hooks/         - useVersion, useWhatsAppStatus
-└── pages/         - 8 page components
-```
+## Core Requirements (Static)
+- Send WhatsApp messages via web interface
+- Schedule one-time and recurring messages
+- Manage contacts and message templates
+- View message logs and history
+- Telegram notification integration
 
-### WhatsApp Service Structure (Express + WWebJS)
-```
-/app/whatsapp-service/
-├── index.js (entry point)
-└── src/
-    ├── app.js         - Express setup
-    ├── config/        - Environment config
-    ├── routes/        - Status, Message, Contacts, Session
-    ├── services/
-    │   ├── whatsapp/  - Client, Messaging, Contacts
-    │   └── session/   - Session management
-    ├── middleware/    - Error handler
-    └── utils/         - Logger, Phone utilities
-```
+---
 
-## Implementation Status (Feb 2026)
+## What's Been Implemented
 
-### Completed ✅
-- [x] Backend modularization (1967 → 83 lines server.py)
-- [x] Created 45+ backend modules with single responsibility
-- [x] Frontend API layer split into 11 domain-specific files
-- [x] Layout components (Sidebar, Layout) extracted
-- [x] Shared components (StatusBadge, LoadingSpinner, etc.)
-- [x] Custom hooks (useVersion, useWhatsAppStatus)
-- [x] React contexts (VersionContext, WhatsAppContext)
-- [x] WhatsApp service modularization
-- [x] All API endpoints tested and working (100% pass rate)
-- [x] Frontend-backend integration verified
+### January 2026 - Bug Fixes
 
-### Backlog / Future Enhancements
-- [ ] Add unit tests for services layer
-- [ ] Add E2E tests with Playwright
-- [ ] Extract more shared components from pages
-- [ ] Add TypeScript support
-- [ ] Add API documentation (Swagger/OpenAPI)
-- [ ] Implement lazy loading for routes
-- [ ] Add error boundary components
+#### 1. Manual Run Feature for Scheduled Messages
+- **Files Changed**: `/app/frontend/src/pages/Scheduler.jsx`
+- **Implementation**: Added Play button (▶) in the Actions column of scheduled messages table
+- **Functionality**: Clicking Play button triggers `/api/schedules/test-run/{id}` endpoint to immediately execute any scheduled message
+- **Testing**: Verified button renders, API endpoint responds correctly
 
-## Key Metrics
+#### 2. Fixed Scheduled Messages Not Sending
+- **Files Changed**: `/app/backend/services/scheduler/job_manager.py`
+- **Root Cause**: `execute_scheduled_message` is async but APScheduler wasn't properly awaiting it
+- **Fix**: Created `run_scheduled_message()` sync wrapper that uses `asyncio.create_task()` to properly execute async coroutines within the running event loop
+- **Testing**: APScheduler now correctly dispatches jobs
 
-| Area | Before | After |
-|------|--------|-------|
-| Backend server.py | 1967 lines | 83 lines |
-| Backend folders | 1 | 8 |
-| Backend files | 2 | 45+ |
-| Frontend App.js | 235 lines | 45 lines |
-| Frontend API files | 1 | 11 |
-| WhatsApp index.js | 533 lines | 20 lines |
+#### 3. Fixed WhatsApp Session Persistence After Stop/Start
+- **Files Changed**: `/app/stop.sh`, `/app/whatsapp-service/src/app.js`, `/app/start.sh`
+- **Root Cause**: `stop.sh` was using `kill -9` (SIGKILL) which doesn't allow graceful shutdown for session saving
+- **Fixes**:
+  - Updated `stop.sh` (v2.2.0) to use SIGTERM first with 15-second grace period before SIGKILL
+  - Added auto-initialization in `app.js` that checks for existing MongoDB/filesystem sessions on startup
+  - Updated `start.sh` to show session restoration status
+- **Testing**: Session preservation logic verified
 
-## Testing Status
-- Backend: 100% endpoints working
-- Frontend: All pages loading correctly
-- Integration: Full communication verified
+---
 
-## Bug Fixes (Feb 2026)
+## Prioritized Backlog
 
-### Session: Update from localhost not working
-**Root Cause Analysis:**
-1. Missing `REACT_APP_BACKEND_URL` environment variable - frontend was calling `localhost:3000/api/*` instead of `localhost:8001/api/*`
-2. Settings.jsx used `apiClient` directly without importing - should use `testTelegram()` function
-3. Version context destructuring mismatch - `checkVersion` vs `refresh`
-4. Diagnostics couldn't find logs - checked wrong paths
+### P0 (Critical)
+- [x] Manual run scheduled messages
+- [x] Fix scheduled messages execution
+- [x] Fix WhatsApp session persistence
 
-**Fixes Applied:**
-- Created `/app/frontend/.env` with `REACT_APP_BACKEND_URL=http://localhost:8001`
-- Fixed Settings.jsx to import and use `testTelegram` from '../api'
-- Fixed version context destructuring in Settings.jsx
-- Updated diagnostics.py to handle both direct log files and subdirectories
+### P1 (High Priority)
+- [ ] Add bulk scheduling for multiple contacts
+- [ ] Add message delivery confirmation/read receipts
 
-**Files Modified:**
-- `/app/frontend/.env` (created)
-- `/app/frontend/src/pages/Settings.jsx`
-- `/app/backend/routes/diagnostics.py`
-- `/app/BUG_REPORT.md`
+### P2 (Medium Priority)  
+- [ ] Add message scheduling preview/dry-run
+- [ ] Export message logs to CSV
 
-## Future Enhancements
-- [ ] Add unit tests for services layer
-- [ ] Add E2E tests with Playwright
-- [ ] Add TypeScript support
-- [ ] Add error boundary components
-- [ ] Add auto-refresh for dashboard stats
+### Future Enhancements
+- [ ] WhatsApp group messaging support
+- [ ] Media attachment support (images, documents)
+- [ ] Message templates with variables
+- [ ] Analytics dashboard for message performance
+
+---
+
+## Next Tasks
+1. Test the full stop/start cycle on user's WSL Ubuntu environment
+2. Verify scheduled messages actually send at scheduled times
+3. Test manual run button with real WhatsApp messages
