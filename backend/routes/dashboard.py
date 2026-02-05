@@ -19,15 +19,15 @@ async def get_dashboard_stats():
     failed_messages = await database.logs.count_documents({"status": "failed"})
     
     recent_logs = await database.logs.find({}, {"_id": 0}).sort("sent_at", -1).to_list(5)
-    for l in recent_logs:
-        if isinstance(l.get('sent_at'), str):
-            l['sent_at'] = datetime.fromisoformat(l['sent_at'])
+    for log_entry in recent_logs:
+        if isinstance(log_entry.get('sent_at'), str):
+            log_entry['sent_at'] = datetime.fromisoformat(log_entry['sent_at'])
     
     upcoming = await database.schedules.find({"is_active": True}, {"_id": 0}).to_list(5)
-    for s in upcoming:
+    for schedule in upcoming:
         for field in ['scheduled_time', 'last_run', 'next_run', 'created_at']:
-            if isinstance(s.get(field), str):
-                s[field] = datetime.fromisoformat(s[field])
+            if isinstance(schedule.get(field), str):
+                schedule[field] = datetime.fromisoformat(schedule[field])
     
     return {
         "contacts_count": contacts_count,
