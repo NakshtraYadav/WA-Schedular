@@ -563,13 +563,22 @@ function Scheduler() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Schedule Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Create/Edit Schedule Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="bg-card border-border max-w-lg" data-testid="schedule-dialog">
           <DialogHeader>
             <DialogTitle className="font-heading flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-primary" />
-              Create Schedule
+              {editingSchedule ? (
+                <>
+                  <Pencil className="w-5 h-5 text-primary" />
+                  Edit Schedule
+                </>
+              ) : (
+                <>
+                  <CalendarIcon className="w-5 h-5 text-primary" />
+                  Create Schedule
+                </>
+              )}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
