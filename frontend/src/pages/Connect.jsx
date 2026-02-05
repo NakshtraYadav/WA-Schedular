@@ -392,9 +392,10 @@ function Connect() {
         </CardHeader>
         <CardContent>
           <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-            <li>Wait for the QR code to appear above (30-90 seconds)</li>
-            <li>Open WhatsApp on your phone</li>
-            <li>Go to <span className="text-foreground">Settings → Linked Devices</span></li>
+            <li>Have your phone ready with WhatsApp open</li>
+            <li>Click <span className="text-foreground font-medium">"Generate QR Code"</span> above</li>
+            <li>Wait 10-30 seconds for the QR code to appear</li>
+            <li>On your phone, go to <span className="text-foreground">Settings → Linked Devices</span></li>
             <li>Tap <span className="text-foreground">Link a Device</span></li>
             <li>Scan the QR code with your phone</li>
             <li>Once connected, you can schedule messages!</li>
