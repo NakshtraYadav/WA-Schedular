@@ -1,10 +1,21 @@
 {
-  "version": "2.1.0",
+  "version": "2.1.1",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 10,
+  "build": 11,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "2.1.1",
+      "date": "2026-02-04",
+      "changes": [
+        "Seamless UI update - no restart buttons",
+        "Click Install Update \u2192 auto pulls \u2192 auto refreshes",
+        "Smart detection: only refreshes if frontend changed",
+        "WSL file watching fixes with polling mode",
+        "Auto-restart frontend if it gets stuck"
+      ]
+    },
     {
       "version": "2.1.0",
       "date": "2026-02-04",
