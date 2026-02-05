@@ -1,9 +1,10 @@
 /**
- * Status routes
+ * Status routes - Extended with session persistence info
  */
 const express = require('express');
 const router = express.Router();
-const { getState, getClient } = require('../services/whatsapp/client');
+const { getState, getClient, validateSessionStorage, checkExistingSession } = require('../services/whatsapp/client');
+const { getSessionInfo, cleanupOldBackups } = require('../services/session/manager');
 const qrcode = require('qrcode');
 
 // GET /status
@@ -16,7 +17,37 @@ router.get('/status', (req, res) => {
     hasQrCode: !!state.qrCodeData,
     isInitializing: state.isInitializing,
     error: state.initError,
-    clientInfo: state.clientInfo
+    clientInfo: state.clientInfo,
+    sessionPath: state.sessionPath
+  });
+});
+
+// GET /session-info - Detailed session persistence status
+router.get('/session-info', (req, res) => {
+  const sessionInfo = getSessionInfo();
+  const sessionStatus = checkExistingSession();
+  const storageValid = validateSessionStorage();
+  
+  res.json({
+    storage: {
+      valid: storageValid,
+      path: sessionInfo.path
+    },
+    session: {
+      exists: sessionInfo.exists,
+      status: sessionStatus,
+      created: sessionInfo.created,
+      modified: sessionInfo.modified,
+      fileCount: sessionInfo.fileCount
+    },
+    persistence: {
+      willSurviveRestart: storageValid && sessionInfo.exists,
+      recommendation: !sessionInfo.exists 
+        ? 'Scan QR code to create persistent session' 
+        : sessionStatus === 'valid' 
+          ? 'Session will persist across restarts' 
+          : 'Session may be corrupt, consider rescanning'
+    }
   });
 });
 
@@ -39,18 +70,53 @@ router.get('/qr', async (req, res) => {
 // GET /test-browser
 router.get('/test-browser', async (req, res) => {
   const puppeteer = require('puppeteer');
+  const fs = require('fs');
+  
+  // Find browser
+  const possiblePaths = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium',
+    '/usr/bin/google-chrome'
+  ];
+  
+  let executablePath = null;
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      executablePath = p;
+      break;
+    }
+  }
   
   try {
-    const browser = await puppeteer.launch({
+    const launchOptions = {
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      executablePath: '/usr/bin/chromium'
-    });
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    };
+    
+    if (executablePath) {
+      launchOptions.executablePath = executablePath;
+    }
+    
+    const browser = await puppeteer.launch(launchOptions);
+    const version = await browser.version();
     await browser.close();
-    res.json({ success: true, message: 'Browser launched successfully' });
+    
+    res.json({ 
+      success: true, 
+      message: 'Browser launched successfully',
+      browserVersion: version,
+      executablePath: executablePath || 'system default'
+    });
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
+});
+
+// POST /cleanup-backups
+router.post('/cleanup-backups', (req, res) => {
+  const result = cleanupOldBackups();
+  res.json({ success: true, ...result });
 });
 
 module.exports = router;
