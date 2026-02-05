@@ -217,6 +217,43 @@ function Scheduler() {
     setRecurringTime('09:00');
     setSelectedCronPreset('');
     setCustomCron('');
+    setEditingSchedule(null);
+  };
+
+  const handleEdit = (schedule) => {
+    setEditingSchedule(schedule);
+    setFormData({
+      contact_id: schedule.contact_id,
+      message: schedule.message,
+    });
+    setScheduleType(schedule.schedule_type);
+    
+    if (schedule.schedule_type === 'once' && schedule.scheduled_time) {
+      const schedDate = new Date(schedule.scheduled_time);
+      setSelectedDate(schedDate);
+      setSelectedTime(format(schedDate, 'HH:mm'));
+    } else if (schedule.schedule_type === 'recurring' && schedule.cron_expression) {
+      // Try to match a preset
+      const matchedPreset = SCHEDULE_PRESETS.find(p => {
+        if (p.value === 'custom') return false;
+        const cronParts = schedule.cron_expression.split(' ');
+        const presetParts = p.cron.split(' ');
+        // Compare pattern (ignoring time)
+        return cronParts.slice(2).join(' ') === presetParts.slice(2).join(' ').replace('{H}', cronParts[1]);
+      });
+      
+      if (matchedPreset) {
+        setSelectedCronPreset(matchedPreset.value);
+        // Extract time from cron
+        const cronParts = schedule.cron_expression.split(' ');
+        setRecurringTime(`${cronParts[1].padStart(2, '0')}:${cronParts[0].padStart(2, '0')}`);
+      } else {
+        setSelectedCronPreset('custom');
+        setCustomCron(schedule.cron_expression);
+      }
+    }
+    
+    setDialogOpen(true);
   };
 
   const handleToggle = async (id) => {
