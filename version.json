@@ -1,10 +1,23 @@
 {
-  "version": "2.6.1",
+  "version": "2.6.2",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 30,
+  "build": 31,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.6.2",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: 'Remove Unverified' now works - moved route before dynamic /{contact_id}",
+        "NEW: Multi-select contacts with checkboxes",
+        "NEW: 'Delete Selected' button for bulk deletion",
+        "NEW: 'Select All' checkbox in table header",
+        "NEW: POST /api/contacts/bulk-delete endpoint",
+        "IMPROVED: Contacts now sorted A-Z automatically",
+        "IMPROVED: Selected rows highlighted in table"
+      ]
+    },
     {
       "version": "2.6.1",
       "date": "2026-02-05",
