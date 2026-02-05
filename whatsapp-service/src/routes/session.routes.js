@@ -1,10 +1,10 @@
 /**
- * Session routes
+ * Session routes - Production-grade session management
  */
 const express = require('express');
 const router = express.Router();
-const { getClient, initWhatsApp, setState } = require('../services/whatsapp/client');
-const { clearSession } = require('../services/session/manager');
+const { getClient, initWhatsApp, setState, gracefulShutdown } = require('../services/whatsapp/client');
+const { clearSession, backupSession } = require('../services/session/manager');
 const { log } = require('../utils/logger');
 
 // POST /logout
@@ -37,23 +37,33 @@ router.post('/retry-init', async (req, res) => {
 
 // POST /clear-session
 router.post('/clear-session', async (req, res) => {
-  const client = getClient();
-  
   try {
-    if (client) {
-      try {
-        await client.destroy();
-      } catch (e) {
-        log('WARN', 'Error destroying client:', e.message);
-      }
-    }
-
-    const result = await clearSession();
+    // Graceful shutdown first
+    log('INFO', 'Clear session requested - initiating graceful shutdown');
+    await gracefulShutdown();
+    
+    // Wait for cleanup
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Clear session with backup
+    const result = await clearSession(true);
     
     if (result.success) {
+      // Reinitialize after delay
       setTimeout(() => initWhatsApp(), 1000);
     }
 
+    res.json(result);
+  } catch (error) {
+    log('ERROR', 'Clear session error:', error.message);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// POST /backup-session
+router.post('/backup-session', async (req, res) => {
+  try {
+    const result = await backupSession();
     res.json(result);
   } catch (error) {
     res.json({ success: false, error: error.message });
