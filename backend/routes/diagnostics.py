@@ -112,14 +112,25 @@ async def get_all_logs_summary():
     summary = {}
     
     for service in ["backend", "frontend", "whatsapp", "system"]:
+        # Check direct log file first (e.g., logs/backend.log)
+        direct_log = log_base / f"{service}.log"
         service_dir = log_base / service
+        
+        log_files = []
+        
+        if direct_log.exists():
+            log_files.append(direct_log)
+        
         if service_dir.exists():
-            log_files = list(service_dir.glob("*.log"))
+            log_files.extend(list(service_dir.glob("*.log")))
+        
+        if log_files:
             total_size = sum(f.stat().st_size for f in log_files)
+            latest_file = sorted(log_files, key=lambda x: x.stat().st_mtime, reverse=True)[0]
             summary[service] = {
                 "file_count": len(log_files),
                 "total_size_mb": round(total_size / (1024 * 1024), 2),
-                "latest_file": sorted(log_files, key=lambda x: x.stat().st_mtime, reverse=True)[0].name if log_files else None
+                "latest_file": latest_file.name if latest_file else None
             }
         else:
             summary[service] = {"file_count": 0, "total_size_mb": 0, "latest_file": None}
