@@ -327,7 +327,29 @@ start_frontend() {
 start_whatsapp() {
     echo -e "  ${CYAN}→${NC} Starting WhatsApp Service (port 3001)..."
     
+    # Kill existing processes
     kill_process "whatsapp" "node.*whatsapp" 3001
+    
+    # Clean up stale browser locks (critical for first run and WSL)
+    WA_SESSION_DIR="$SCRIPT_DIR/data/whatsapp-sessions/session-wa-scheduler"
+    if [ -d "$WA_SESSION_DIR" ]; then
+        rm -f "$WA_SESSION_DIR/SingletonLock" 2>/dev/null
+        rm -f "$WA_SESSION_DIR/SingletonCookie" 2>/dev/null
+        rm -f "$WA_SESSION_DIR/SingletonSocket" 2>/dev/null
+        echo -e "  ${CYAN}→${NC} Cleaned browser lock files"
+    fi
+    
+    # Also check old session location
+    OLD_SESSION="$SCRIPT_DIR/whatsapp-service/.wwebjs_auth/session-wa-scheduler"
+    if [ -d "$OLD_SESSION" ]; then
+        rm -f "$OLD_SESSION/SingletonLock" 2>/dev/null
+        rm -f "$OLD_SESSION/SingletonCookie" 2>/dev/null
+        rm -f "$OLD_SESSION/SingletonSocket" 2>/dev/null
+    fi
+    
+    # Kill any orphaned chromium processes from previous runs
+    pkill -f "chromium.*wa-scheduler" 2>/dev/null || true
+    pkill -f "chrome.*wa-scheduler" 2>/dev/null || true
     
     if ! wait_for_port_free 3001 5; then
         echo -e "  ${YELLOW}!${NC} Port 3001 in use (may be already running)"
@@ -343,13 +365,21 @@ start_whatsapp() {
     nohup node index.js > "$SCRIPT_DIR/logs/whatsapp.log" 2>&1 &
     echo $! > "$SCRIPT_DIR/.pids/whatsapp.pid"
     
-    sleep 2
+    # Wait longer for WhatsApp service (it needs time to initialize browser)
+    echo -n "  Waiting for WhatsApp service"
+    for i in {1..20}; do
+        if curl -s http://localhost:3001/health > /dev/null 2>&1; then
+            echo ""
+            echo -e "  ${GREEN}✓${NC} WhatsApp Service running"
+            return 0
+        fi
+        echo -n "."
+        sleep 2
+    done
     
-    if curl -s http://localhost:3001/health > /dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} WhatsApp Service running"
-    else
-        echo -e "  ${YELLOW}!${NC} WhatsApp Service may still be starting..."
-    fi
+    echo ""
+    echo -e "  ${YELLOW}!${NC} WhatsApp Service may still be starting..."
+    echo -e "      Check logs: ${CYAN}tail -50 $SCRIPT_DIR/logs/whatsapp.log${NC}"
 }
 
 # ============================================================================
