@@ -279,7 +279,7 @@ const createClient = () => {
     authStrategy = new RemoteAuth({
       clientId: SESSION_CLIENT_ID,
       store: store,
-      backupSyncIntervalMs: 10000 // CHANGED: Sync every 10s instead of 60s for durability
+      backupSyncIntervalMs: 60000 // Minimum allowed: 60s (library constraint)
     });
   } else {
     log('INFO', `Using LocalAuth with filesystem: ${SESSION_PATH}`);
