@@ -1,10 +1,22 @@
 {
-  "version": "2.4.2",
+  "version": "2.5.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 22,
+  "build": 23,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.5.0",
+      "date": "2026-02-05",
+      "changes": [
+        "MAJOR: RemoteAuth with MongoDB - sessions now stored in database",
+        "FIXED: Sessions persist across restarts, reboots, and unclean shutdowns",
+        "ADDED: Automatic fallback to LocalAuth if MongoDB unavailable",
+        "ADDED: Session saved event logging for persistence confirmation",
+        "IMPROVED: 15-second shutdown timeout for proper session save",
+        "IMPROVED: Status endpoint now shows session type (MongoDB/Filesystem)"
+      ]
+    },
     {
       "version": "2.4.2",
       "date": "2026-02-05",
