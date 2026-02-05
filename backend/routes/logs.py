@@ -195,8 +195,8 @@ async def get_log_summary():
     for paths in LOG_PATHS.values():
         log_path = find_log_file(paths)
         if log_path:
-            lines = read_log_file(log_path, 100)
-            error_count += len([l for line in lines if "error" in line.lower()])
+            log_lines = read_log_file(log_path, 100)
+            error_count += len([line for line in log_lines if "error" in line.lower()])
     
     return {
         "timestamp": now.isoformat(),
