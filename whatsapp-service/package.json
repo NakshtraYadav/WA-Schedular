@@ -8,10 +8,12 @@
     "clean": "node -e \"const fs=require('fs');['.wwebjs_auth','.wwebjs_cache'].forEach(p=>{if(fs.existsSync(p)){fs.rmSync(p,{recursive:true});console.log('Cleared:',p)}})\""
   },
   "dependencies": {
-    "whatsapp-web.js": "^1.34.6",
-    "qrcode": "^1.5.3",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "mongoose": "^9.1.6",
+    "qrcode": "^1.5.3",
+    "whatsapp-web.js": "^1.34.6",
+    "wwebjs-mongo": "^1.1.0"
   },
   "engines": {
     "node": ">=18.0.0"
