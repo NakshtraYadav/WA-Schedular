@@ -1,10 +1,19 @@
 {
-  "version": "2.1.3",
+  "version": "2.1.4",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 13,
+  "build": 14,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "2.1.4",
+      "date": "2026-02-05",
+      "changes": [
+        "Removed auto-updater from Settings UI",
+        "Toast notifications match app dark theme",
+        "Simplified update flow - manual updates only"
+      ]
+    },
     {
       "version": "2.1.3",
       "date": "2026-02-05",
