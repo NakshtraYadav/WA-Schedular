@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import httpx
 from models.contact import Contact, ContactCreate
 from services.contacts import crud, sync
-from services.contacts.crud import get_contacts_collection
 from core.config import WA_SERVICE_URL
 
 router = APIRouter(prefix="/contacts")
