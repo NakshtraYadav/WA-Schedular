@@ -32,6 +32,20 @@ app = FastAPI(title="WhatsApp Scheduler API")
 app.include_router(api_router)
 app.include_router(version_router, prefix="/api", tags=["Version"])
 
+
+# Root route for http://localhost:8001/
+@app.get("/")
+async def root():
+    """Root endpoint - service info"""
+    return {
+        "service": "WhatsApp Scheduler API",
+        "version": "2.7.0",
+        "status": "running",
+        "docs": "/docs",
+        "api": "/api/",
+        "health": "/api/health"
+    }
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
