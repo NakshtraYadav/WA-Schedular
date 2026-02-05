@@ -102,6 +102,46 @@ async def verify_bulk_numbers(phones: List[str] = Body(...), update_db: bool = T
         return {"success": False, "error": str(e)}
 
 
+@router.post("/verify-single/{phone}")
+async def verify_single_number(phone: str):
+    """Verify a single phone number and update database"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{WA_SERVICE_URL}/verify",
+                json={"phones": [phone]},
+                timeout=30.0
+            )
+            result = response.json()
+            
+            if result.get("success") and result.get("results"):
+                from core.database import get_database
+                database = await get_database()
+                r = result["results"][0]
+                
+                # Update contact in database
+                update_result = await database.contacts.update_many(
+                    {"$or": [{"phone": r["phone"]}, {"phone": r.get("cleanNumber", "")}]},
+                    {"$set": {
+                        "is_verified": r["isRegistered"],
+                        "whatsapp_id": r.get("whatsappId"),
+                        "verified_at": datetime.now(timezone.utc).isoformat() if r["isRegistered"] else None
+                    }}
+                )
+                
+                return {
+                    "success": True,
+                    "phone": phone,
+                    "isRegistered": r["isRegistered"],
+                    "whatsappId": r.get("whatsappId"),
+                    "updated": update_result.modified_count
+                }
+            
+            return result
+    except Exception as e:
+        return {"success": False, "phone": phone, "error": str(e)}
+
+
 @router.delete("/unverified")
 async def delete_unverified_contacts():
     """Delete all contacts that are not verified on WhatsApp"""
