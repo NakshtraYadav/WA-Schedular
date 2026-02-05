@@ -22,7 +22,8 @@ export {
   verifyWhatsAppNumber,
   verifyBulkNumbers,
   verifySingleContact,
-  deleteUnverifiedContacts
+  deleteUnverifiedContacts,
+  bulkDeleteContacts
 } from './contacts.api';
 
 // Templates
