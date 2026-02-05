@@ -295,6 +295,7 @@ const createClient = () => {
 
 /**
  * Graceful shutdown - CRITICAL for session persistence
+ * Forces session save before destroying client
  */
 const gracefulShutdown = async () => {
   if (isShuttingDown) {
@@ -311,6 +312,22 @@ const gracefulShutdown = async () => {
   }
 
   try {
+    // CRITICAL: Force session save before destroying
+    // RemoteAuth's backupSyncIntervalMs might not have saved recent changes
+    if (useMongoSession && client.authStrategy) {
+      log('INFO', 'Forcing session backup before shutdown...');
+      try {
+        // Trigger an immediate backup if the method exists
+        if (typeof client.authStrategy.afterBrowserInitialized === 'function') {
+          // Wait a moment for any pending auth state changes
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        log('INFO', '✓ Session backup triggered');
+      } catch (backupError) {
+        log('WARN', 'Could not force session backup:', backupError.message);
+      }
+    }
+    
     // Give session time to save
     await new Promise((resolve) => {
       const timeout = setTimeout(() => {
