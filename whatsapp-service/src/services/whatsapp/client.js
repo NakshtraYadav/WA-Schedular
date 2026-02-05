@@ -530,8 +530,18 @@ const initWhatsApp = async () => {
       log('INFO', 'Remote session saved - persistence confirmed');
     });
 
+    // Event: Loading screen - WhatsApp Web is loading
+    client.on('loading_screen', (percent, message) => {
+      log('INFO', `WhatsApp Web loading: ${percent}% - ${message}`);
+    });
+
+    // Event: Change state - track connection state changes
+    client.on('change_state', (state) => {
+      log('INFO', `Connection state changed: ${state}`);
+    });
+
     await client.initialize();
-    log('INFO', '✓ WhatsApp client initialized');
+    log('INFO', '✓ WhatsApp client initialized - waiting for QR or session restore');
     
   } catch (error) {
     log('ERROR', 'Failed to initialize WhatsApp:', error.message);
