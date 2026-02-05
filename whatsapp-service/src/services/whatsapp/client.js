@@ -136,6 +136,46 @@ const validateSessionStorage = () => {
 };
 
 /**
+ * Clean up stale browser locks and processes (especially for WSL)
+ */
+const cleanupStaleBrowser = () => {
+  const sessionDir = path.join(SESSION_PATH, `session-${SESSION_CLIENT_ID}`);
+  
+  // List of lock files that can prevent browser from starting
+  const lockFiles = [
+    'SingletonLock',
+    'SingletonCookie',
+    'SingletonSocket'
+  ];
+
+  for (const lockFile of lockFiles) {
+    const lockPath = path.join(sessionDir, lockFile);
+    if (fs.existsSync(lockPath)) {
+      try {
+        fs.unlinkSync(lockPath);
+        log('INFO', `Removed stale lock: ${lockFile}`);
+      } catch (e) {
+        log('WARN', `Could not remove ${lockFile}:`, e.message);
+      }
+    }
+  }
+
+  // Kill any orphaned chromium processes (WSL-friendly)
+  try {
+    const { execSync } = require('child_process');
+    // Find and kill chromium processes that might be stuck
+    execSync('pkill -f "chromium.*userDataDir.*wa-scheduler" 2>/dev/null || true', { stdio: 'ignore' });
+    execSync('pkill -f "chrome.*userDataDir.*wa-scheduler" 2>/dev/null || true', { stdio: 'ignore' });
+    log('INFO', 'Cleaned up any orphaned browser processes');
+  } catch (e) {
+    // Ignore errors - process may not exist
+  }
+
+  // Small delay to ensure processes are fully terminated
+  return new Promise(resolve => setTimeout(resolve, 1000));
+};
+
+/**
  * Check if existing session data exists
  * Returns: 'valid' | 'corrupt' | 'none'
  */
@@ -158,18 +198,6 @@ const checkExistingSession = () => {
     if (!fs.existsSync(fullPath)) {
       log('WARN', `Session appears corrupt: missing ${criticalPath}`);
       return 'corrupt';
-    }
-  }
-
-  // Check for lock files (indicates unclean shutdown)
-  const lockFile = path.join(sessionDir, 'SingletonLock');
-  if (fs.existsSync(lockFile)) {
-    log('WARN', 'Found stale lock file - previous unclean shutdown');
-    try {
-      fs.unlinkSync(lockFile);
-      log('INFO', 'Removed stale lock file');
-    } catch (e) {
-      log('WARN', 'Could not remove lock file:', e.message);
     }
   }
 
