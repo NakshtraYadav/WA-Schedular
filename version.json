@@ -1,10 +1,20 @@
 {
-  "version": "2.2.1",
+  "version": "2.3.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 17,
+  "build": 18,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.3.0",
+      "date": "2026-02-05",
+      "changes": [
+        "ADDED: Edit scheduled messages (PUT /api/schedules/{id})",
+        "ADDED: Get single schedule (GET /api/schedules/{id})",
+        "ADDED: QR code auto-refresh every 30 seconds (no more expired QR)",
+        "IMPROVED: QR age tracking in status endpoint"
+      ]
+    },
     {
       "version": "2.2.1",
       "date": "2026-02-05",
