@@ -39,7 +39,7 @@ async def root():
     """Root endpoint - service info"""
     return {
         "service": "WhatsApp Scheduler API",
-        "version": "3.1.0",
+        "version": "3.2.0",
         "status": "running",
         "docs": "/docs",
         "api": "/api/",

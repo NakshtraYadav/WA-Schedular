@@ -1,10 +1,27 @@
 {
-  "version": "3.1.0",
+  "version": "3.2.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 40,
-  "release_date": "2026-02-05",
+  "build": 41,
+  "release_date": "2026-02-06",
   "changelog": [
+    {
+      "version": "3.2.0",
+      "date": "2026-02-06",
+      "changes": [
+        "NEW: Web-based update system - no terminal required",
+        "NEW: POST /api/system/update - trigger updates from UI",
+        "NEW: POST /api/system/restart - graceful restart from UI",
+        "NEW: POST /api/system/rollback - rollback to previous version",
+        "NEW: GET /api/system/update-status - real-time update progress",
+        "NEW: GET /api/system/health - comprehensive system health check",
+        "IMPROVED: Bulletproof setup.sh with automatic Node.js/Python/MongoDB installation",
+        "IMPROVED: Setup script works on Ubuntu, Debian, Fedora, CentOS, macOS, WSL",
+        "IMPROVED: Automatic dependency detection and installation",
+        "IMPROVED: Better error handling during setup",
+        "FIXED: npm command not found issue during setup"
+      ]
+    },
     {
       "version": "3.1.0",
       "date": "2026-02-05",
