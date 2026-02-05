@@ -585,5 +585,7 @@ module.exports = {
   createClient,
   gracefulShutdown,
   validateSessionStorage,
-  checkExistingSession
+  checkExistingSession,
+  cleanupStaleBrowser,
+  useMongoSession: () => useMongoSession
 };
