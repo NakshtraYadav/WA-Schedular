@@ -1,10 +1,22 @@
 {
-  "version": "2.6.0",
+  "version": "2.6.1",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 29,
+  "build": 30,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.6.1",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: Contact verification status now displays correctly after verification",
+        "FIXED: Added is_verified, whatsapp_id, verified_at fields to Contact model",
+        "NEW: Real-time verification - status updates as each contact is verified",
+        "NEW: Visual feedback showing which contact is being verified (spinner)",
+        "NEW: POST /api/contacts/verify-single/:phone endpoint for single contact verification",
+        "IMPROVED: Verify All now shows progress (e.g., 'Verifying 5/100 contacts...')"
+      ]
+    },
     {
       "version": "2.6.0",
       "date": "2026-02-05",
