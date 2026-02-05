@@ -140,9 +140,63 @@ class WhatsAppSchedulerTester:
         
         passed = 0
         for name, method, endpoint, expected in tests:
-            success, _ = self.run_test(name, method, endpoint, expected)
+            success, response = self.run_test(name, method, endpoint, expected)
             if success:
                 passed += 1
+                # Validate update check response structure
+                if endpoint == "updates/check" and isinstance(response, dict):
+                    required_fields = ['has_update', 'local', 'remote']
+                    missing_fields = [field for field in required_fields if field not in response]
+                    if missing_fields:
+                        print(f"⚠️  Warning: Missing fields in update response: {missing_fields}")
+                    else:
+                        print(f"✅ Update check response complete: has_update={response.get('has_update')}")
+        
+        return passed == len(tests)
+
+    def test_update_install_endpoint(self):
+        """Test update install endpoint (POST)"""
+        print(f"\n🔍 Testing Update Install (POST)...")
+        print("   Note: This will attempt to install updates if available")
+        
+        success, response = self.run_test(
+            "Install Update",
+            "POST", 
+            "updates/install",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if response.get('success'):
+                print(f"✅ Update install successful: {response.get('message', 'No message')}")
+                if 'new_version' in response:
+                    print(f"   New version: {response['new_version']}")
+                if 'files_changed' in response:
+                    print(f"   Files changed: {response['files_changed']}")
+            else:
+                print(f"⚠️  Update install returned success=false: {response.get('error', 'No error message')}")
+        
+        return success
+
+    def test_diagnostics_endpoints(self):
+        """Test diagnostics endpoints"""
+        tests = [
+            ("Diagnostics Overview", "GET", "diagnostics", 200),
+            ("Backend Logs", "GET", "diagnostics/logs/backend", 200),
+            ("All Logs Summary", "GET", "diagnostics/logs", 200),
+        ]
+        
+        passed = 0
+        for name, method, endpoint, expected in tests:
+            success, response = self.run_test(name, method, endpoint, expected)
+            if success:
+                passed += 1
+                # Validate specific responses
+                if endpoint == "diagnostics/logs/backend" and isinstance(response, dict):
+                    if 'logs' in response and 'service' in response:
+                        print(f"✅ Backend logs retrieved: {len(response.get('logs', []))} lines")
+                    else:
+                        print(f"⚠️  Backend logs response missing expected fields")
         
         return passed == len(tests)
 
