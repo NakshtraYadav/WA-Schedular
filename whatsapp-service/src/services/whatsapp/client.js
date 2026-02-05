@@ -47,7 +47,8 @@ const getState = () => ({
   isInitializing,
   initError,
   initRetries,
-  sessionPath: SESSION_PATH,
+  sessionPath: useMongoSession ? 'MongoDB' : SESSION_PATH,
+  sessionType: useMongoSession ? 'RemoteAuth (MongoDB)' : 'LocalAuth (Filesystem)',
   qrAge: lastQrTime ? Math.floor((Date.now() - lastQrTime) / 1000) : null
 });
 
