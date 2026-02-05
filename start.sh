@@ -327,8 +327,15 @@ start_frontend() {
 start_whatsapp() {
     echo -e "  ${CYAN}→${NC} Starting WhatsApp Service (port 3001)..."
     
-    # Kill existing processes
-    kill_process "whatsapp" "node.*whatsapp" 3001
+    # Kill existing processes (gracefully first)
+    WA_PID=$(lsof -t -i:3001 2>/dev/null | head -1)
+    if [ -n "$WA_PID" ]; then
+        kill -TERM $WA_PID 2>/dev/null
+        sleep 2
+        if kill -0 $WA_PID 2>/dev/null; then
+            kill -9 $WA_PID 2>/dev/null
+        fi
+    fi
     
     # Clean up stale browser locks (critical for first run and WSL)
     WA_SESSION_DIR="$SCRIPT_DIR/data/whatsapp-sessions/session-wa-scheduler"
@@ -365,12 +372,23 @@ start_whatsapp() {
     nohup node index.js > "$SCRIPT_DIR/logs/whatsapp.log" 2>&1 &
     echo $! > "$SCRIPT_DIR/.pids/whatsapp.pid"
     
-    # Wait longer for WhatsApp service (it needs time to initialize browser)
+    # Wait longer for WhatsApp service (it needs time to initialize browser and restore session)
     echo -n "  Waiting for WhatsApp service"
-    for i in {1..20}; do
+    for i in {1..30}; do
         if curl -s http://localhost:3001/health > /dev/null 2>&1; then
             echo ""
             echo -e "  ${GREEN}✓${NC} WhatsApp Service running"
+            
+            # Check if session is being restored
+            sleep 3
+            STATUS=$(curl -s http://localhost:3001/status 2>/dev/null)
+            if echo "$STATUS" | grep -q '"isReady":true'; then
+                echo -e "  ${GREEN}✓${NC} WhatsApp session restored - connected!"
+            elif echo "$STATUS" | grep -q '"isInitializing":true'; then
+                echo -e "  ${CYAN}→${NC} WhatsApp session restoring..."
+            elif echo "$STATUS" | grep -q '"hasQrCode":true'; then
+                echo -e "  ${YELLOW}!${NC} WhatsApp needs QR scan - open web interface"
+            fi
             return 0
         fi
         echo -n "."
