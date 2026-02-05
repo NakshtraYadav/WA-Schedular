@@ -42,7 +42,8 @@ const getState = () => ({
   isInitializing,
   initError,
   initRetries,
-  sessionPath: SESSION_PATH
+  sessionPath: SESSION_PATH,
+  qrAge: lastQrTime ? Math.floor((Date.now() - lastQrTime) / 1000) : null
 });
 
 const setState = (updates) => {
@@ -53,6 +54,38 @@ const setState = (updates) => {
   if (updates.isInitializing !== undefined) isInitializing = updates.isInitializing;
   if (updates.initError !== undefined) initError = updates.initError;
   if (updates.initRetries !== undefined) initRetries = updates.initRetries;
+};
+
+/**
+ * Start QR refresh timer - regenerates QR every 30 seconds
+ */
+const startQrRefreshTimer = () => {
+  stopQrRefreshTimer();
+  
+  qrRefreshTimer = setInterval(async () => {
+    if (!isReady && !isAuthenticated && qrCodeData && client) {
+      const qrAge = lastQrTime ? (Date.now() - lastQrTime) / 1000 : 0;
+      if (qrAge >= 25) { // Refresh a bit before 30s to be safe
+        log('INFO', 'QR code expiring, requesting refresh...');
+        try {
+          // Destroy and reinitialize to get fresh QR
+          await gracefulShutdown();
+          setTimeout(() => initWhatsApp(), 2000);
+        } catch (e) {
+          log('WARN', 'QR refresh error:', e.message);
+        }
+      }
+    }
+  }, 5000); // Check every 5 seconds
+  
+  log('INFO', 'QR auto-refresh timer started');
+};
+
+const stopQrRefreshTimer = () => {
+  if (qrRefreshTimer) {
+    clearInterval(qrRefreshTimer);
+    qrRefreshTimer = null;
+  }
 };
 
 /**
