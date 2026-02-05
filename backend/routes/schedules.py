@@ -272,49 +272,6 @@ async def get_schedule(schedule_id: str):
     return schedule
 
 
-@router.get("/debug")
-async def debug_schedules():
-    """Debug endpoint to see scheduler status"""
-    database = await get_database()
-    
-    db_schedules = await database.schedules.find({}, {"_id": 0}).to_list(100)
-    
-    scheduler_jobs = []
-    for job in scheduler.get_jobs():
-        next_run = job.next_run_time
-        scheduler_jobs.append({
-            "id": job.id,
-            "name": job.name,
-            "next_run": next_run.isoformat() if next_run else None,
-            "trigger": str(job.trigger)
-        })
-    
-    return {
-        "database": {
-            "total_schedules": len(db_schedules),
-            "active_schedules": len([s for s in db_schedules if s.get('is_active')]),
-            "schedules": [{
-                "id": s["id"],
-                "contact": s.get("contact_name"),
-                "type": s.get("schedule_type"),
-                "is_active": s.get("is_active"),
-                "cron": s.get("cron_expression"),
-                "scheduled_time": s.get("scheduled_time"),
-                "last_run": s.get("last_run")
-            } for s in db_schedules]
-        },
-        "scheduler": {
-            "running": scheduler.running,
-            "job_count": len(scheduler_jobs),
-            "jobs": scheduler_jobs
-        },
-        "server_time": {
-            "utc": datetime.now(timezone.utc).isoformat(),
-            "local": datetime.now().isoformat()
-        }
-    }
-
-
 @router.post("/test-run/{schedule_id}")
 async def test_run_schedule(schedule_id: str):
     """Manually trigger a schedule to test if it works"""
@@ -337,29 +294,3 @@ async def test_run_schedule(schedule_id: str):
             "message_preview": schedule.get("message", "")[:50]
         }
     }
-
-
-# Send Now endpoint
-@router.post("/send-now")
-async def send_message_now(contact_id: str, message: str):
-    """Send a message immediately"""
-    database = await get_database()
-    contact = await database.contacts.find_one({"id": contact_id}, {"_id": 0})
-    if not contact:
-        raise HTTPException(status_code=404, detail="Contact not found")
-    
-    result = await send_whatsapp_message(contact['phone'], message)
-    
-    log = MessageLog(
-        contact_id=contact_id,
-        contact_name=contact['name'],
-        contact_phone=contact['phone'],
-        message=message,
-        status="sent" if result.get('success') else "failed",
-        error_message=result.get('error')
-    )
-    log_doc = log.model_dump()
-    log_doc['sent_at'] = log_doc['sent_at'].isoformat()
-    await database.logs.insert_one(log_doc)
-    
-    return result
