@@ -219,9 +219,9 @@ function Connect() {
           <CardContent>
             <p className="text-sm text-destructive mb-4">{status.error}</p>
             <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
-              <p className="text-sm font-medium text-amber-500 mb-2">This is a known issue. Here's how to fix it:</p>
+              <p className="text-sm font-medium text-amber-500 mb-2">This is a known issue. Here is how to fix it:</p>
               <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1">
-                <li>Click <strong>"Clear Session & Retry"</strong> below</li>
+                <li>Click <strong>Clear Session &amp; Retry</strong> below</li>
                 <li>Wait 30-90 seconds for reinitialization</li>
                 <li>If it still fails, run <code className="bg-secondary px-1 rounded">scripts\fix-whatsapp.bat</code></li>
                 <li>Make sure Google Chrome is installed and no Chrome windows are open</li>
