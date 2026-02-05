@@ -68,18 +68,6 @@ router.get('/session-info', async (req, res) => {
     }
   });
 });
-      fileCount: sessionInfo.fileCount
-    },
-    persistence: {
-      willSurviveRestart: storageValid && sessionInfo.exists,
-      recommendation: !sessionInfo.exists 
-        ? 'Scan QR code to create persistent session' 
-        : sessionStatus === 'valid' 
-          ? 'Session will persist across restarts' 
-          : 'Session may be corrupt, consider rescanning'
-    }
-  });
-});
 
 // GET /qr
 router.get('/qr', async (req, res) => {
