@@ -21,43 +21,54 @@ const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/wa_schedul
 
 /**
  * Initialize MongoDB connection for session storage
+ * Includes retry logic for startup race conditions
  */
-const initSessionStore = async () => {
+const initSessionStore = async (retries = 3) => {
   if (isConnected && store) {
     return store;
   }
 
-  try {
-    log('INFO', 'Connecting to MongoDB for session storage...');
-    
-    // Connect mongoose
-    await mongoose.connect(MONGO_URL, {
-      serverSelectionTimeoutMS: 5000,
-      maxPoolSize: 5
-    });
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      log('INFO', `Connecting to MongoDB for session storage (attempt ${attempt}/${retries})...`);
+      
+      // Connect mongoose with timeout
+      await mongoose.connect(MONGO_URL, {
+        serverSelectionTimeoutMS: 5000,
+        maxPoolSize: 5
+      });
 
-    // Create the store
-    store = new MongoStore({ mongoose });
-    isConnected = true;
-
-    log('INFO', '✓ MongoDB session store initialized');
-    log('INFO', `  Database: ${MONGO_URL.split('@').pop() || MONGO_URL}`);
-
-    // Handle connection events
-    mongoose.connection.on('disconnected', () => {
-      log('WARN', 'MongoDB disconnected');
-      isConnected = false;
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      log('INFO', 'MongoDB reconnected');
+      // Create the store
+      store = new MongoStore({ mongoose });
       isConnected = true;
-    });
 
-    return store;
-  } catch (error) {
-    log('ERROR', 'Failed to initialize MongoDB session store:', error.message);
-    throw error;
+      log('INFO', '✓ MongoDB session store initialized');
+      log('INFO', `  Database: ${MONGO_URL.split('@').pop() || MONGO_URL}`);
+
+      // Handle connection events
+      mongoose.connection.on('disconnected', () => {
+        log('WARN', 'MongoDB disconnected');
+        isConnected = false;
+      });
+
+      mongoose.connection.on('reconnected', () => {
+        log('INFO', 'MongoDB reconnected');
+        isConnected = true;
+      });
+
+      return store;
+    } catch (error) {
+      log('WARN', `MongoDB connection attempt ${attempt} failed: ${error.message}`);
+      
+      if (attempt < retries) {
+        const delay = attempt * 2000; // 2s, 4s, 6s
+        log('INFO', `Retrying in ${delay/1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        log('ERROR', 'Failed to initialize MongoDB session store after all retries');
+        throw error;
+      }
+    }
   }
 };
 
