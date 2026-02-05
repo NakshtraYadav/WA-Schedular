@@ -624,6 +624,7 @@ case "${1:-start}" in
         echo ""
         echo "Usage: ./start.sh [command]"
         echo ""
+        echo -e "  ${CYAN}setup${NC}             Install all dependencies (first time)"
         echo "  start             Start all services"
         echo "  stop              Stop all services"
         echo "  restart           Full restart"
