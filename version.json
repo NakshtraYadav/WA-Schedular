@@ -1,10 +1,19 @@
 {
-  "version": "2.3.0",
+  "version": "2.3.1",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 18,
+  "build": 19,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.3.1",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: Update checker now uses git fetch to detect updates (more reliable)",
+        "FIXED: Update check from localhost now works same as ./start.sh update",
+        "ADDED: Shows number of commits behind when update available"
+      ]
+    },
     {
       "version": "2.3.0",
       "date": "2026-02-05",
