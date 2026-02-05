@@ -3,8 +3,9 @@
  */
 const express = require('express');
 const router = express.Router();
-const { getClient, initWhatsApp, setState, gracefulShutdown } = require('../services/whatsapp/client');
-const { clearSession, backupSession } = require('../services/session/manager');
+const { getClient, initWhatsApp, setState, gracefulShutdown, useMongoSession } = require('../services/whatsapp/client');
+const { clearSession: clearLocalSession, backupSession } = require('../services/session/manager');
+const { deleteSession: deleteMongoSession } = require('../services/session/mongoStore');
 const { log } = require('../utils/logger');
 
 // POST /logout
@@ -45,8 +46,15 @@ router.post('/clear-session', async (req, res) => {
     // Wait for cleanup
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Clear session with backup
-    const result = await clearSession(true);
+    // Clear session based on storage type
+    let result;
+    if (useMongoSession()) {
+      log('INFO', 'Clearing MongoDB session...');
+      result = await deleteMongoSession('wa-scheduler');
+    } else {
+      log('INFO', 'Clearing filesystem session...');
+      result = await clearLocalSession(true);
+    }
     
     if (result.success) {
       // Reinitialize after delay
@@ -63,8 +71,12 @@ router.post('/clear-session', async (req, res) => {
 // POST /backup-session
 router.post('/backup-session', async (req, res) => {
   try {
-    const result = await backupSession();
-    res.json(result);
+    if (useMongoSession()) {
+      res.json({ success: true, message: 'MongoDB sessions are automatically backed up' });
+    } else {
+      const result = await backupSession();
+      res.json(result);
+    }
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
