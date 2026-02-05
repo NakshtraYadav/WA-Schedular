@@ -1,10 +1,20 @@
 {
-  "version": "2.1.4",
+  "version": "2.1.5",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 14,
-  "release_date": "2026-02-04",
+  "build": 15,
+  "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.1.5",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: Update from localhost now works (added REACT_APP_BACKEND_URL)",
+        "FIXED: Telegram test button error (apiClient import issue)",
+        "FIXED: Version context refresh function naming",
+        "FIXED: Diagnostics now finds logs in both direct files and subdirectories"
+      ]
+    },
     {
       "version": "2.1.4",
       "date": "2026-02-05",
