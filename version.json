@@ -1,10 +1,21 @@
 {
-  "version": "2.3.1",
+  "version": "2.4.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 19,
+  "build": 20,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.4.0",
+      "date": "2026-02-05",
+      "changes": [
+        "ADDED: Edit scheduled messages - click pencil icon to modify",
+        "ADDED: WhatsApp number verification before adding contacts",
+        "ADDED: Verify single number: GET /api/contacts/verify/{phone}",
+        "ADDED: Bulk verification: POST /api/contacts/verify-bulk",
+        "IMPROVED: Contact creation now validates number is on WhatsApp"
+      ]
+    },
     {
       "version": "2.3.1",
       "date": "2026-02-05",
