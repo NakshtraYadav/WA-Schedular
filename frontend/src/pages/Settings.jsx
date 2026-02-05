@@ -175,8 +175,8 @@ function SettingsPage() {
       // Save first to ensure token is stored
       await updateSettings(settings);
       
-      // Then test
-      const response = await apiClient.post('/api/telegram/test');
+      // Then test using the proper API function
+      const response = await testTelegram();
       const result = response.data;
       
       if (result.success) {
