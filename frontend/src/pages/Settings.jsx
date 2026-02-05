@@ -68,7 +68,10 @@ function SettingsPage() {
         telegram_token: settingsRes.data.telegram_token || '',
         telegram_chat_id: settingsRes.data.telegram_chat_id || '',
         telegram_enabled: settingsRes.data.telegram_enabled || false,
-        timezone: settingsRes.data.timezone || tzRes.data.system_timezone || ''
+        timezone: settingsRes.data.timezone || tzRes.data.system_timezone || '',
+        openai_api_key: settingsRes.data.openai_api_key || '',
+        openai_model: settingsRes.data.openai_model || 'gpt-4o-mini',
+        ai_enabled: settingsRes.data.ai_enabled || false
       });
       setTimezoneInfo({
         system_timezone: tzRes.data.system_timezone,
