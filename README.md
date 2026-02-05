@@ -1,368 +1,393 @@
-<div align="center">
-
 # 📱 WA Scheduler
 
-**Schedule and automate your WhatsApp messages**
+> **Production-grade WhatsApp message scheduling with Telegram remote control**
 
-[![Version](https://img.shields.io/badge/Version-2.2.0-brightgreen)](https://github.com/NakshtraYadav/WA-Schedular/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://python.org/)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20WSL-lightgrey)](https://ubuntu.com/)
+Schedule one-time or recurring WhatsApp messages with an elegant web interface. Control everything remotely via Telegram bot. Never forget a birthday or appointment reminder again.
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Commands](#-commands) • [Telegram](#-telegram-bot) • [Architecture](#-architecture)
-
-</div>
+![Version](https://img.shields.io/badge/version-3.2.2-blue)
+![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green)
+![Python](https://img.shields.io/badge/python-%3E%3D3.9-yellow)
+![License](https://img.shields.io/badge/license-MIT-purple)
 
 ---
 
 ## ✨ Features
 
-| Feature | Description |
-|---------|-------------|
-| 📅 **Schedule Messages** | One-time or recurring (cron-based) |
-| ⚡ **Send Now** | Instant message sending |
-| 👥 **Contact Management** | Store and organize contacts |
-| 📝 **Message Templates** | Save and reuse templates |
-| 🤖 **Telegram Bot** | Control remotely via Telegram |
-| 📊 **Dashboard** | Real-time stats and message history |
-| 🔄 **One-Click Updates** | Update from UI in ~3 seconds |
-| 🔧 **Diagnostics** | Monitor service health |
-| ♻️ **Hot Reload** | Code changes apply instantly |
-| 💾 **Session Persistence** | WhatsApp stays connected across restarts |
+- **📅 Smart Scheduling** - One-time or recurring (cron) message scheduling
+- **👥 Contact Management** - Import, organize, and verify WhatsApp contacts
+- **📝 Message Templates** - Save and reuse message templates with variables
+- **🤖 Telegram Bot** - Full remote control via Telegram commands
+- **🔄 Session Persistence** - Never scan QR again after initial setup
+- **📊 Dashboard** - Real-time stats and message history
+- **🌙 Dark Mode** - Beautiful dark theme UI
+- **🔒 Secure** - Local-first, your data stays on your machine
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- **Node.js** 18+ 
-- **Python** 3.8+
-- **MongoDB** (local or remote)
-- **Git**
-
-### Installation (Ubuntu/Debian/WSL)
+### One-Line Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/NakshtraYadav/WA-Schedular.git
-cd WA-Schedular
+git clone https://github.com/YourUsername/WA-Scheduler.git && cd WA-Scheduler && chmod +x setup.sh && ./setup.sh
+```
 
-# Full system setup (installs Node, Python, Chromium, MongoDB)
-chmod +x *.sh
-./setup.sh
+### Start the Application
 
-# OR quick setup (dependencies only, if system tools already installed)
-./start.sh setup
-
-# Start all services
+```bash
 ./start.sh
 ```
 
-### Open in Browser
-
-| Service | URL |
-|---------|-----|
-| **Dashboard** | http://localhost:3000 |
-| **Connect WhatsApp** | http://localhost:3000/connect |
-| **Settings** | http://localhost:3000/settings |
-| **Diagnostics** | http://localhost:3000/diagnostics |
-| **Backend API** | http://localhost:8001/api |
-
-### Connect WhatsApp
-
-1. Open http://localhost:3000/connect
-2. Scan the QR code with WhatsApp on your phone
-3. You're connected! 🎉
-4. Session persists across restarts (no rescan needed)
+Then open **http://localhost:3000** in your browser.
 
 ---
 
-## 📋 Commands
+## 📋 Requirements
 
-### Main Script: `./start.sh`
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| Node.js | 18+ | Installed automatically by setup |
+| Python | 3.9+ | Installed automatically by setup |
+| MongoDB | 6.0+ | Installed automatically by setup |
+| Chrome/Chromium | Latest | Required for WhatsApp Web |
+| RAM | 4GB+ | 8GB recommended |
 
-This is the **primary control script** for everything:
+### Supported Platforms
 
-```bash
-./start.sh [command]
-```
+- ✅ Ubuntu 20.04+ / Debian 11+
+- ✅ Fedora 36+ / CentOS 8+ / RHEL 8+
+- ✅ macOS 12+ (Intel & Apple Silicon)
+- ✅ Windows 10/11 (via WSL2)
 
-| Command | Shortcut | Description |
-|---------|----------|-------------|
-| `./start.sh` | | Start all services |
-| `./start.sh setup` | `install` | Install dependencies (first time) |
-| `./start.sh stop` | | Stop all services |
-| `./start.sh restart` | `r` | Full restart |
-| `./start.sh restart-frontend` | `rf` | Restart frontend only |
-| `./start.sh restart-backend` | `rb` | Restart backend only |
-| `./start.sh update` | `u`, `pull` | Pull latest from GitHub |
-| `./start.sh status` | `s` | Check service status |
-| `./start.sh logs` | `l` | View all logs |
-| `./start.sh logs backend` | `l b` | View backend logs only |
-| `./start.sh logs frontend` | `l f` | View frontend logs only |
-| `./start.sh logs whatsapp` | `l w` | View WhatsApp logs only |
-| `./start.sh diagnose` | `d`, `diag` | Debug startup issues |
+---
 
-### Additional Scripts (Optional)
+## 🛠️ Installation
 
-These scripts provide extra functionality or interactive modes:
+### Automatic Setup (Recommended)
 
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `./setup.sh` | Full system setup | Fresh Ubuntu/WSL install (installs Node, Python, Chromium, MongoDB) |
-| `./stop.sh` | Forceful stop | When `./start.sh stop` doesn't fully stop services |
-| `./status.sh` | Detailed status | More detailed than `./start.sh status` (includes WhatsApp details) |
-| `./logs.sh` | Interactive log viewer | Browse logs with menu selection |
-| `./fix-whatsapp.sh` | Reset WhatsApp session | When WhatsApp won't connect (clears session, requires new QR scan) |
-
-### Quick Reference
+The setup script handles everything:
 
 ```bash
-# Daily usage
-./start.sh              # Start everything
-./start.sh stop         # Stop everything
-./start.sh status       # Check if running
-
-# Updates
-./start.sh update       # Pull latest code from GitHub
-
-# Troubleshooting
-./start.sh diagnose     # System diagnostics
-./start.sh logs         # View recent logs
-./start.sh restart      # Full restart
-
-# First time setup
-./setup.sh              # Full system setup (recommended)
-# OR
-./start.sh setup        # Just install dependencies
+chmod +x setup.sh
+./setup.sh
 ```
+
+This will:
+- ✅ Install Node.js 18 (if missing)
+- ✅ Install Python 3.9+ (if missing)
+- ✅ Install/Start MongoDB (if missing)
+- ✅ Install Chromium (if missing)
+- ✅ Create Python virtual environment
+- ✅ Install all npm packages
+- ✅ Install all pip packages
+- ✅ Create .env configuration files
+
+### Manual Setup
+
+<details>
+<summary>Click to expand manual setup instructions</summary>
+
+```bash
+# 1. Install Node.js 18+
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo bash -
+sudo apt-get install -y nodejs
+
+# 2. Install Python 3.9+
+sudo apt-get install -y python3 python3-pip python3-venv
+
+# 3. Install MongoDB
+# See: https://www.mongodb.com/docs/manual/installation/
+
+# 4. Install Chromium
+sudo apt-get install -y chromium-browser
+
+# 5. Setup Backend
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # Edit with your settings
+
+# 6. Setup Frontend
+cd ../frontend
+npm install --legacy-peer-deps
+cp .env.example .env
+
+# 7. Setup WhatsApp Service
+cd ../whatsapp-service
+npm install
+cp .env.example .env
+```
+
+</details>
+
+---
+
+## 🎮 Usage
+
+### Starting Services
+
+```bash
+# Start all services
+./start.sh
+
+# Start in background
+./start.sh &
+
+# View status
+./start.sh status
+
+# Stop all services
+./stop.sh
+```
+
+### First-Time Setup
+
+1. Open **http://localhost:3000**
+2. Go to **Connect** page
+3. Click the QR placeholder to generate a QR code
+4. Scan with WhatsApp on your phone
+5. Start scheduling messages!
+
+### Telegram Bot Setup (Optional)
+
+1. Create a bot with [@BotFather](https://t.me/botfather)
+2. Get your chat ID from [@userinfobot](https://t.me/userinfobot)
+3. Go to **Settings** in the web UI
+4. Enter your bot token and chat ID
+5. Send `/start` to your bot
+
+**Available Commands:**
+- `/status` - Check connection status
+- `/send <phone> <message>` - Send message now
+- `/schedule` - View scheduled messages
+- `/contacts` - List contacts
+- `/help` - Show all commands
 
 ---
 
 ## 🔄 Updates
 
-### From the Web UI (Recommended)
+### Automatic Updates (Web UI)
 
-1. Go to **Settings** page
-2. See "Update Available" notification
-3. Click **Install Update**
-4. Page auto-refreshes with new version (~3 seconds)
+Updates can be triggered directly from the web interface:
 
-### From Terminal
+1. Go to **Settings**
+2. Click **Check for Updates**
+3. Click **Update Now** if available
 
+Or via API:
 ```bash
-./start.sh update
+curl -X POST http://localhost:8001/api/system/update
 ```
 
-### How It Works
+### Manual Updates
 
-- Uses **hot reload** - no full restart needed
-- Backend: ~1 second to apply
-- Frontend: ~2-3 seconds to apply
-- Dependencies auto-install if changed
+```bash
+# Pull latest changes
+git pull origin main
 
----
-
-## 🤖 Telegram Bot
-
-Control your scheduler remotely via Telegram!
-
-### Setup
-
-1. Create a bot with [@BotFather](https://t.me/BotFather)
-2. Copy the bot token
-3. Go to **Settings** → Paste token → Enable
-4. Send `/start` to your bot
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `/status` | Check WhatsApp connection |
-| `/contacts` | List all contacts |
-| `/search <name>` | Search contacts |
-| `/schedules` | List active schedules |
-| `/send <name> <msg>` | Send message now |
-| `/create` | Create new schedule (wizard) |
-| `/logs` | Recent message history |
-| `/help` | Show all commands |
+# Run zero-touch update
+./scripts/zero-touch-update.sh
+```
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Frontend     │────▶│    Backend      │────▶│    WhatsApp     │
-│   React:3000    │     │  FastAPI:8001   │     │  Service:3001   │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                               │
-                               ▼
-                        ┌─────────────────┐
-                        │    MongoDB      │
-                        │     :27017      │
-                        └─────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        Frontend                              │
+│                    React (Port 3000)                        │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                        Backend                               │
+│                  FastAPI (Port 8001)                        │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ Contacts │  │Schedules │  │ Telegram │  │  System  │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+          ┌───────────────┴───────────────┐
+          ▼                               ▼
+┌─────────────────────┐     ┌─────────────────────────────────┐
+│      MongoDB        │     │      WhatsApp Service           │
+│    (Port 27017)     │     │      Node.js (Port 3001)        │
+│                     │     │                                 │
+│  • Contacts         │     │  • Session Management           │
+│  • Schedules        │     │  • Message Sending              │
+│  • Message Logs     │     │  • QR Code Generation           │
+│  • Sessions         │     │  • Connection Monitoring        │
+└─────────────────────┘     └─────────────────────────────────┘
 ```
-
-### Session Persistence (v2.2.0+)
-
-WhatsApp sessions are now stored persistently:
-- **Location:** `/app/data/whatsapp-sessions/`
-- **Survives:** Server restart, system reboot, days offline
-- **No more QR rescans** after initial connection
 
 ---
 
 ## 📁 Project Structure
 
 ```
-WA-Schedular/
-├── backend/                    # FastAPI Python backend
-│   ├── server.py               # Entry point
-│   ├── venv/                   # Python virtual environment
-│   ├── core/                   # Config, database, scheduler
-│   ├── models/                 # Pydantic models
-│   ├── routes/                 # API endpoints
-│   └── services/               # Business logic
-│       ├── whatsapp/           # WhatsApp HTTP client
-│       ├── telegram/           # Telegram bot
-│       ├── scheduler/          # Job execution
-│       └── updates/            # Update system
-│
-├── frontend/                   # React frontend
-│   └── src/
-│       ├── api/                # API layer
-│       ├── components/         # UI components
-│       ├── context/            # React contexts
-│       ├── hooks/              # Custom hooks
-│       └── pages/              # Page components
-│
-├── whatsapp-service/           # WhatsApp Web automation
-│   └── src/
-│       ├── routes/             # API routes
-│       └── services/           # WhatsApp client
-│
-├── data/                       # Persistent data
-│   └── whatsapp-sessions/      # WhatsApp session storage
-│
-├── logs/                       # Service logs
-│
-├── start.sh                    # Main control script ⭐
-├── setup.sh                    # Full system setup
-├── stop.sh                     # Force stop services
-├── status.sh                   # Detailed status
-├── logs.sh                     # Interactive log viewer
-├── fix-whatsapp.sh             # Reset WhatsApp session
-│
-├── version.json                # Version info
-└── README.md
+WA-Scheduler/
+├── backend/                 # Python FastAPI backend
+│   ├── core/               # Core modules (config, database, scheduler)
+│   ├── routes/             # API endpoints
+│   ├── services/           # Business logic
+│   ├── models/             # Pydantic models
+│   └── requirements.txt    # Python dependencies
+├── frontend/               # React frontend
+│   ├── src/
+│   │   ├── pages/         # Page components
+│   │   ├── components/    # Reusable components
+│   │   └── api/           # API client
+│   └── package.json
+├── whatsapp-service/       # Node.js WhatsApp service
+│   ├── src/
+│   │   ├── services/      # WhatsApp client, session management
+│   │   └── routes/        # HTTP endpoints
+│   └── package.json
+├── docs/                   # Documentation
+├── scripts/                # Utility scripts
+├── setup.sh               # One-click installer
+├── start.sh               # Start all services
+├── stop.sh                # Stop all services
+└── ecosystem.config.js    # PM2 configuration
+```
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+**Backend** (`backend/.env`):
+```env
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=whatsapp_scheduler
+WA_SERVICE_URL=http://localhost:3001
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+```
+
+**Frontend** (`frontend/.env`):
+```env
+REACT_APP_BACKEND_URL=http://localhost:8001
+PORT=3000
+```
+
+**WhatsApp Service** (`whatsapp-service/.env`):
+```env
+PORT=3001
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=whatsapp_scheduler
 ```
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Backend won't start
+### WhatsApp Won't Connect
+
+1. **Close all Chrome windows** and try again
+2. Run the fix script: `./scripts/fix-whatsapp.bat` (Windows) or `./scripts/fix-whatsapp.sh` (Linux)
+3. Check if Chromium is installed: `which chromium-browser`
+4. Clear session and rescan: Settings → Clear Session
+
+### MongoDB Connection Error
 
 ```bash
-./start.sh diagnose     # Check system status
-./start.sh logs backend # Check error logs
-./start.sh setup        # Reinstall dependencies
+# Check if MongoDB is running
+sudo systemctl status mongod
+
+# Start MongoDB
+sudo systemctl start mongod
+
+# Or use Docker
+docker run -d -p 27017:27017 --name mongodb mongo:7
 ```
 
-### WhatsApp won't connect
+### Port Already in Use
 
 ```bash
-./fix-whatsapp.sh       # Clear session and restart (requires new QR scan)
+# Find process using port
+lsof -i :3000  # Frontend
+lsof -i :3001  # WhatsApp
+lsof -i :8001  # Backend
+
+# Kill process
+kill -9 <PID>
 ```
 
-### Port already in use
+### Session Lost After Restart
 
-```bash
-./stop.sh               # Force stop all services
-./start.sh              # Start fresh
-```
-
-### Frontend stuck
-
-```bash
-./start.sh restart-frontend
-```
-
-### Python "externally-managed-environment" error
-
-The script automatically creates a virtual environment. If issues persist:
-
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-deactivate
-cd ..
-./start.sh
-```
-
-### Check what's running
-
-```bash
-./status.sh             # Detailed service status
-# OR
-./start.sh status       # Quick status check
-```
+This shouldn't happen with v3.0+. If it does:
+1. Check MongoDB is running
+2. Check `whatsapp-service/.env` has correct MONGO_URL
+3. View logs: `tail -f logs/whatsapp-*.log`
 
 ---
 
-## 🛠️ Development
+## 📊 API Reference
 
-### Hot Reload
+### System Endpoints
 
-Both backend and frontend have hot reload enabled:
-- **Backend**: Edit Python files → Auto-reloads in ~1 second
-- **Frontend**: Edit React files → Auto-reloads in ~2-3 seconds
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| GET | `/api/system/health` | Full system status |
+| POST | `/api/system/update` | Trigger update |
+| POST | `/api/system/restart` | Graceful restart |
+| GET | `/api/system/update-status` | Update progress |
 
-### Adding Features
+### WhatsApp Endpoints
 
-1. **Backend route**: Add to `backend/routes/`
-2. **Backend service**: Add to `backend/services/`
-3. **Frontend API**: Add to `frontend/src/api/`
-4. **Frontend page**: Add to `frontend/src/pages/`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/whatsapp/status` | Connection status |
+| GET | `/api/whatsapp/qr` | Get QR code |
+| POST | `/api/whatsapp/logout` | Logout session |
+| GET | `/api/whatsapp/session/health` | Session health |
+| GET | `/api/whatsapp/session/observe` | Full observability |
+
+### Scheduling Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/schedules` | List schedules |
+| POST | `/api/schedules` | Create schedule |
+| DELETE | `/api/schedules/{id}` | Delete schedule |
+| POST | `/api/send-now` | Send immediately |
 
 ---
 
-## ⚠️ Disclaimer
+## 🤝 Contributing
 
-This tool uses WhatsApp Web automation via [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js).
+Contributions are welcome! Please:
 
-**Please use responsibly:**
-- Don't send spam or bulk unsolicited messages
-- Respect WhatsApp's Terms of Service
-- Excessive automation may result in account restrictions
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests
+5. Submit a pull request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
 - [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) - WhatsApp Web API
-- [FastAPI](https://fastapi.tiangolo.com/) - Backend framework
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
 - [React](https://reactjs.org/) - Frontend framework
-- [shadcn/ui](https://ui.shadcn.com/) - UI components
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [shadcn/ui](https://ui.shadcn.com/) - UI components
 
 ---
 
-<div align="center">
-
-**v2.2.0** • Made with ❤️ by [Nakshtra Yadav](https://github.com/NakshtraYadav)
-
-⭐ Star this repo if you find it useful!
-
-</div>
+<p align="center">
+  Made with ❤️ for automating WhatsApp messaging
+</p>
