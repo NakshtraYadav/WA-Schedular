@@ -28,7 +28,11 @@ async def execute_scheduled_message(schedule_id: str):
         result = await send_whatsapp_message(schedule['contact_phone'], schedule['message'])
         
         status = "sent" if result.get('success') else "failed"
-        logger.info(f"📬 Result: {status} - {result}")
+        
+        if result.get('success'):
+            logger.info(f"✅ Message sent successfully: {schedule_id} -> {schedule['contact_name']}")
+        else:
+            logger.error(f"❌ Message failed: {schedule_id} -> {schedule['contact_name']}: {result.get('error')}")
         
         # Log the message
         log = MessageLog(
