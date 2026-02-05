@@ -1,10 +1,20 @@
 {
-  "version": "2.1.1",
+  "version": "2.1.2",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 11,
+  "build": 12,
   "release_date": "2026-02-04",
   "changelog": [
+    {
+      "version": "2.1.2",
+      "date": "2026-02-05",
+      "changes": [
+        "Added Python virtual environment support for Ubuntu 24.04+",
+        "Auto-creates venv in backend/venv folder",
+        "Works with externally-managed Python environments",
+        "./start.sh setup now creates venv automatically"
+      ]
+    },
     {
       "version": "2.1.1",
       "date": "2026-02-04",
