@@ -1,10 +1,22 @@
 {
-  "version": "2.5.2",
+  "version": "2.5.3",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 25,
+  "build": 26,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.5.3",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: QR code not working on first run after setup",
+        "FIXED: start.sh now cleans browser lock files before starting WhatsApp service",
+        "FIXED: start.sh now waits longer for WhatsApp service to initialize (40s vs 2s)",
+        "FIXED: WhatsApp initialization delayed 3s to avoid MongoDB race condition",
+        "IMPROVED: MongoDB connection now retries 3 times on startup",
+        "IMPROVED: Orphaned chromium processes cleaned up on service start"
+      ]
+    },
     {
       "version": "2.5.2",
       "date": "2026-02-05",
