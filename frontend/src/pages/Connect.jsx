@@ -11,7 +11,8 @@ import {
   Loader2,
   Zap,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  QrCode
 } from 'lucide-react';
 import { getWhatsAppStatus, getWhatsAppQR, logoutWhatsApp } from '../api';
 import { toast } from 'sonner';
@@ -25,7 +26,7 @@ function Connect() {
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [clearingSession, setClearingSession] = useState(false);
-  const [retrying, setRetrying] = useState(false);
+  const [generatingQR, setGeneratingQR] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
