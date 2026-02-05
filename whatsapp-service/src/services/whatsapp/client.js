@@ -1,16 +1,20 @@
 /**
  * WhatsApp client - Production-grade WWebJS integration
  * 
- * CRITICAL CHANGES FOR SESSION PERSISTENCE:
- * 1. Absolute session path (never relative)
- * 2. Graceful shutdown with session save wait
- * 3. Session validation before initialization
- * 4. Reconnect logic with backoff
- * 5. Session corruption detection
+ * SESSION PERSISTENCE STRATEGY (v2.5.0):
+ * 
+ * Uses RemoteAuth with MongoDB instead of LocalAuth:
+ * - Sessions stored in MongoDB (atomic writes, no corruption)
+ * - Survives unclean shutdowns, kill signals, reboots
+ * - No lock file issues
+ * - Session validity verified before use
+ * 
+ * Fallback to LocalAuth if MongoDB unavailable.
  */
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, RemoteAuth } = require('whatsapp-web.js');
 const { log } = require('../../utils/logger');
 const { SESSION_PATH } = require('../../config/env');
+const { initSessionStore, getStore, hasExistingSession, deleteSession } = require('../session/mongoStore');
 const fs = require('fs');
 const path = require('path');
 
@@ -26,10 +30,11 @@ let initRetries = 0;
 let isShuttingDown = false;
 let qrRefreshTimer = null;
 let lastQrTime = null;
+let useMongoSession = false; // Track which auth method is in use
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 5000;
-const SHUTDOWN_TIMEOUT_MS = 10000;
+const SHUTDOWN_TIMEOUT_MS = 15000; // Increased for session save
 const SESSION_CLIENT_ID = 'wa-scheduler';
 const QR_REFRESH_INTERVAL_MS = 30000; // 30 seconds
 
