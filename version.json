@@ -1,10 +1,22 @@
 {
-  "version": "2.6.2",
+  "version": "2.6.3",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 31,
+  "build": 32,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.6.3",
+      "date": "2026-02-05",
+      "changes": [
+        "NEW: AI Auto-Reply settings section in Settings page",
+        "NEW: OpenAI API key configuration",
+        "NEW: Model selection (GPT-4o-mini, GPT-4o)",
+        "FIXED: Telegram status now refreshes after 1s delay when saving",
+        "ADDED: Performance optimization guide (docs/PERFORMANCE_OPTIMIZATION.md)",
+        "UPDATED: AI implementation plan with per-contact history details"
+      ]
+    },
     {
       "version": "2.6.2",
       "date": "2026-02-05",
