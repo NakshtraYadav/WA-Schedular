@@ -4,7 +4,7 @@
 
 **Schedule and automate your WhatsApp messages**
 
-[![Version](https://img.shields.io/badge/Version-2.1.2-brightgreen)](https://github.com/NakshtraYadav/WA-Schedular/releases)
+[![Version](https://img.shields.io/badge/Version-2.1.4-brightgreen)](https://github.com/NakshtraYadav/WA-Schedular/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://python.org/)
@@ -304,7 +304,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**v2.1.2** • Made with ❤️ by [Nakshtra Yadav](https://github.com/NakshtraYadav)
+**v2.1.4** • Made with ❤️ by [Nakshtra Yadav](https://github.com/NakshtraYadav)
 
 ⭐ Star this repo if you find it useful!
 

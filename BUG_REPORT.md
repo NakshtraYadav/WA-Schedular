@@ -1,4 +1,4 @@
-# 🐛 WA Scheduler - Bug Report v2.1.2
+# 🐛 WA Scheduler - Bug Report v2.1.4
 
 ## Critical Issues (Must Fix)
 
