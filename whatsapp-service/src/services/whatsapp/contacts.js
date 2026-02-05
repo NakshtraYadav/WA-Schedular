@@ -47,6 +47,117 @@ const getContacts = async () => {
   }
 };
 
+/**
+ * Check if a phone number is registered on WhatsApp
+ */
+const verifyNumber = async (phoneNumber) => {
+  const { isReady } = getState();
+  const client = getClient();
+
+  if (!isReady || !client) {
+    return {
+      success: false,
+      error: 'WhatsApp not connected',
+      isRegistered: false
+    };
+  }
+
+  try {
+    // Clean the phone number (remove spaces, dashes, plus sign)
+    const cleanNumber = phoneNumber.replace(/[\s\-\+]/g, '');
+    
+    // Format for WhatsApp (number@c.us)
+    const numberId = await client.getNumberId(cleanNumber);
+    
+    if (numberId) {
+      log('INFO', `Number ${cleanNumber} is registered on WhatsApp`);
+      return {
+        success: true,
+        isRegistered: true,
+        whatsappId: numberId._serialized,
+        formattedNumber: numberId.user
+      };
+    } else {
+      log('INFO', `Number ${cleanNumber} is NOT on WhatsApp`);
+      return {
+        success: true,
+        isRegistered: false,
+        formattedNumber: cleanNumber
+      };
+    }
+  } catch (error) {
+    log('ERROR', 'Verify number error:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      isRegistered: false
+    };
+  }
+};
+
+/**
+ * Verify multiple phone numbers at once
+ */
+const verifyNumbers = async (phoneNumbers) => {
+  const { isReady } = getState();
+  const client = getClient();
+
+  if (!isReady || !client) {
+    return {
+      success: false,
+      error: 'WhatsApp not connected',
+      results: []
+    };
+  }
+
+  try {
+    const results = [];
+    
+    for (const phone of phoneNumbers) {
+      const cleanNumber = phone.replace(/[\s\-\+]/g, '');
+      try {
+        const numberId = await client.getNumberId(cleanNumber);
+        results.push({
+          phone: phone,
+          cleanNumber: cleanNumber,
+          isRegistered: !!numberId,
+          whatsappId: numberId ? numberId._serialized : null
+        });
+      } catch (e) {
+        results.push({
+          phone: phone,
+          cleanNumber: cleanNumber,
+          isRegistered: false,
+          error: e.message
+        });
+      }
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    const registered = results.filter(r => r.isRegistered).length;
+    log('INFO', `Verified ${phoneNumbers.length} numbers: ${registered} on WhatsApp`);
+
+    return {
+      success: true,
+      total: phoneNumbers.length,
+      registered: registered,
+      notRegistered: phoneNumbers.length - registered,
+      results: results
+    };
+  } catch (error) {
+    log('ERROR', 'Verify numbers error:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      results: []
+    };
+  }
+};
+
 module.exports = {
-  getContacts
+  getContacts,
+  verifyNumber,
+  verifyNumbers
 };
