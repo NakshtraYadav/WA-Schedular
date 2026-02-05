@@ -154,6 +154,16 @@ async def clear_service_logs(service: str):
         services = [service]
     
     for svc in services:
+        # Clear direct log file (e.g., logs/backend.log)
+        direct_log = log_base / f"{svc}.log"
+        if direct_log.exists():
+            try:
+                direct_log.unlink()
+                cleared.append(str(direct_log))
+            except:
+                pass
+        
+        # Clear logs in subdirectory
         svc_dir = log_base / svc
         if svc_dir.exists():
             for log_file in svc_dir.glob("*.log"):
