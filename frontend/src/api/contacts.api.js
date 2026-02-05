@@ -16,3 +16,5 @@ export const verifyBulkNumbers = (phones) => apiClient.post('/api/contacts/verif
 export const verifySingleContact = (phone) => apiClient.post(`/api/contacts/verify-single/${encodeURIComponent(phone)}`, {}, { timeout: 30000 });
 // Delete all unverified contacts
 export const deleteUnverifiedContacts = () => apiClient.delete('/api/contacts/unverified');
+// Bulk delete selected contacts
+export const bulkDeleteContacts = (contactIds) => apiClient.post('/api/contacts/bulk-delete', contactIds);
