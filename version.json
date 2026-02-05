@@ -1,10 +1,20 @@
 {
-  "version": "2.4.0",
+  "version": "2.4.1",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 20,
+  "build": 21,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.4.1",
+      "date": "2026-02-05",
+      "changes": [
+        "ADDED: 'Verify All' button on Contacts page to check which contacts are on WhatsApp",
+        "ADDED: Status column showing verification status (On WhatsApp / Not Found / Not Verified)",
+        "ADDED: Summary cards showing verified vs not found count after verification",
+        "IMPROVED: Send button disabled for contacts not on WhatsApp"
+      ]
+    },
     {
       "version": "2.4.0",
       "date": "2026-02-05",
