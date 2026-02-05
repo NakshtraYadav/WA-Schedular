@@ -1,7 +1,7 @@
 # AI Auto-Reply System - Implementation Plan
 
 ## Overview
-Smart AI-powered auto-reply system for WhatsApp messages. Unlike generic chatbots, this will provide contextual, personalized responses based on conversation history and business context.
+Smart AI-powered auto-reply system for WhatsApp messages. Unlike generic chatbots, this will provide contextual, personalized responses based on **per-contact conversation history** and business context.
 
 ---
 
@@ -10,14 +10,119 @@ Smart AI-powered auto-reply system for WhatsApp messages. Unlike generic chatbot
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  WhatsApp       │────▶│  Message Router  │────▶│  AI Engine      │
-│  Service        │     │  (Filter/Queue)  │     │  (GPT/Claude)   │
+│  Service        │     │  (Filter/Queue)  │     │  (GPT-4o/mini)  │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
                                 │                        │
                                 ▼                        ▼
                         ┌──────────────────┐     ┌─────────────────┐
-                        │  Rules Engine    │     │  Context Store  │
-                        │  (Who to reply)  │     │  (MongoDB)      │
+                        │  Rules Engine    │     │  Per-Contact    │
+                        │  (Who to reply)  │     │  History Store  │
                         └──────────────────┘     └─────────────────┘
+```
+
+---
+
+## Per-Contact Conversation History (Key Feature)
+
+### Why Per-Contact History?
+- Each contact gets their own conversation memory
+- AI remembers context from previous chats
+- Different relationships = different response styles
+- Can set custom instructions per contact (e.g., "formal with this vendor")
+
+### Contact History Schema
+```javascript
+// contact_ai_history collection
+{
+  contact_id: String,           // Reference to contact
+  phone: String,                // Phone number as backup key
+  
+  // Conversation history (rolling window)
+  messages: [
+    {
+      role: "user" | "assistant",
+      content: String,
+      timestamp: Date,
+      sentiment: String,        // Optional: detected sentiment
+      topics: [String]          // Optional: detected topics
+    }
+  ],
+  max_history: 20,              // Keep last N messages (configurable)
+  
+  // Per-contact AI settings
+  custom_instructions: String,  // "Be formal", "He's a VIP customer"
+  response_style: "friendly" | "professional" | "casual" | "custom",
+  language_preference: String,  // Auto-detected or set
+  
+  // Contact context
+  first_interaction: Date,
+  last_interaction: Date,
+  total_interactions: Number,
+  avg_response_time: Number,    // How long user typically takes to reply
+  
+  // AI state
+  ai_paused: Boolean,           // Human took over this conversation
+  paused_until: Date,           // Auto-resume after time
+  last_human_reply: Date        // When human last replied manually
+}
+```
+
+### Per-Contact Prompt Building
+```javascript
+function buildContactPrompt(contact, incomingMessage) {
+  // 1. Get contact's history
+  const history = await getContactHistory(contact.phone);
+  
+  // 2. Build context
+  const prompt = `
+You are a helpful WhatsApp assistant.
+
+=== CONTACT INFO ===
+Name: ${contact.name}
+Total conversations: ${history.total_interactions}
+Relationship duration: ${daysSince(history.first_interaction)} days
+Custom instructions: ${history.custom_instructions || 'None'}
+Preferred style: ${history.response_style || 'friendly'}
+
+=== CONVERSATION HISTORY ===
+${history.messages.map(m => `${m.role}: ${m.content}`).join('\n')}
+
+=== NEW MESSAGE ===
+${contact.name}: ${incomingMessage}
+
+=== INSTRUCTIONS ===
+- Match the contact's communication style
+- Reference previous conversations when relevant
+- Keep responses concise (WhatsApp style)
+- ${history.custom_instructions || ''}
+
+Your response:`;
+
+  return prompt;
+}
+```
+
+### History Management Flow
+```
+New Message Received
+        │
+        ▼
+   Load Contact History
+        │
+        ▼
+   Build Contextualized Prompt
+        │
+        ▼
+   Send to OpenAI
+        │
+        ▼
+   Store AI Response in History
+        │
+        ▼
+   Trim History if > max_history
+        │
+        ▼
+   Send Response to WhatsApp
 ```
 
 ---
