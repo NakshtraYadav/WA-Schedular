@@ -33,9 +33,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  UserX
 } from 'lucide-react';
-import { getContacts, createContact, updateContact, deleteContact, sendNow, syncWhatsAppContacts, verifyBulkNumbers } from '../api';
+import { getContacts, createContact, updateContact, deleteContact, sendNow, syncWhatsAppContacts, verifyBulkNumbers, deleteUnverifiedContacts } from '../api';
 import { useWhatsAppStatus } from '../hooks/useWhatsAppStatus';
 import { toast } from 'sonner';
 
@@ -43,6 +44,7 @@ function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [removingUnverified, setRemovingUnverified] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verificationResults, setVerificationResults] = useState({}); // { phone: true/false }
   const [dialogOpen, setDialogOpen] = useState(false);
