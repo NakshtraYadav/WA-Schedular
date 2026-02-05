@@ -407,7 +407,28 @@ setup() {
     echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     
+    # Check for Chromium (required for WhatsApp)
+    echo -e "  ${CYAN}→${NC} Checking Chromium browser..."
+    if command -v chromium &> /dev/null || command -v chromium-browser &> /dev/null; then
+        echo -e "  ${GREEN}✓${NC} Chromium found"
+    else
+        echo -e "  ${YELLOW}!${NC} Chromium not found - installing..."
+        if command -v apt &> /dev/null; then
+            sudo apt update && sudo apt install -y chromium-browser 2>/dev/null || sudo apt install -y chromium 2>/dev/null
+            if [ $? -eq 0 ]; then
+                echo -e "  ${GREEN}✓${NC} Chromium installed"
+            else
+                echo -e "  ${RED}✗${NC} Failed to install Chromium"
+                echo -e "    Install manually: ${YELLOW}sudo apt install chromium-browser${NC}"
+            fi
+        else
+            echo -e "  ${RED}✗${NC} Cannot auto-install Chromium (apt not found)"
+            echo -e "    Please install Chromium manually for your system"
+        fi
+    fi
+    
     # Create virtual environment
+    echo ""
     echo -e "  ${CYAN}→${NC} Setting up Python virtual environment..."
     if ! setup_venv; then
         return 1
@@ -456,6 +477,11 @@ setup() {
     else
         echo -e "  ${YELLOW}!${NC} WhatsApp service dependencies may have issues"
     fi
+    
+    # Create logs directory structure
+    echo ""
+    echo -e "  ${CYAN}→${NC} Creating log directories..."
+    mkdir -p "$SCRIPT_DIR/logs"
     
     echo ""
     echo -e "${GREEN}${BOLD}✓ Setup complete!${NC}"
