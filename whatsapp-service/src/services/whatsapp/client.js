@@ -39,7 +39,7 @@ const SESSION_CLIENT_ID = 'wa-scheduler';
 const QR_REFRESH_INTERVAL_MS = 30000; // 30 seconds
 
 const getState = () => ({
-  client,
+  client: client ? true : null, // Don't expose client object
   qrCodeData,
   isReady,
   isAuthenticated,
