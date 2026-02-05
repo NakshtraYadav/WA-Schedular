@@ -459,7 +459,7 @@ const initWhatsApp = async () => {
           }
         });
         log('INFO', `Connected as ${info.pushname} (${info.wid.user})`);
-        log('INFO', `Session will persist in: ${SESSION_PATH}`);
+        log('INFO', `Session type: ${useMongoSession ? 'MongoDB (RemoteAuth)' : 'Filesystem (LocalAuth)'}`);
       } catch (e) {
         log('WARN', 'Could not get client info:', e.message);
       }
@@ -469,6 +469,11 @@ const initWhatsApp = async () => {
     client.on('authenticated', () => {
       log('INFO', '✓ Session authenticated successfully!');
       setState({ isAuthenticated: true, qrCodeData: null });
+    });
+
+    // Event: Remote session saved (MongoDB)
+    client.on('remote_session_saved', () => {
+      log('INFO', '✓ Session saved to MongoDB - will persist across restarts');
     });
 
     // Event: Authentication failure
@@ -482,10 +487,14 @@ const initWhatsApp = async () => {
       });
       
       // Clear corrupt session
-      const sessionDir = path.join(SESSION_PATH, `session-${SESSION_CLIENT_ID}`);
-      if (fs.existsSync(sessionDir)) {
-        log('INFO', 'Clearing failed session...');
-        fs.rmSync(sessionDir, { recursive: true, force: true });
+      if (useMongoSession) {
+        await deleteSession(SESSION_CLIENT_ID);
+      } else {
+        const sessionDir = path.join(SESSION_PATH, `session-${SESSION_CLIENT_ID}`);
+        if (fs.existsSync(sessionDir)) {
+          log('INFO', 'Clearing failed session...');
+          fs.rmSync(sessionDir, { recursive: true, force: true });
+        }
       }
     });
 
