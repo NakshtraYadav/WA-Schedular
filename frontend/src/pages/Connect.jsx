@@ -241,12 +241,12 @@ function Connect() {
                 {clearingSession ? 'Clearing...' : 'Clear Session & Retry'}
               </Button>
               <Button 
-                onClick={handleRetryInit} 
-                disabled={retrying}
+                onClick={handleGenerateQR} 
+                disabled={generatingQR}
                 variant="outline"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${retrying ? 'animate-spin' : ''}`} />
-                {retrying ? 'Retrying...' : 'Retry Init'}
+                <RefreshCw className={`w-4 h-4 mr-2 ${generatingQR ? 'animate-spin' : ''}`} />
+                {generatingQR ? 'Generating...' : 'Retry'}
               </Button>
             </div>
           </CardContent>
