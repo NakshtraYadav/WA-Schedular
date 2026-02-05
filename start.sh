@@ -169,10 +169,17 @@ start_backend() {
     
     cd "$SCRIPT_DIR/backend"
     
-    # Check if we can import the server
-    if ! python3 -c "import server" 2>/dev/null; then
-        echo -e "  ${YELLOW}!${NC} Checking Python dependencies..."
-        pip install -q -r requirements.txt 2>/dev/null
+    # Check if uvicorn is installed (critical dependency)
+    if ! python3 -c "import uvicorn" 2>/dev/null; then
+        echo -e "  ${YELLOW}!${NC} Installing Python dependencies..."
+        pip install -r requirements.txt
+        
+        # Verify installation
+        if ! python3 -c "import uvicorn" 2>/dev/null; then
+            echo -e "  ${RED}✗${NC} Failed to install dependencies!"
+            echo -e "    Try manually: ${YELLOW}cd backend && pip install -r requirements.txt${NC}"
+            return 1
+        fi
     fi
     
     # WSL environment variables
