@@ -21,7 +21,7 @@ router.get('/', (req, res) => {
   
   res.json({
     service: 'WhatsApp Service',
-    version: '3.1.1',
+    version: '3.1.2',
     status: state.isReady ? 'connected' : 'disconnected',
     endpoints: {
       health: 'GET /health',

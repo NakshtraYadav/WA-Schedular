@@ -1,26 +1,15 @@
 {
-  "version": "2.8.0",
+  "version": "2.7.2",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
   "build": 36,
-  "release_date": "2026-02-05",
+  "release_date": "2026-01-15",
   "changelog": [
     {
-      "version": "2.8.0",
-      "date": "2026-02-05",
+      "version": "2.7.2",
+      "date": "2026-01-15",
       "changes": [
-        "SECURITY: Fixed race condition in database connection with async locking",
-        "PERFORMANCE: Added MongoDB indexes for contacts, schedules, logs, templates (10x query speed)",
-        "PERFORMANCE: Implemented shared HTTP client with connection pooling (memory leak fix)",
-        "FIXED: Hardcoded localhost URLs in Connect.jsx now use backend API proxy",
-        "FIXED: Variable typo bug in logs.py causing endpoint crash",
-        "FIXED: Bare except clauses replaced with proper exception handling",
-        "NEW: POST /api/whatsapp/generate-qr endpoint for QR code generation",
-        "NEW: Shared HTTP client module (/app/backend/core/http_client.py)",
-        "REMOVED: Duplicate unused API layer (/app/frontend/src/lib/api.js)",
-        "IMPROVED: Database initialization now creates indexes automatically",
-        "IMPROVED: Graceful HTTP client cleanup on server shutdown",
-        "DOCS: Added comprehensive PRODUCTION_AUDIT_REPORT.md"
+        "FIXED: 'Failed to fetch logs' error on History page - typo in logs.py (l vs log_entry)"
       ]
     },
     {

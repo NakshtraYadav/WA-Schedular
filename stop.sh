@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
 #  WhatsApp Scheduler - Stop All Services (Ubuntu/WSL)
-#  v2.7.1 - Graceful shutdown for session persistence
+#  v2.7.2 - Graceful shutdown for session persistence
 # ============================================================================
 
 # Colors

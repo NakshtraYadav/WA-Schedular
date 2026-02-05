@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
 #  WA Scheduler - Start & Update (WSL Robust Version)
-#  v2.7.1 - Fixed Python virtual environment support
+#  v2.7.2 - Fixed Python virtual environment support
 # ============================================================================
 
 GREEN='\033[0;32m'
@@ -759,7 +759,7 @@ case "${1:-start}" in
         ;;
     *)
         echo ""
-        echo -e "${BOLD}WA Scheduler v2.7.1${NC}"
+        echo -e "${BOLD}WA Scheduler v2.7.2${NC}"
         echo ""
         echo "Usage: ./start.sh [command]"
         echo ""
