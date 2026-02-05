@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 import { useVersionContext } from '../context';
 
 function SettingsPage() {
-  const { version: versionInfo, checkVersion } = useVersionContext() || {};
+  const { version: versionInfo, refresh: checkVersion } = useVersionContext() || {};
   const [settings, setSettings] = useState({
     telegram_token: '',
     telegram_chat_id: '',
