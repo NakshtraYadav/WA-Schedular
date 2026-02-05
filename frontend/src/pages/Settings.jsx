@@ -119,28 +119,38 @@ function SettingsPage() {
   };
 
   const handleInstallUpdate = async () => {
-    if (!window.confirm('This will download the latest version and restart services. Continue?')) {
-      return;
-    }
     setInstallingUpdate(true);
     
-    // Show progress toast
-    const toastId = toast.loading('Downloading update...', { duration: Infinity });
-    
     try {
+      // Step 1: Show updating
+      toast.loading('Pulling latest changes...', { id: 'update' });
+      
       const res = await installUpdate();
+      
       if (res.data.success) {
-        toast.dismiss(toastId);
-        toast.success('Update installed! Reloading...', { duration: 3000 });
-        // Wait and reload the page
-        setTimeout(() => window.location.reload(), 3000);
+        // Step 2: Show success
+        toast.success(
+          `Updated to v${res.data.new_version || 'latest'}! ${res.data.files_changed || 0} files changed.`,
+          { id: 'update', duration: 2000 }
+        );
+        
+        // Step 3: Auto-refresh if frontend changed
+        if (res.data.refresh_required !== false) {
+          toast.loading('Refreshing page...', { id: 'update' });
+          setTimeout(() => {
+            // Hard refresh to bypass cache
+            window.location.reload(true);
+          }, 1500);
+        } else {
+          // Just backend changed, no refresh needed
+          toast.success('Backend updated! No refresh needed.', { id: 'update' });
+          fetchUpdateInfo();
+        }
       } else {
-        toast.dismiss(toastId);
-        toast.error(res.data.error || 'Failed to install update');
+        toast.error(res.data.error || 'Update failed', { id: 'update' });
       }
     } catch (error) {
-      toast.dismiss(toastId);
-      toast.error('Failed to install update');
+      toast.error('Update failed: ' + (error.message || 'Unknown error'), { id: 'update' });
     } finally {
       setInstallingUpdate(false);
     }
