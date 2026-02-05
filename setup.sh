@@ -162,21 +162,36 @@ check_node() {
 }
 
 check_npm() {
-    print_step "Checking npm..."
+    # Don't print step here to avoid spam during retries
     
+    # First try command_exists
     if command_exists npm; then
-        local npm_version=$(npm -v | cut -d. -f1)
-        if [ "$npm_version" -ge "$MIN_NPM_VERSION" ]; then
-            print_success "npm v$(npm -v) installed"
+        local npm_version=$(npm -v 2>/dev/null | cut -d. -f1)
+        if [ -n "$npm_version" ] && [ "$npm_version" -ge "$MIN_NPM_VERSION" ] 2>/dev/null; then
             return 0
-        else
-            print_warning "npm $(npm -v) is too old"
-            return 1
         fi
-    else
-        print_warning "npm not found"
-        return 1
     fi
+    
+    # Try direct paths
+    for npm_path in "/usr/bin/npm" "/usr/local/bin/npm"; do
+        if [ -x "$npm_path" ]; then
+            local npm_version=$("$npm_path" -v 2>/dev/null | cut -d. -f1)
+            if [ -n "$npm_version" ] && [ "$npm_version" -ge "$MIN_NPM_VERSION" ] 2>/dev/null; then
+                return 0
+            fi
+        fi
+    done
+    
+    # Check NVM paths
+    if [ -n "$NVM_DIR" ]; then
+        for npm_path in "$NVM_DIR"/versions/node/*/bin/npm; do
+            if [ -x "$npm_path" ] 2>/dev/null; then
+                return 0
+            fi
+        done
+    fi
+    
+    return 1
 }
 
 check_python() {
