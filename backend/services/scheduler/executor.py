@@ -69,8 +69,8 @@ async def execute_scheduled_message(schedule_id: str):
         # Send Telegram notification if enabled
         await send_telegram_notification(
             f"{'✅' if status == 'sent' else '❌'} Scheduled message {status}\n\n"
-            f"📞 {schedule['contact_name']}\n"
-            f"💬 {schedule['message'][:100]}"
+            f"📞 {contact_name}\n"
+            f"💬 {message[:100]}"
         )
                 
     except Exception as e:
