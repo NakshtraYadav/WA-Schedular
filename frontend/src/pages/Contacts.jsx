@@ -120,16 +120,11 @@ function Contacts() {
       toast.dismiss(toastId);
 
       if (res.data && res.data.success) {
-        // Build verification map
-        const results = {};
-        (res.data.results || []).forEach(r => {
-          results[r.phone] = r.isRegistered;
-          results[r.cleanNumber] = r.isRegistered;
-        });
-        setVerificationResults(results);
-
         const registered = res.data.registered || 0;
         const notRegistered = res.data.notRegistered || 0;
+        
+        // Refresh contacts to get updated verification status from DB
+        await fetchContacts();
         
         if (notRegistered === 0) {
           toast.success(`All ${registered} contacts are on WhatsApp! ✓`);
@@ -155,6 +150,33 @@ function Contacts() {
       toast.error(errorMsg);
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handleRemoveUnverified = async () => {
+    const unverifiedCount = contacts.filter(c => c.is_verified === false).length;
+    if (unverifiedCount === 0) {
+      toast.info('No unverified contacts to remove');
+      return;
+    }
+    
+    if (!window.confirm(`Remove ${unverifiedCount} unverified contacts? This cannot be undone.`)) {
+      return;
+    }
+    
+    setRemovingUnverified(true);
+    try {
+      const res = await deleteUnverifiedContacts();
+      if (res.data?.success) {
+        toast.success(res.data.message || `Removed ${res.data.deleted_count} contacts`);
+        await fetchContacts();
+      } else {
+        toast.error(res.data?.error || 'Failed to remove contacts');
+      }
+    } catch (error) {
+      toast.error('Failed to remove unverified contacts');
+    } finally {
+      setRemovingUnverified(false);
     }
   };
 
