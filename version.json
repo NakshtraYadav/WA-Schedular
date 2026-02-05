@@ -1,10 +1,27 @@
 {
-  "version": "2.6.3",
+  "version": "2.6.4",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 32,
+  "build": 33,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.6.4",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: Schedule routes order - /debug, /status, /reload now work properly",
+        "NEW: GET /api/schedules/debug - Full scheduler status with DB and job info",
+        "NEW: GET /api/schedules/status - Quick scheduler health check",
+        "NEW: POST /api/schedules/reload - Manual schedule reload trigger",
+        "NEW: GET /api/logs/summary - System health summary",
+        "NEW: GET /api/logs/scheduler - Scheduler-specific log filtering",
+        "NEW: GET /api/logs/errors - Error-only logs from all sources",
+        "NEW: GET /api/logs/all - Combined logs from all services",
+        "IMPROVED: Schedule executor with better logging (contact names, emojis)",
+        "IMPROVED: Schedule job manager with timezone-aware datetime handling",
+        "IMPROVED: One-time schedules now marked complete with completed_at timestamp"
+      ]
+    },
     {
       "version": "2.6.3",
       "date": "2026-02-05",
