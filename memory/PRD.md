@@ -90,3 +90,31 @@ User requested modularization of the codebase for better file management, more f
 - Backend: 100% endpoints working
 - Frontend: All pages loading correctly
 - Integration: Full communication verified
+
+## Bug Fixes (Feb 2026)
+
+### Session: Update from localhost not working
+**Root Cause Analysis:**
+1. Missing `REACT_APP_BACKEND_URL` environment variable - frontend was calling `localhost:3000/api/*` instead of `localhost:8001/api/*`
+2. Settings.jsx used `apiClient` directly without importing - should use `testTelegram()` function
+3. Version context destructuring mismatch - `checkVersion` vs `refresh`
+4. Diagnostics couldn't find logs - checked wrong paths
+
+**Fixes Applied:**
+- Created `/app/frontend/.env` with `REACT_APP_BACKEND_URL=http://localhost:8001`
+- Fixed Settings.jsx to import and use `testTelegram` from '../api'
+- Fixed version context destructuring in Settings.jsx
+- Updated diagnostics.py to handle both direct log files and subdirectories
+
+**Files Modified:**
+- `/app/frontend/.env` (created)
+- `/app/frontend/src/pages/Settings.jsx`
+- `/app/backend/routes/diagnostics.py`
+- `/app/BUG_REPORT.md`
+
+## Future Enhancements
+- [ ] Add unit tests for services layer
+- [ ] Add E2E tests with Playwright
+- [ ] Add TypeScript support
+- [ ] Add error boundary components
+- [ ] Add auto-refresh for dashboard stats
