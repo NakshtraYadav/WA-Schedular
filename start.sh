@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
-#  WA Scheduler - Start & Update (WSL Fixed)
-#  v2.1.0 - Fixed frontend restart issues
+#  WA Scheduler - Start & Update (WSL Robust Version)
+#  v2.1.1 - Fixed backend startup issues
 # ============================================================================
 
 GREEN='\033[0;32m'
@@ -14,48 +14,72 @@ NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p "$SCRIPT_DIR/logs"
+mkdir -p "$SCRIPT_DIR/.pids"
 
 # ============================================================================
-#  HELPER: Kill process and wait for port to be free
+#  HELPER: Kill process safely (WSL compatible)
 # ============================================================================
-kill_and_wait() {
+kill_process() {
     local name="$1"
     local pattern="$2"
     local port="$3"
     
-    # Kill by pattern
+    # Method 1: Kill by pattern
     pkill -9 -f "$pattern" 2>/dev/null
     
-    # Also kill any process on the port (WSL often leaves zombies)
+    # Method 2: Kill by port (multiple methods for WSL compatibility)
     if [ -n "$port" ]; then
-        local pid=$(lsof -ti:$port 2>/dev/null)
-        if [ -n "$pid" ]; then
-            kill -9 $pid 2>/dev/null
+        # Try lsof (if available)
+        if command -v lsof &> /dev/null; then
+            local pid=$(lsof -ti:$port 2>/dev/null)
+            [ -n "$pid" ] && kill -9 $pid 2>/dev/null
         fi
+        
+        # Try fuser (if available)
+        if command -v fuser &> /dev/null; then
+            fuser -k $port/tcp 2>/dev/null
+        fi
+        
+        # Try netstat + grep (fallback)
+        local pid=$(netstat -tlnp 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d'/' -f1)
+        [ -n "$pid" ] && [ "$pid" != "-" ] && kill -9 $pid 2>/dev/null
     fi
     
-    # Wait for port to be free (max 5 seconds)
-    if [ -n "$port" ]; then
-        for i in {1..10}; do
-            if ! lsof -ti:$port > /dev/null 2>&1; then
-                return 0
-            fi
-            sleep 0.5
-        done
-        echo -e "  ${RED}Warning: Port $port still in use${NC}"
+    sleep 1
+}
+
+# ============================================================================
+#  HELPER: Check if port is free
+# ============================================================================
+is_port_free() {
+    local port="$1"
+    
+    # Try multiple methods
+    if command -v lsof &> /dev/null; then
+        ! lsof -ti:$port > /dev/null 2>&1
+        return $?
+    elif command -v netstat &> /dev/null; then
+        ! netstat -tlnp 2>/dev/null | grep -q ":$port "
+        return $?
+    elif command -v ss &> /dev/null; then
+        ! ss -tlnp 2>/dev/null | grep -q ":$port "
+        return $?
+    else
+        # Fallback: try to connect
+        ! (echo > /dev/tcp/localhost/$port) 2>/dev/null
+        return $?
     fi
 }
 
 # ============================================================================
-#  HELPER: Wait for service to be ready
+#  HELPER: Wait for port to be free
 # ============================================================================
-wait_for_service() {
-    local name="$1"
-    local url="$2"
-    local max_wait="${3:-30}"
+wait_for_port_free() {
+    local port="$1"
+    local max_wait="${2:-10}"
     
     for i in $(seq 1 $max_wait); do
-        if curl -s "$url" > /dev/null 2>&1; then
+        if is_port_free $port; then
             return 0
         fi
         sleep 1
@@ -64,85 +88,258 @@ wait_for_service() {
 }
 
 # ============================================================================
-#  START - Runs everything with hot reload
+#  HELPER: Wait for service to respond
 # ============================================================================
-start_all() {
-    echo ""
-    echo -e "${BOLD}Starting WA Scheduler...${NC}"
-    echo ""
+wait_for_service() {
+    local name="$1"
+    local url="$2"
+    local max_wait="${3:-30}"
+    
+    for i in $(seq 1 $max_wait); do
+        if curl -s --max-time 2 "$url" > /dev/null 2>&1; then
+            return 0
+        fi
+        sleep 1
+    done
+    return 1
+}
 
-    # Stop existing processes PROPERLY
-    echo -e "  ${CYAN}→${NC} Stopping existing processes..."
-    kill_and_wait "backend" "uvicorn.*server:app" 8001
-    kill_and_wait "frontend" "react-scripts" 3000
-    kill_and_wait "frontend" "node.*3000" 3000
-    kill_and_wait "whatsapp" "node.*whatsapp" 3001
-    sleep 1
+# ============================================================================
+#  HELPER: Check prerequisites
+# ============================================================================
+check_prerequisites() {
+    local errors=0
+    
+    echo -e "  ${CYAN}→${NC} Checking prerequisites..."
+    
+    # Check Python
+    if ! command -v python3 &> /dev/null; then
+        echo -e "  ${RED}✗${NC} Python3 not found"
+        errors=$((errors + 1))
+    fi
+    
+    # Check Node
+    if ! command -v node &> /dev/null; then
+        echo -e "  ${RED}✗${NC} Node.js not found"
+        errors=$((errors + 1))
+    fi
+    
+    # Check npm
+    if ! command -v npm &> /dev/null; then
+        echo -e "  ${RED}✗${NC} npm not found"
+        errors=$((errors + 1))
+    fi
+    
+    # Check MongoDB (optional but warn)
+    if ! command -v mongod &> /dev/null; then
+        if ! pgrep -x mongod > /dev/null 2>&1; then
+            echo -e "  ${YELLOW}!${NC} MongoDB not detected (may be running externally)"
+        fi
+    fi
+    
+    # Check if backend dependencies exist
+    if [ ! -d "$SCRIPT_DIR/backend" ]; then
+        echo -e "  ${RED}✗${NC} Backend folder not found"
+        errors=$((errors + 1))
+    fi
+    
+    # Check if frontend dependencies exist
+    if [ ! -d "$SCRIPT_DIR/frontend/node_modules" ]; then
+        echo -e "  ${YELLOW}!${NC} Frontend node_modules not found - will install"
+    fi
+    
+    return $errors
+}
 
-    # Start WhatsApp Service
-    echo -e "  ${CYAN}→${NC} Starting WhatsApp Service (port 3001)..."
-    cd "$SCRIPT_DIR/whatsapp-service"
-    nohup node index.js > "$SCRIPT_DIR/logs/whatsapp.log" 2>&1 &
-    echo $! > "$SCRIPT_DIR/.pids/whatsapp.pid"
-
-    # Start Backend with hot reload
+# ============================================================================
+#  START BACKEND
+# ============================================================================
+start_backend() {
     echo -e "  ${CYAN}→${NC} Starting Backend (port 8001)..."
+    
+    # Kill existing
+    kill_process "backend" "uvicorn.*server:app" 8001
+    
+    # Wait for port
+    if ! wait_for_port_free 8001 5; then
+        echo -e "  ${RED}✗${NC} Port 8001 still in use!"
+        echo -e "    Run: ${YELLOW}sudo kill -9 \$(lsof -ti:8001)${NC}"
+        return 1
+    fi
+    
     cd "$SCRIPT_DIR/backend"
     
-    # WSL fix: Use polling for file watching
+    # Check if we can import the server
+    if ! python3 -c "import server" 2>/dev/null; then
+        echo -e "  ${YELLOW}!${NC} Checking Python dependencies..."
+        pip install -q -r requirements.txt 2>/dev/null
+    fi
+    
+    # WSL environment variables
     export WATCHFILES_FORCE_POLLING=true
     
+    # Start with detailed logging on error
     nohup python3 -m uvicorn server:app \
         --host 0.0.0.0 \
         --port 8001 \
         --reload \
         --reload-dir "$SCRIPT_DIR/backend" \
         > "$SCRIPT_DIR/logs/backend.log" 2>&1 &
-    echo $! > "$SCRIPT_DIR/.pids/backend.pid"
+    
+    local pid=$!
+    echo $pid > "$SCRIPT_DIR/.pids/backend.pid"
+    
+    # Wait and verify
+    sleep 2
+    
+    # Check if process is still running
+    if ! kill -0 $pid 2>/dev/null; then
+        echo -e "  ${RED}✗${NC} Backend crashed on startup!"
+        echo -e "    Check log: ${YELLOW}cat $SCRIPT_DIR/logs/backend.log${NC}"
+        echo ""
+        echo "=== Last 20 lines of backend.log ==="
+        tail -20 "$SCRIPT_DIR/logs/backend.log"
+        return 1
+    fi
+    
+    # Wait for HTTP response
+    if wait_for_service "Backend" "http://localhost:8001/api/" 15; then
+        echo -e "  ${GREEN}✓${NC} Backend running (PID: $pid)"
+        return 0
+    else
+        echo -e "  ${RED}✗${NC} Backend not responding!"
+        echo -e "    Check log: ${YELLOW}tail -50 $SCRIPT_DIR/logs/backend.log${NC}"
+        return 1
+    fi
+}
 
-    # Start Frontend with hot reload
+# ============================================================================
+#  START FRONTEND
+# ============================================================================
+start_frontend() {
     echo -e "  ${CYAN}→${NC} Starting Frontend (port 3000)..."
+    
+    # Kill existing
+    kill_process "frontend" "react-scripts" 3000
+    kill_process "frontend" "node.*3000" 3000
+    
+    # Wait for port
+    if ! wait_for_port_free 3000 5; then
+        echo -e "  ${RED}✗${NC} Port 3000 still in use!"
+        echo -e "    Run: ${YELLOW}sudo kill -9 \$(lsof -ti:3000)${NC}"
+        return 1
+    fi
+    
     cd "$SCRIPT_DIR/frontend"
     
-    # WSL fixes for React
+    # Check node_modules
+    if [ ! -d "node_modules" ]; then
+        echo -e "  ${CYAN}→${NC} Installing npm packages (first run)..."
+        npm install --legacy-peer-deps 2>/dev/null
+    fi
+    
+    # WSL environment variables for React
     export BROWSER=none
-    export CHOKIDAR_USEPOLLING=true    # FIX: Force polling on WSL
-    export WATCHPACK_POLLING=true       # FIX: Webpack polling
+    export CHOKIDAR_USEPOLLING=true
+    export WATCHPACK_POLLING=true
     export FAST_REFRESH=true
     export CI=false
+    export PORT=3000
     
     nohup npm start > "$SCRIPT_DIR/logs/frontend.log" 2>&1 &
-    echo $! > "$SCRIPT_DIR/.pids/frontend.pid"
+    
+    local pid=$!
+    echo $pid > "$SCRIPT_DIR/.pids/frontend.pid"
+    
+    # Frontend takes longer to start
+    if wait_for_service "Frontend" "http://localhost:3000" 60; then
+        echo -e "  ${GREEN}✓${NC} Frontend running (PID: $pid)"
+        return 0
+    else
+        echo -e "  ${RED}✗${NC} Frontend not responding!"
+        echo -e "    Check log: ${YELLOW}tail -50 $SCRIPT_DIR/logs/frontend.log${NC}"
+        return 1
+    fi
+}
 
-    # Wait for services to be ready
-    echo ""
-    echo -e "  ${CYAN}→${NC} Waiting for services..."
+# ============================================================================
+#  START WHATSAPP SERVICE
+# ============================================================================
+start_whatsapp() {
+    echo -e "  ${CYAN}→${NC} Starting WhatsApp Service (port 3001)..."
     
-    if wait_for_service "Backend" "http://localhost:8001/api/" 15; then
-        echo -e "  ${GREEN}✓${NC} Backend ready"
-    else
-        echo -e "  ${RED}✗${NC} Backend failed to start - check logs/backend.log"
+    kill_process "whatsapp" "node.*whatsapp" 3001
+    
+    if ! wait_for_port_free 3001 5; then
+        echo -e "  ${YELLOW}!${NC} Port 3001 in use (may be already running)"
     fi
     
-    if wait_for_service "Frontend" "http://localhost:3000" 30; then
-        echo -e "  ${GREEN}✓${NC} Frontend ready"
+    cd "$SCRIPT_DIR/whatsapp-service"
+    
+    if [ ! -d "node_modules" ]; then
+        echo -e "  ${CYAN}→${NC} Installing WhatsApp service packages..."
+        npm install 2>/dev/null
+    fi
+    
+    nohup node index.js > "$SCRIPT_DIR/logs/whatsapp.log" 2>&1 &
+    echo $! > "$SCRIPT_DIR/.pids/whatsapp.pid"
+    
+    sleep 2
+    
+    if curl -s http://localhost:3001/health > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} WhatsApp Service running"
     else
-        echo -e "  ${RED}✗${NC} Frontend failed to start - check logs/frontend.log"
+        echo -e "  ${YELLOW}!${NC} WhatsApp Service may still be starting..."
+    fi
+}
+
+# ============================================================================
+#  START ALL
+# ============================================================================
+start_all() {
+    echo ""
+    echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}              WA Scheduler - Starting Services                ${NC}"
+    echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    # Check prerequisites
+    if ! check_prerequisites; then
+        echo ""
+        echo -e "${RED}Please fix the errors above and try again.${NC}"
+        return 1
     fi
     
     echo ""
-    echo -e "${GREEN}${BOLD}✓ Running!${NC}"
+    
+    # Start services
+    start_whatsapp
     echo ""
-    echo "  Frontend:  http://localhost:3000"
-    echo "  Backend:   http://localhost:8001"
-    echo "  WhatsApp:  http://localhost:3001"
+    
+    if ! start_backend; then
+        echo ""
+        echo -e "${RED}Backend failed to start. See errors above.${NC}"
+        return 1
+    fi
     echo ""
-    echo -e "  ${CYAN}Logs: tail -f logs/frontend.log${NC}"
+    
+    if ! start_frontend; then
+        echo ""
+        echo -e "${YELLOW}Frontend failed but backend is running.${NC}"
+        echo -e "Try: ${CYAN}./start.sh restart-frontend${NC}"
+    fi
+    
+    echo ""
+    echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${GREEN}Frontend:${NC}  http://localhost:3000"
+    echo -e "  ${GREEN}Backend:${NC}   http://localhost:8001"
+    echo -e "  ${GREEN}WhatsApp:${NC}  http://localhost:3001"
+    echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 }
 
 # ============================================================================
-#  UPDATE - Pull from GitHub and apply changes
+#  UPDATE
 # ============================================================================
 update() {
     echo ""
@@ -151,203 +348,173 @@ update() {
     
     cd "$SCRIPT_DIR"
     
-    # Save current commit
-    OLD_COMMIT=$(git rev-parse HEAD 2>/dev/null | cut -c1-7)
-    
-    # Pull latest
-    echo -e "  ${CYAN}→${NC} Fetching..."
-    git fetch origin main --quiet 2>/dev/null
-    
-    # Check if there are changes
-    CHANGES=$(git diff HEAD origin/main --name-only 2>/dev/null | wc -l)
-    
-    if [ "$CHANGES" -eq 0 ]; then
-        echo -e "  ${GREEN}✓${NC} Already up to date!"
-        echo ""
-        return 0
+    # Check if git repo
+    if [ ! -d ".git" ]; then
+        echo -e "${RED}Not a git repository!${NC}"
+        return 1
     fi
     
-    echo -e "  ${CYAN}→${NC} $CHANGES file(s) changed"
+    OLD_COMMIT=$(git rev-parse HEAD 2>/dev/null | cut -c1-7)
     
-    # Stash local changes and pull
+    echo -e "  ${CYAN}→${NC} Pulling latest..."
     git stash --quiet 2>/dev/null
     git pull origin main --quiet 2>/dev/null
     
     NEW_COMMIT=$(git rev-parse HEAD 2>/dev/null | cut -c1-7)
-    echo -e "  ${CYAN}→${NC} Updated: $OLD_COMMIT → $NEW_COMMIT"
+    
+    if [ "$OLD_COMMIT" = "$NEW_COMMIT" ]; then
+        echo -e "  ${GREEN}✓${NC} Already up to date ($OLD_COMMIT)"
+        return 0
+    fi
+    
+    echo -e "  ${GREEN}✓${NC} Updated: $OLD_COMMIT → $NEW_COMMIT"
     
     # Check what changed
-    BACKEND_CHANGED=$(git diff $OLD_COMMIT $NEW_COMMIT --name-only 2>/dev/null | grep -c "^backend/" || echo 0)
-    FRONTEND_CHANGED=$(git diff $OLD_COMMIT $NEW_COMMIT --name-only 2>/dev/null | grep -c "^frontend/src/" || echo 0)
-    PKG_CHANGED=$(git diff $OLD_COMMIT $NEW_COMMIT --name-only 2>/dev/null | grep -c "package.json" || echo 0)
-    REQ_CHANGED=$(git diff $OLD_COMMIT $NEW_COMMIT --name-only 2>/dev/null | grep -c "requirements.txt" || echo 0)
+    CHANGES=$(git diff $OLD_COMMIT $NEW_COMMIT --name-only 2>/dev/null)
     
-    # Install dependencies if needed
-    if [ "$PKG_CHANGED" -gt 0 ]; then
+    # Dependencies
+    if echo "$CHANGES" | grep -q "package.json"; then
         echo -e "  ${CYAN}→${NC} Installing npm packages..."
         cd "$SCRIPT_DIR/frontend" && npm install --legacy-peer-deps --silent 2>/dev/null
         cd "$SCRIPT_DIR"
     fi
     
-    if [ "$REQ_CHANGED" -gt 0 ]; then
+    if echo "$CHANGES" | grep -q "requirements.txt"; then
         echo -e "  ${CYAN}→${NC} Installing pip packages..."
-        cd "$SCRIPT_DIR/backend" && pip install -q -r requirements.txt 2>/dev/null
-        cd "$SCRIPT_DIR"
+        pip install -q -r "$SCRIPT_DIR/backend/requirements.txt" 2>/dev/null
     fi
     
-    # Apply changes
-    echo -e "  ${CYAN}→${NC} Applying changes..."
-    
-    # Backend: Touch to trigger uvicorn reload
-    if [ "$BACKEND_CHANGED" -gt 0 ]; then
+    # Hot reload triggers
+    if echo "$CHANGES" | grep -q "^backend/"; then
         touch "$SCRIPT_DIR/backend/server.py"
-        echo -e "  ${GREEN}✓${NC} Backend: Hot reload triggered"
+        echo -e "  ${GREEN}✓${NC} Backend reloading..."
     fi
     
-    # Frontend: FIX! Need to handle this properly
-    if [ "$FRONTEND_CHANGED" -gt 0 ] || [ "$PKG_CHANGED" -gt 0 ]; then
-        # Method 1: Touch a source file to trigger webpack rebuild
+    if echo "$CHANGES" | grep -q "^frontend/src/"; then
         touch "$SCRIPT_DIR/frontend/src/index.js"
-        
-        # Method 2: If that doesn't work, we need to restart frontend
-        # Wait a moment to see if hot reload picks it up
-        sleep 2
-        
-        # Check if frontend is still responding
-        if curl -s http://localhost:3000 > /dev/null 2>&1; then
-            echo -e "  ${GREEN}✓${NC} Frontend: Hot reload triggered"
-        else
-            # Frontend died, restart it
-            echo -e "  ${YELLOW}!${NC} Frontend needs restart..."
-            restart_frontend
-        fi
+        echo -e "  ${GREEN}✓${NC} Frontend reloading..."
     fi
     
     echo ""
-    echo -e "${GREEN}${BOLD}✓ Update complete!${NC}"
+    echo -e "${GREEN}Update complete!${NC}"
     echo ""
 }
 
 # ============================================================================
-#  RESTART FRONTEND ONLY (for when it gets stuck)
-# ============================================================================
-restart_frontend() {
-    echo -e "  ${CYAN}→${NC} Restarting frontend..."
-    
-    # Kill existing
-    kill_and_wait "frontend" "react-scripts" 3000
-    kill_and_wait "frontend" "node.*3000" 3000
-    sleep 1
-    
-    # Restart
-    cd "$SCRIPT_DIR/frontend"
-    export BROWSER=none
-    export CHOKIDAR_USEPOLLING=true
-    export WATCHPACK_POLLING=true
-    export FAST_REFRESH=true
-    export CI=false
-    
-    nohup npm start > "$SCRIPT_DIR/logs/frontend.log" 2>&1 &
-    
-    # Wait for it
-    if wait_for_service "Frontend" "http://localhost:3000" 30; then
-        echo -e "  ${GREEN}✓${NC} Frontend restarted"
-    else
-        echo -e "  ${RED}✗${NC} Frontend failed - check logs/frontend.log"
-    fi
-}
-
-# ============================================================================
-#  STOP - Kill everything
+#  STOP
 # ============================================================================
 stop_all() {
     echo ""
-    echo -e "${BOLD}Stopping...${NC}"
-    kill_and_wait "backend" "uvicorn.*server:app" 8001
-    kill_and_wait "frontend" "react-scripts" 3000
-    kill_and_wait "frontend" "node.*3000" 3000
-    kill_and_wait "whatsapp" "node.*whatsapp" 3001
-    echo -e "${GREEN}✓ Stopped${NC}"
+    echo -e "${BOLD}Stopping all services...${NC}"
+    
+    kill_process "backend" "uvicorn.*server:app" 8001
+    kill_process "frontend" "react-scripts" 3000
+    kill_process "frontend" "node.*3000" 3000
+    kill_process "whatsapp" "node.*whatsapp" 3001
+    
+    rm -f "$SCRIPT_DIR/.pids/"*.pid
+    
+    echo -e "${GREEN}✓ All services stopped${NC}"
     echo ""
 }
 
 # ============================================================================
-#  STATUS - Check what's running
+#  STATUS
 # ============================================================================
 status() {
     echo ""
-    echo -e "${BOLD}Status:${NC}"
+    echo -e "${BOLD}Service Status:${NC}"
     echo ""
     
-    # Backend
-    if curl -s http://localhost:8001/api/ > /dev/null 2>&1; then
-        echo -e "  Backend:   ${GREEN}● Running${NC} (http://localhost:8001)"
+    if curl -s --max-time 2 http://localhost:8001/api/ > /dev/null 2>&1; then
+        local ver=$(curl -s http://localhost:8001/api/version 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('version','?'))" 2>/dev/null)
+        echo -e "  Backend:   ${GREEN}● Running${NC} (v$ver)"
     else
         echo -e "  Backend:   ${RED}○ Stopped${NC}"
     fi
     
-    # Frontend
-    if curl -s http://localhost:3000 > /dev/null 2>&1; then
-        echo -e "  Frontend:  ${GREEN}● Running${NC} (http://localhost:3000)"
+    if curl -s --max-time 2 http://localhost:3000 > /dev/null 2>&1; then
+        echo -e "  Frontend:  ${GREEN}● Running${NC}"
     else
         echo -e "  Frontend:  ${RED}○ Stopped${NC}"
     fi
     
-    # WhatsApp
-    if curl -s http://localhost:3001/health > /dev/null 2>&1; then
-        echo -e "  WhatsApp:  ${GREEN}● Running${NC} (http://localhost:3001)"
+    if curl -s --max-time 2 http://localhost:3001/health > /dev/null 2>&1; then
+        echo -e "  WhatsApp:  ${GREEN}● Running${NC}"
     else
         echo -e "  WhatsApp:  ${RED}○ Stopped${NC}"
     fi
     
     echo ""
+}
+
+# ============================================================================
+#  DIAGNOSE - Debug startup issues
+# ============================================================================
+diagnose() {
+    echo ""
+    echo -e "${BOLD}━━━ DIAGNOSTIC REPORT ━━━${NC}"
+    echo ""
     
-    # Show version
-    VERSION=$(curl -s http://localhost:8001/api/version 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('version','unknown'))" 2>/dev/null || echo "unknown")
-    echo -e "  Version:   ${CYAN}$VERSION${NC}"
+    echo -e "${CYAN}System:${NC}"
+    echo "  OS: $(uname -a | cut -c1-60)"
+    echo "  WSL: $(grep -qi microsoft /proc/version && echo 'Yes' || echo 'No')"
+    echo ""
+    
+    echo -e "${CYAN}Dependencies:${NC}"
+    echo "  Python: $(python3 --version 2>/dev/null || echo 'NOT FOUND')"
+    echo "  Node:   $(node --version 2>/dev/null || echo 'NOT FOUND')"
+    echo "  npm:    $(npm --version 2>/dev/null || echo 'NOT FOUND')"
+    echo ""
+    
+    echo -e "${CYAN}Ports:${NC}"
+    for port in 3000 3001 8001 27017; do
+        if is_port_free $port; then
+            echo "  $port: free"
+        else
+            echo "  $port: IN USE"
+        fi
+    done
+    echo ""
+    
+    echo -e "${CYAN}Recent Backend Log:${NC}"
+    if [ -f "$SCRIPT_DIR/logs/backend.log" ]; then
+        tail -10 "$SCRIPT_DIR/logs/backend.log" | sed 's/^/  /'
+    else
+        echo "  (no log file)"
+    fi
+    echo ""
+    
+    echo -e "${CYAN}Recent Frontend Log:${NC}"
+    if [ -f "$SCRIPT_DIR/logs/frontend.log" ]; then
+        tail -10 "$SCRIPT_DIR/logs/frontend.log" | sed 's/^/  /'
+    else
+        echo "  (no log file)"
+    fi
     echo ""
 }
 
 # ============================================================================
-#  LOGS - Show recent logs
+#  RESTART FRONTEND ONLY
 # ============================================================================
-show_logs() {
-    local service="${1:-all}"
+restart_frontend() {
+    echo ""
+    echo -e "${BOLD}Restarting frontend...${NC}"
     
-    case "$service" in
-        backend|b)
-            tail -50 "$SCRIPT_DIR/logs/backend.log"
-            ;;
-        frontend|f)
-            tail -50 "$SCRIPT_DIR/logs/frontend.log"
-            ;;
-        whatsapp|w)
-            tail -50 "$SCRIPT_DIR/logs/whatsapp.log"
-            ;;
-        *)
-            echo -e "${BOLD}=== Backend ===${NC}"
-            tail -10 "$SCRIPT_DIR/logs/backend.log" 2>/dev/null
-            echo ""
-            echo -e "${BOLD}=== Frontend ===${NC}"
-            tail -10 "$SCRIPT_DIR/logs/frontend.log" 2>/dev/null
-            echo ""
-            ;;
-    esac
+    kill_process "frontend" "react-scripts" 3000
+    kill_process "frontend" "node.*3000" 3000
+    
+    wait_for_port_free 3000 5
+    
+    start_frontend
 }
 
 # ============================================================================
 #  MAIN
 # ============================================================================
-
-# Create pids directory
-mkdir -p "$SCRIPT_DIR/.pids"
-
 case "${1:-start}" in
     start|"")
         start_all
-        ;;
-    update|pull|u)
-        update
         ;;
     stop)
         stop_all
@@ -360,25 +527,48 @@ case "${1:-start}" in
     restart-frontend|rf)
         restart_frontend
         ;;
+    restart-backend|rb)
+        echo "Restarting backend..."
+        kill_process "backend" "uvicorn.*server:app" 8001
+        sleep 2
+        start_backend
+        ;;
+    update|pull|u)
+        update
+        ;;
     status|s)
         status
         ;;
     logs|log|l)
-        show_logs "$2"
+        service="${2:-all}"
+        case "$service" in
+            backend|b) tail -50 "$SCRIPT_DIR/logs/backend.log" ;;
+            frontend|f) tail -50 "$SCRIPT_DIR/logs/frontend.log" ;;
+            whatsapp|w) tail -50 "$SCRIPT_DIR/logs/whatsapp.log" ;;
+            *) 
+                echo "=== Backend ===" && tail -15 "$SCRIPT_DIR/logs/backend.log" 2>/dev/null
+                echo "" && echo "=== Frontend ===" && tail -15 "$SCRIPT_DIR/logs/frontend.log" 2>/dev/null
+                ;;
+        esac
+        ;;
+    diagnose|diag|d)
+        diagnose
         ;;
     *)
         echo ""
-        echo -e "${BOLD}WA Scheduler - Start & Update${NC}"
+        echo -e "${BOLD}WA Scheduler v2.1.1${NC}"
         echo ""
         echo "Usage: ./start.sh [command]"
         echo ""
-        echo "  start            Start everything (default)"
-        echo "  stop             Stop everything"
-        echo "  restart          Full restart"
-        echo "  restart-frontend Restart only frontend (if stuck)"
-        echo "  update           Pull & apply from GitHub"
-        echo "  status           Check what's running"
-        echo "  logs [service]   Show logs (backend/frontend/whatsapp)"
+        echo "  start             Start all services"
+        echo "  stop              Stop all services"
+        echo "  restart           Full restart"
+        echo "  restart-frontend  Restart frontend only"
+        echo "  restart-backend   Restart backend only"
+        echo "  update            Pull from GitHub"
+        echo "  status            Check services"
+        echo "  logs [service]    View logs"
+        echo "  diagnose          Debug startup issues"
         echo ""
         ;;
 esac
