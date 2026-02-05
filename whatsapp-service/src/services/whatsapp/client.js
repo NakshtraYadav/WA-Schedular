@@ -272,7 +272,7 @@ const createClient = () => {
     authStrategy = new RemoteAuth({
       clientId: SESSION_CLIENT_ID,
       store: store,
-      backupSyncIntervalMs: 60000 // Sync session to MongoDB every 60 seconds
+      backupSyncIntervalMs: 10000 // CHANGED: Sync every 10s instead of 60s for durability
     });
   } else {
     log('INFO', `Using LocalAuth with filesystem: ${SESSION_PATH}`);
