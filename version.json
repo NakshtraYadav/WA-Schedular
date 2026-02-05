@@ -1,10 +1,21 @@
 {
-  "version": "2.5.1",
+  "version": "2.5.2",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 24,
+  "build": 25,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.5.2",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: 'Verify All' contacts timeout issue - was timing out at 30 seconds",
+        "IMPROVED: Bulk verification now uses parallel batches (5x faster)",
+        "IMPROVED: Extended timeouts to 3 minutes for large contact lists",
+        "IMPROVED: Better error messages for timeout and connection issues",
+        "IMPROVED: Contacts page now uses shared WhatsApp status for consistency"
+      ]
+    },
     {
       "version": "2.5.1",
       "date": "2026-02-05",
