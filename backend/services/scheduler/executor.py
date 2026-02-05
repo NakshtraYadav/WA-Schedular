@@ -15,11 +15,11 @@ async def execute_scheduled_message(schedule_id: str):
         schedule = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
         
         if not schedule:
-            logger.warning(f"Schedule {schedule_id} not found in database")
+            logger.warning(f"⚠️ Schedule not found: {schedule_id}")
             return
             
         if not schedule.get('is_active'):
-            logger.info(f"Schedule {schedule_id} is inactive, skipping")
+            logger.info(f"⏸️ Schedule is inactive, skipping: {schedule_id}")
             return
         
         logger.info(f"📤 Sending to {schedule['contact_name']} ({schedule['contact_phone']}): {schedule['message'][:50]}...")
