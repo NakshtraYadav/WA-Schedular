@@ -577,6 +577,9 @@ case "${1:-start}" in
     start|"")
         start_all
         ;;
+    setup|install)
+        setup
+        ;;
     stop)
         stop_all
         ;;
