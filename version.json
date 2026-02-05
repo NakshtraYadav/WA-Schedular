@@ -1,10 +1,23 @@
 {
-  "version": "3.2.2",
+  "version": "3.2.3",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 43,
+  "build": 44,
   "release_date": "2026-02-06",
   "changelog": [
+    {
+      "version": "3.2.3",
+      "date": "2026-02-06",
+      "changes": [
+        "UI: Removed green Generate QR button - placeholder is now clickable",
+        "CLEANUP: Consolidated documentation into /docs folder",
+        "CLEANUP: Removed duplicate/obsolete files (BUG_REPORT.md, backend_test.py)",
+        "CLEANUP: Fixed corrupted .gitignore file",
+        "CLEANUP: Removed __pycache__ and .pyc files",
+        "DOCS: Comprehensive README.md with full documentation",
+        "DOCS: Added architecture diagram and API reference"
+      ]
+    },
     {
       "version": "3.2.2",
       "date": "2026-02-06",
