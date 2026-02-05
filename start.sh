@@ -685,7 +685,7 @@ case "${1:-start}" in
         ;;
     *)
         echo ""
-        echo -e "${BOLD}WA Scheduler v2.1.1${NC}"
+        echo -e "${BOLD}WA Scheduler v2.1.2${NC}"
         echo ""
         echo "Usage: ./start.sh [command]"
         echo ""
