@@ -83,10 +83,11 @@ async def verify_bulk_numbers(phones: List[str] = Body(...), update_db: bool = T
             
             # Update contacts in database with verification status
             if update_db and result.get("success") and result.get("results"):
-                contacts_collection = get_contacts_collection()
+                from core.database import get_database
+                database = await get_database()
                 for r in result["results"]:
                     # Update by both original phone and clean number
-                    contacts_collection.update_many(
+                    await database.contacts.update_many(
                         {"$or": [{"phone": r["phone"]}, {"phone": r.get("cleanNumber", "")}]},
                         {"$set": {
                             "is_verified": r["isRegistered"],
@@ -106,8 +107,9 @@ async def verify_bulk_numbers(phones: List[str] = Body(...), update_db: bool = T
 async def delete_unverified_contacts():
     """Delete all contacts that are not verified on WhatsApp"""
     try:
-        contacts_collection = get_contacts_collection()
-        result = contacts_collection.delete_many({"is_verified": False})
+        from core.database import get_database
+        database = await get_database()
+        result = await database.contacts.delete_many({"is_verified": False})
         return {
             "success": True,
             "deleted_count": result.deleted_count,
