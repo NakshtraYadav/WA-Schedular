@@ -106,7 +106,7 @@ async def get_scheduler_logs(lines: int = Query(100, ge=10, le=500)):
     
     # Filter for scheduler-related entries
     keywords = ["schedul", "job", "execute", "cron", "trigger", "📅", "🔄", "✅", "❌"]
-    filtered = [l.strip() for l in all_lines if any(k.lower() in l.lower() for k in keywords)]
+    filtered = [line.strip() for line in all_lines if any(kw.lower() in line.lower() for kw in keywords)]
     
     return {
         "source": str(log_path),
@@ -126,9 +126,9 @@ async def get_error_logs(lines: int = Query(100, ge=10, le=500)):
             all_lines = read_log_file(log_path, lines * 3)
             # Filter for errors
             source_errors = [
-                {"source": source, "line": l.strip(), "level": "error"} 
-                for l in all_lines 
-                if any(e in l.lower() for e in ["error", "exception", "failed", "critical", "❌"])
+                {"source": source, "line": line.strip(), "level": "error"} 
+                for line in all_lines 
+                if any(err in line.lower() for err in ["error", "exception", "failed", "critical", "❌"])
             ]
             errors.extend(source_errors[-50:])  # Max 50 per source
     
