@@ -180,7 +180,14 @@ function Contacts() {
     }
   };
 
-  const getVerificationStatus = (phone) => {
+  // Get verification status - prioritize DB value, fallback to session results
+  const getVerificationStatus = (contact) => {
+    // First check if DB has verification status
+    if (contact.is_verified === true) return 'verified';
+    if (contact.is_verified === false) return 'not_found';
+    
+    // Fallback to session results (for just-verified contacts before page refresh)
+    const phone = contact.phone;
     if (Object.keys(verificationResults).length === 0) return 'unknown';
     const cleanPhone = phone.replace(/[\s\-\+]/g, '');
     if (verificationResults[phone] !== undefined) return verificationResults[phone] ? 'verified' : 'not_found';
