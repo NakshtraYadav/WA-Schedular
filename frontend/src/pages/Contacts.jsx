@@ -426,10 +426,6 @@ function Contacts() {
                           Not Verified
                         </Badge>
                       )}
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Not Verified
-                        </Badge>
-                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground max-w-[200px] truncate">
                       {contact.notes || '-'}
