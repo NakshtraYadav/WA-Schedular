@@ -1,12 +1,17 @@
 """Contacts routes"""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from typing import List
+from pydantic import BaseModel
 import httpx
 from models.contact import Contact, ContactCreate
 from services.contacts import crud, sync
 from core.config import WA_SERVICE_URL
 
 router = APIRouter(prefix="/contacts")
+
+
+class PhoneList(BaseModel):
+    phones: List[str]
 
 
 @router.get("", response_model=List[Contact])
