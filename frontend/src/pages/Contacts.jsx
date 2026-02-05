@@ -274,6 +274,17 @@ function Contacts() {
           </Button>
           <Button 
             variant="outline"
+            onClick={handleRemoveUnverified}
+            disabled={removingUnverified || contacts.filter(c => c.is_verified === false).length === 0}
+            data-testid="remove-unverified-btn"
+            title="Remove all contacts not found on WhatsApp"
+            className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+          >
+            {removingUnverified ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserX className="w-4 h-4 mr-2" />}
+            Remove Unverified
+          </Button>
+          <Button 
+            variant="outline"
             onClick={handleSyncContacts}
             disabled={syncing || !waConnected}
             data-testid="sync-contacts-btn"
