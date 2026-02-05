@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
+import { Checkbox } from '../components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -36,7 +37,7 @@ import {
   ShieldCheck,
   UserX
 } from 'lucide-react';
-import { getContacts, createContact, updateContact, deleteContact, sendNow, syncWhatsAppContacts, verifySingleContact, deleteUnverifiedContacts } from '../api';
+import { getContacts, createContact, updateContact, deleteContact, sendNow, syncWhatsAppContacts, verifySingleContact, deleteUnverifiedContacts, bulkDeleteContacts } from '../api';
 import { useWhatsAppStatus } from '../hooks/useWhatsAppStatus';
 import { toast } from 'sonner';
 
@@ -53,6 +54,8 @@ function Contacts() {
   const [selectedContact, setSelectedContact] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', notes: '' });
   const [sendMessage, setSendMessage] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set()); // For multi-select
+  const [deletingSelected, setDeletingSelected] = useState(false);
   
   // Use shared WhatsApp status hook for consistency with sidebar
   const { status: waStatus } = useWhatsAppStatus();
