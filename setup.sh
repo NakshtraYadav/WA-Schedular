@@ -279,21 +279,26 @@ install_node() {
     
     case "$os" in
         ubuntu|debian|pop)
-            # Use NodeSource repository
+            # Use NodeSource repository (includes npm)
             print_info "Adding NodeSource repository..."
             curl -fsSL https://deb.nodesource.com/setup_${MIN_NODE_VERSION}.x | run_sudo bash -
             run_sudo apt-get install -y nodejs
+            
+            # Refresh PATH and hash table
+            hash -r 2>/dev/null || true
+            export PATH="/usr/bin:$PATH"
             ;;
         
         fedora|rhel|centos|rocky|alma)
             curl -fsSL https://rpm.nodesource.com/setup_${MIN_NODE_VERSION}.x | run_sudo bash -
             run_sudo dnf install -y nodejs || run_sudo yum install -y nodejs
+            hash -r 2>/dev/null || true
             ;;
         
         macos)
             if command_exists brew; then
                 brew install node@$MIN_NODE_VERSION
-                brew link node@$MIN_NODE_VERSION --force
+                brew link node@$MIN_NODE_VERSION --force --overwrite
             else
                 print_error "Please install Homebrew first: https://brew.sh"
                 exit 1
@@ -303,22 +308,59 @@ install_node() {
         *)
             # Fallback: use nvm
             print_info "Using nvm to install Node.js..."
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
             export NVM_DIR="$HOME/.nvm"
+            mkdir -p "$NVM_DIR"
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+            
+            # Source nvm
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            
             nvm install $MIN_NODE_VERSION
             nvm use $MIN_NODE_VERSION
             nvm alias default $MIN_NODE_VERSION
+            
+            # Add to profile for persistence
+            if [ -f "$HOME/.bashrc" ]; then
+                echo 'export NVM_DIR="$HOME/.nvm"' >> "$HOME/.bashrc"
+                echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> "$HOME/.bashrc"
+            fi
             ;;
     esac
     
-    # Verify installation
+    # Wait a moment for installation to settle
+    sleep 1
+    
+    # Refresh command cache
+    hash -r 2>/dev/null || true
+    
+    # Try multiple ways to find node
+    local node_path=""
     if command_exists node; then
-        print_success "Node.js $(node -v) installed"
+        node_path="node"
+    elif [ -x "/usr/bin/node" ]; then
+        node_path="/usr/bin/node"
+        export PATH="/usr/bin:$PATH"
+    elif [ -x "/usr/local/bin/node" ]; then
+        node_path="/usr/local/bin/node"
+        export PATH="/usr/local/bin:$PATH"
+    elif [ -n "$NVM_DIR" ] && [ -x "$NVM_DIR/versions/node/v${MIN_NODE_VERSION}."*/bin/node ]; then
+        # NVM installation
+        local nvm_node=$(ls -d "$NVM_DIR/versions/node/v${MIN_NODE_VERSION}."*/bin 2>/dev/null | head -1)
+        if [ -n "$nvm_node" ]; then
+            export PATH="$nvm_node:$PATH"
+            node_path="node"
+        fi
+    fi
+    
+    # Verify installation
+    if [ -n "$node_path" ] && $node_path -v &>/dev/null; then
+        print_success "Node.js $($node_path -v) installed"
         INSTALLED_NODE=true
     else
         print_error "Node.js installation failed"
         print_info "Please install Node.js manually: https://nodejs.org/"
+        print_info "Or try: curl -fsSL https://deb.nodesource.com/setup_${MIN_NODE_VERSION}.x | sudo bash - && sudo apt-get install -y nodejs"
         exit 1
     fi
 }
