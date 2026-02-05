@@ -291,6 +291,8 @@ class WhatsAppSchedulerTester:
             "health": self.test_health_endpoints(),
             "whatsapp": self.test_whatsapp_endpoints(),
             "data": self.test_data_endpoints(),
+            "scheduler": self.test_scheduler_endpoints(),
+            "manual_run": self.test_manual_schedule_run(),
             "updates": self.test_update_endpoints(),
             "update_install": self.test_update_install_endpoint(),
             "diagnostics": self.test_diagnostics_endpoints(),
