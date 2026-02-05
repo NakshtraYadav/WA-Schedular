@@ -24,11 +24,14 @@ let isInitializing = false;
 let initError = null;
 let initRetries = 0;
 let isShuttingDown = false;
+let qrRefreshTimer = null;
+let lastQrTime = null;
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 5000;
 const SHUTDOWN_TIMEOUT_MS = 10000;
 const SESSION_CLIENT_ID = 'wa-scheduler';
+const QR_REFRESH_INTERVAL_MS = 30000; // 30 seconds
 
 const getState = () => ({
   client,
