@@ -323,7 +323,7 @@ function Contacts() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
-                    {contacts.filter(c => getVerificationStatus(c.phone) === 'not_found').length}
+                    {contacts.filter(c => getVerificationStatus(c) === 'not_found').length}
                   </p>
                   <p className="text-sm text-muted-foreground">Not on WhatsApp</p>
                 </div>
