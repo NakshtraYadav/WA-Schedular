@@ -377,24 +377,41 @@ const initWhatsApp = async () => {
   // Step 0: Clean up stale browser locks (important for WSL)
   await cleanupStaleBrowser();
 
-  // Step 1: Validate storage
-  if (!validateSessionStorage()) {
-    setState({
-      isInitializing: false,
-      initError: 'Session storage not accessible'
-    });
-    return;
+  // Step 1: Try to initialize MongoDB session store
+  try {
+    await initSessionStore();
+    useMongoSession = true;
+    log('INFO', '✓ MongoDB session store ready - sessions will persist');
+    
+    // Check if we have existing session in MongoDB
+    const hasSession = await hasExistingSession(SESSION_CLIENT_ID);
+    if (hasSession) {
+      log('INFO', '✓ Found existing session in MongoDB - will restore');
+    }
+  } catch (error) {
+    log('WARN', `MongoDB not available: ${error.message}`);
+    log('INFO', 'Falling back to LocalAuth (filesystem-based sessions)');
+    useMongoSession = false;
+    
+    // Validate filesystem storage as fallback
+    if (!validateSessionStorage()) {
+      setState({
+        isInitializing: false,
+        initError: 'Session storage not accessible'
+      });
+      return;
+    }
+
+    // Check existing filesystem session
+    const sessionStatus = checkExistingSession();
+    if (sessionStatus === 'corrupt') {
+      log('WARN', 'Corrupt session detected - will require new QR scan');
+    } else if (sessionStatus === 'valid') {
+      log('INFO', 'Resuming from existing filesystem session...');
+    }
   }
 
-  // Step 2: Check existing session
-  const sessionStatus = checkExistingSession();
-  if (sessionStatus === 'corrupt') {
-    log('WARN', 'Corrupt session detected - will require new QR scan');
-  } else if (sessionStatus === 'valid') {
-    log('INFO', 'Resuming from existing session...');
-  }
-
-  // Step 3: Clean shutdown of existing client
+  // Step 2: Clean shutdown of existing client
   if (client) {
     log('INFO', 'Shutting down existing client first...');
     await gracefulShutdown();
@@ -402,7 +419,7 @@ const initWhatsApp = async () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
-  // Step 4: Create and initialize new client
+  // Step 3: Create and initialize new client
   try {
     client = createClient();
 
