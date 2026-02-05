@@ -264,23 +264,34 @@ const createClient = () => {
   if (executablePath) {
     puppeteerOptions.executablePath = executablePath;
   }
+
+  // Determine auth strategy
+  let authStrategy;
+  const store = getStore();
   
-  log('INFO', `Creating client with session path: ${SESSION_PATH}`);
-  
-  return new Client({
-    authStrategy: new LocalAuth({
+  if (store && useMongoSession) {
+    log('INFO', 'Using RemoteAuth with MongoDB (persistent sessions)');
+    authStrategy = new RemoteAuth({
+      clientId: SESSION_CLIENT_ID,
+      store: store,
+      backupSyncIntervalMs: 60000 // Sync session to MongoDB every 60 seconds
+    });
+  } else {
+    log('INFO', `Using LocalAuth with filesystem: ${SESSION_PATH}`);
+    authStrategy = new LocalAuth({
       clientId: SESSION_CLIENT_ID,
       dataPath: SESSION_PATH
-    }),
+    });
+  }
+  
+  return new Client({
+    authStrategy: authStrategy,
     puppeteer: puppeteerOptions,
-    // Use stable web version
-    webVersionCache: {
-      type: 'remote',
-      remotePath: 'https://raw.githubusercontent.com/AuroraDevelopmentTeam/AuroraAPI/main/AuroraWWeb/',
-    },
     // Connection options
     restartOnAuthFail: true,
-    qrMaxRetries: 5
+    qrMaxRetries: 5,
+    takeoverOnConflict: true,
+    takeoverTimeoutMs: 10000
   });
 };
 
