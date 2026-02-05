@@ -41,9 +41,9 @@ async def execute_scheduled_message(schedule_id: str):
         # Log the message
         log = MessageLog(
             contact_id=schedule['contact_id'],
-            contact_name=schedule['contact_name'],
-            contact_phone=schedule['contact_phone'],
-            message=schedule['message'],
+            contact_name=contact_name,
+            contact_phone=contact_phone,
+            message=message,
             status=status,
             error_message=result.get('error'),
             scheduled_message_id=schedule_id
