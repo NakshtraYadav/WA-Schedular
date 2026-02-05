@@ -1,10 +1,21 @@
 {
-  "version": "2.5.0",
+  "version": "2.5.1",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 23,
+  "build": 24,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.5.1",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: Circular JSON error in getState() - client object no longer exposed",
+        "FIXED: Status routes now correctly handle both MongoDB and filesystem sessions",
+        "FIXED: Session routes properly clear MongoDB or filesystem based on active storage",
+        "FIXED: /session-info endpoint now async and shows correct storage type",
+        "IMPROVED: Status endpoint now shows sessionType (MongoDB/Filesystem)"
+      ]
+    },
     {
       "version": "2.5.0",
       "date": "2026-02-05",
