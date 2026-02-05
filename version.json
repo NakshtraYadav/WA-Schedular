@@ -1,10 +1,25 @@
 {
-  "version": "3.0.1",
+  "version": "3.1.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 39,
+  "build": 40,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "3.1.0",
+      "date": "2026-02-05",
+      "changes": [
+        "NEW: Zero-touch graceful restart system",
+        "NEW: PM2 ecosystem configuration for process management",
+        "NEW: Graceful shutdown coordinator with ordered callbacks",
+        "NEW: /scripts/zero-touch-update.sh for automated updates",
+        "IMPROVED: 30-second graceful shutdown for WhatsApp (session protection)",
+        "IMPROVED: PM2 wait_ready integration for zero-downtime restarts",
+        "IMPROVED: Automatic rollback on failed deployment validation",
+        "IMPROVED: Session status update on graceful shutdown",
+        "DOCS: Added ZERO_TOUCH_RESTART.md design document"
+      ]
+    },
     {
       "version": "3.0.1",
       "date": "2026-02-05",
