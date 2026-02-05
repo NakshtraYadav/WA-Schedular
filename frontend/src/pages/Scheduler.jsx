@@ -279,6 +279,23 @@ function Scheduler() {
     }
   };
 
+  const handleRunNow = async (id) => {
+    setRunningScheduleId(id);
+    try {
+      const result = await testRunSchedule(id);
+      if (result.data.success) {
+        toast.success('Message sent! Check logs for details.');
+      } else {
+        toast.error(result.data.error || 'Failed to send message');
+      }
+      fetchData(); // Refresh to show updated last_run
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to run schedule');
+    } finally {
+      setRunningScheduleId(null);
+    }
+  };
+
   const applyTemplate = (templateId, target = 'schedule') => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
