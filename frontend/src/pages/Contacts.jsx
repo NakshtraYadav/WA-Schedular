@@ -268,16 +268,39 @@ function Contacts() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Phone</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Notes</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contacts.map((contact) => (
+                {contacts.map((contact) => {
+                  const status = getVerificationStatus(contact.phone);
+                  return (
                   <TableRow key={contact.id} data-testid={`contact-row-${contact.id}`}>
                     <TableCell className="font-medium">{contact.name}</TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">{contact.phone}</span>
+                    </TableCell>
+                    <TableCell>
+                      {status === 'verified' && (
+                        <Badge className="bg-emerald-500/20 text-emerald-500 border-0">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          On WhatsApp
+                        </Badge>
+                      )}
+                      {status === 'not_found' && (
+                        <Badge variant="destructive" className="bg-red-500/20 text-red-500 border-0">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Not Found
+                        </Badge>
+                      )}
+                      {status === 'unknown' && (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Not Verified
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground max-w-[200px] truncate">
                       {contact.notes || '-'}
@@ -290,6 +313,8 @@ function Contacts() {
                             size="sm"
                             onClick={() => openSendDialog(contact)}
                             data-testid={`send-now-${contact.id}`}
+                            disabled={status === 'not_found'}
+                            title={status === 'not_found' ? 'Contact not on WhatsApp' : 'Send message'}
                           >
                             <Send className="w-4 h-4" />
                           </Button>
