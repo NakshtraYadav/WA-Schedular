@@ -331,12 +331,27 @@ function Connect() {
                     </>
                   ) : (
                     <>
-                      <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-                      <p className="text-muted-foreground">
-                        Starting WhatsApp service...
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Please wait...
+                      {/* QR Placeholder - Click to Generate */}
+                      <div 
+                        className="w-64 h-64 border-2 border-dashed border-muted-foreground/30 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all mb-4"
+                        onClick={handleGenerateQR}
+                        data-testid="qr-placeholder"
+                      >
+                        <QrCode className="w-16 h-16 text-muted-foreground/50 mb-3" />
+                        <p className="text-muted-foreground font-medium">Click to Generate</p>
+                        <p className="text-xs text-muted-foreground mt-1">QR Code</p>
+                      </div>
+                      <Button 
+                        onClick={handleGenerateQR} 
+                        className="btn-glow"
+                        size="lg"
+                        data-testid="generate-qr-btn"
+                      >
+                        <QrCode className="w-5 h-5 mr-2" />
+                        Generate QR Code
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-4 max-w-xs text-center">
+                        Click when you're ready with your phone to scan. The QR code will be fresh and valid.
                       </p>
                     </>
                   )}
