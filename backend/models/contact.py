@@ -11,6 +11,9 @@ class Contact(BaseModel):
     name: str
     phone: str
     notes: Optional[str] = None
+    is_verified: Optional[bool] = None  # True=on WhatsApp, False=not found, None=not checked
+    whatsapp_id: Optional[str] = None   # WhatsApp ID if verified
+    verified_at: Optional[str] = None   # ISO timestamp when verified
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
