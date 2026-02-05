@@ -111,46 +111,63 @@ function Contacts() {
       return;
     }
 
+    // Filter contacts that need verification
+    const toVerify = contacts.filter(c => c.is_verified === null || c.is_verified === undefined);
+    if (toVerify.length === 0) {
+      toast.info('All contacts are already verified');
+      return;
+    }
+
     setVerifying(true);
-    const estimatedTime = Math.ceil(contacts.length / 5) * 2; // ~2 seconds per batch of 5
-    const toastId = toast.loading(`Verifying ${contacts.length} contacts... (est. ${estimatedTime}s)`);
+    let verified = 0;
+    let notFound = 0;
+    let errors = 0;
+    
+    const toastId = toast.loading(`Verifying 0/${toVerify.length} contacts...`);
 
-    try {
-      const phones = contacts.map(c => c.phone);
-      const res = await verifyBulkNumbers(phones);
-      toast.dismiss(toastId);
+    // Verify contacts one by one for real-time updates
+    for (let i = 0; i < toVerify.length; i++) {
+      const contact = toVerify[i];
+      setVerifyingContact(contact.id);
+      
+      try {
+        const res = await verifySingleContact(contact.phone);
+        
+        if (res.data?.success) {
+          // Update contact in local state immediately
+          setContacts(prev => prev.map(c => 
+            c.id === contact.id 
+              ? { ...c, is_verified: res.data.isRegistered, whatsapp_id: res.data.whatsappId }
+              : c
+          ));
+          
+          if (res.data.isRegistered) {
+            verified++;
+          } else {
+            notFound++;
+          }
+        } else {
+          errors++;
+        }
+      } catch (error) {
+        errors++;
+      }
+      
+      // Update progress toast
+      toast.loading(`Verifying ${i + 1}/${toVerify.length} contacts...`, { id: toastId });
+    }
 
-      if (res.data && res.data.success) {
-        const registered = res.data.registered || 0;
-        const notRegistered = res.data.notRegistered || 0;
-        
-        // Refresh contacts to get updated verification status from DB
-        await fetchContacts();
-        
-        if (notRegistered === 0) {
-          toast.success(`All ${registered} contacts are on WhatsApp! ✓`);
-        } else {
-          toast.warning(`${registered} on WhatsApp, ${notRegistered} not found`);
-        }
-      } else {
-        const errorMsg = res.data?.error || 'Verification failed';
-        if (errorMsg.toLowerCase().includes('not connected')) {
-          toast.error('WhatsApp is not connected. Go to Connect page and scan QR code first.');
-        } else if (errorMsg.toLowerCase().includes('timeout')) {
-          toast.error('Verification timed out. Try with fewer contacts or check WhatsApp connection.');
-        } else {
-          toast.error(errorMsg);
-        }
-      }
-    } catch (error) {
-      toast.dismiss(toastId);
-      let errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message || 'Failed to verify contacts';
-      if (error.code === 'ECONNABORTED' || errorMsg.includes('timeout')) {
-        errorMsg = `Verification timed out after 3 minutes. You have ${contacts.length} contacts - try verifying fewer at a time.`;
-      }
-      toast.error(errorMsg);
-    } finally {
-      setVerifying(false);
+    setVerifyingContact(null);
+    setVerifying(false);
+    toast.dismiss(toastId);
+
+    // Show final result
+    if (errors > 0) {
+      toast.warning(`Done: ${verified} verified, ${notFound} not found, ${errors} errors`);
+    } else if (notFound === 0) {
+      toast.success(`All ${verified} contacts are on WhatsApp! ✓`);
+    } else {
+      toast.info(`${verified} on WhatsApp, ${notFound} not found`);
     }
   };
 
