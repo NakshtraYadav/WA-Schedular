@@ -31,12 +31,12 @@ let isShuttingDown = false;
 let qrRefreshTimer = null;
 let lastQrTime = null;
 let useMongoSession = false; // Track which auth method is in use
+let qrCount = 0; // Track how many QR codes have been emitted
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 5000;
 const SHUTDOWN_TIMEOUT_MS = 15000; // Increased for session save
 const SESSION_CLIENT_ID = 'wa-scheduler';
-const QR_REFRESH_INTERVAL_MS = 30000; // 30 seconds
 
 const getState = () => ({
   client: client ? true : null, // Don't expose client object
@@ -49,7 +49,8 @@ const getState = () => ({
   initRetries,
   sessionPath: useMongoSession ? 'MongoDB' : SESSION_PATH,
   sessionType: useMongoSession ? 'RemoteAuth (MongoDB)' : 'LocalAuth (Filesystem)',
-  qrAge: lastQrTime ? Math.floor((Date.now() - lastQrTime) / 1000) : null
+  qrAge: lastQrTime ? Math.floor((Date.now() - lastQrTime) / 1000) : null,
+  qrCount // How many QR codes generated this session
 });
 
 const setState = (updates) => {
