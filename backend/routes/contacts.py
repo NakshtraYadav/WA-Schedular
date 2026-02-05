@@ -178,22 +178,6 @@ async def verify_single_number(phone: str):
         return {"success": False, "phone": phone, "error": str(e)}
 
 
-@router.delete("/unverified")
-async def delete_unverified_contacts():
-    """Delete all contacts that are not verified on WhatsApp"""
-    try:
-        from core.database import get_database
-        database = await get_database()
-        result = await database.contacts.delete_many({"is_verified": False})
-        return {
-            "success": True,
-            "deleted_count": result.deleted_count,
-            "message": f"Removed {result.deleted_count} unverified contacts"
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
 async def verify_whatsapp_number(phone: str) -> dict:
     """Helper to verify a single number"""
     try:
