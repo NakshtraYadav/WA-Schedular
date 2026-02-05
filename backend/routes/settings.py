@@ -63,7 +63,7 @@ async def get_timezone_info():
     try:
         from tzlocal import get_localzone_name
         system_tz = get_localzone_name()
-    except:
+    except Exception:
         system_tz = "UTC"
     
     common_timezones = [
