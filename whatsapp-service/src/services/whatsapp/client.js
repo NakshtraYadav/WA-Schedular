@@ -423,14 +423,22 @@ const initWhatsApp = async () => {
 
     // Event: QR Code
     client.on('qr', (qr) => {
-      log('INFO', 'QR Code received - scan required');
+      qrCount++;
+      log('INFO', `QR Code #${qrCount} received - scan with WhatsApp mobile app`);
+      
+      // The first QR code can sometimes be generated before WhatsApp Web is fully loaded
+      // whatsapp-web.js will automatically emit a new QR if the first one expires
+      if (qrCount === 1) {
+        log('INFO', 'First QR code generated. If scan fails, wait for auto-refresh (~20s)');
+      }
+      
       lastQrTime = Date.now();
       setState({
         qrCodeData: qr,
         isReady: false,
         isAuthenticated: false
       });
-      // Start auto-refresh timer for QR
+      // Start age tracking timer
       startQrRefreshTimer();
     });
 
@@ -439,6 +447,7 @@ const initWhatsApp = async () => {
       log('INFO', '✓ WhatsApp client is READY!');
       stopQrRefreshTimer(); // Stop QR refresh when connected
       lastQrTime = null;
+      qrCount = 0; // Reset QR count for next session
       setState({
         isReady: true,
         isAuthenticated: true,
