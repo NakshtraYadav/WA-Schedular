@@ -21,6 +21,7 @@ export {
   syncWhatsAppContacts,
   verifyWhatsAppNumber,
   verifyBulkNumbers,
+  verifySingleContact,
   deleteUnverifiedContacts
 } from './contacts.api';
 
