@@ -97,6 +97,61 @@ function Contacts() {
     }
   };
 
+  const handleVerifyAll = async () => {
+    if (!waConnected) {
+      toast.error('WhatsApp is not connected. Please connect first.');
+      return;
+    }
+
+    if (contacts.length === 0) {
+      toast.error('No contacts to verify');
+      return;
+    }
+
+    setVerifying(true);
+    const toastId = toast.loading(`Verifying ${contacts.length} contacts...`);
+
+    try {
+      const phones = contacts.map(c => c.phone);
+      const res = await verifyBulkNumbers(phones);
+      toast.dismiss(toastId);
+
+      if (res.data.success) {
+        // Build verification map
+        const results = {};
+        res.data.results.forEach(r => {
+          results[r.phone] = r.isRegistered;
+          results[r.cleanNumber] = r.isRegistered;
+        });
+        setVerificationResults(results);
+
+        const registered = res.data.registered;
+        const notRegistered = res.data.notRegistered;
+        
+        if (notRegistered === 0) {
+          toast.success(`All ${registered} contacts are on WhatsApp! ✓`);
+        } else {
+          toast.warning(`${registered} on WhatsApp, ${notRegistered} not found`);
+        }
+      } else {
+        toast.error(res.data.error || 'Verification failed');
+      }
+    } catch (error) {
+      toast.dismiss(toastId);
+      toast.error('Failed to verify contacts');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const getVerificationStatus = (phone) => {
+    if (Object.keys(verificationResults).length === 0) return 'unknown';
+    const cleanPhone = phone.replace(/[\s\-\+]/g, '');
+    if (verificationResults[phone] !== undefined) return verificationResults[phone] ? 'verified' : 'not_found';
+    if (verificationResults[cleanPhone] !== undefined) return verificationResults[cleanPhone] ? 'verified' : 'not_found';
+    return 'unknown';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
