@@ -5,9 +5,9 @@ from models.contact import Contact, ContactCreate
 
 
 async def get_all_contacts() -> list:
-    """Get all contacts"""
+    """Get all contacts sorted by name A-Z"""
     database = await get_database()
-    contacts = await database.contacts.find({}, {"_id": 0}).to_list(1000)
+    contacts = await database.contacts.find({}, {"_id": 0}).sort("name", 1).to_list(1000)
     for c in contacts:
         if isinstance(c.get('created_at'), str):
             c['created_at'] = datetime.fromisoformat(c['created_at'])
