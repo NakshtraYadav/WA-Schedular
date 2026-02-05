@@ -759,12 +759,21 @@ function Scheduler() {
             )}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
                 Cancel
               </Button>
               <Button type="submit" className="btn-glow" data-testid="create-schedule-btn">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Schedule
+                {editingSchedule ? (
+                  <>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Update Schedule
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Schedule
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>
