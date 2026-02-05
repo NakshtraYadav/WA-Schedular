@@ -4,12 +4,13 @@
 
 **Schedule and automate your WhatsApp messages**
 
+[![Version](https://img.shields.io/badge/Version-2.1.2-brightgreen)](https://github.com/NakshtraYadav/WA-Schedular/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20WSL-lightgrey)](https://ubuntu.com/)
 
-[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Documentation](#documentation)
+[Features](#-features) • [Quick Start](#-quick-start) • [Commands](#-commands) • [Telegram](#-telegram-bot) • [Architecture](#-architecture)
 
 </div>
 
@@ -17,33 +18,39 @@
 
 ## ✨ Features
 
-- 📅 **Schedule Messages** - One-time or recurring (cron-based)
-- ⚡ **Send Now** - Instant message sending
-- 👥 **Contact Management** - Store and organize contacts
-- 📝 **Message Templates** - Save and reuse templates
-- 🤖 **Telegram Bot** - Control remotely via Telegram
-- 📊 **Dashboard** - Real-time stats and message history
-- 🔄 **Auto-Updates** - Stay updated automatically
-- 🔧 **Diagnostics** - Monitor service health
+| Feature | Description |
+|---------|-------------|
+| 📅 **Schedule Messages** | One-time or recurring (cron-based) |
+| ⚡ **Send Now** | Instant message sending |
+| 👥 **Contact Management** | Store and organize contacts |
+| 📝 **Message Templates** | Save and reuse templates |
+| 🤖 **Telegram Bot** | Control remotely via Telegram |
+| 📊 **Dashboard** | Real-time stats and message history |
+| 🔄 **One-Click Updates** | Update from UI in ~3 seconds |
+| 🔧 **Diagnostics** | Monitor service health |
+| ♻️ **Hot Reload** | Code changes apply instantly |
 
-## 🖥️ Screenshots
+---
 
-| Dashboard | Scheduler | Settings |
-|-----------|-----------|----------|
-| Real-time stats | Create schedules | Telegram & updates |
+## 🚀 Quick Start
 
-## 🚀 Installation
+### Prerequisites
 
-### Quick Start (Ubuntu/WSL)
+- **Node.js** 18+ 
+- **Python** 3.8+
+- **MongoDB** (local or remote)
+- **Git**
+
+### Installation (Ubuntu/Debian/WSL)
 
 ```bash
 # Clone the repository
 git clone https://github.com/NakshtraYadav/WA-Schedular.git
 cd WA-Schedular
 
-# Run setup
-chmod +x *.sh
-./setup.sh
+# Run setup (installs all dependencies)
+chmod +x start.sh
+./start.sh setup
 
 # Start all services
 ./start.sh
@@ -51,65 +58,90 @@ chmod +x *.sh
 
 ### Open in Browser
 
-- **Dashboard:** http://localhost:3000
-- **Connect WhatsApp:** http://localhost:3000/connect
-
-📖 See [Installation Guide](docs/INSTALLATION.md) for detailed instructions.
-
-## 📋 Usage
-
-### Available Scripts
-
-| Script | Description |
-|--------|-------------|
-| `./setup.sh` | Install all dependencies |
-| `./start.sh` | Start all services |
-| `./start.sh -a` | Start with auto-updater |
-| `./stop.sh` | Stop all services |
-| `./status.sh` | Check service status |
-| `./update.sh` | Check and install updates |
+| Service | URL |
+|---------|-----|
+| **Dashboard** | http://localhost:3000 |
+| **Connect WhatsApp** | http://localhost:3000/connect |
+| **Backend API** | http://localhost:8001/api |
 
 ### Connect WhatsApp
 
-1. Start the services: `./start.sh`
-2. Open http://localhost:3000/connect
-3. Scan the QR code with your WhatsApp mobile app
-4. You're connected! 🎉
+1. Open http://localhost:3000/connect
+2. Scan the QR code with WhatsApp on your phone
+3. You're connected! 🎉
 
-### Schedule a Message
+---
 
-1. Go to **Contacts** → Add a contact
-2. Go to **Scheduler** → Click "New Schedule"
-3. Select contact, enter message, choose time
-4. Done! The message will be sent automatically.
+## 📋 Commands
+
+All commands use a single script: `./start.sh`
+
+| Command | Description |
+|---------|-------------|
+| `./start.sh` | Start all services |
+| `./start.sh setup` | Install all dependencies (first time) |
+| `./start.sh stop` | Stop all services |
+| `./start.sh restart` | Full restart |
+| `./start.sh update` | Pull latest from GitHub |
+| `./start.sh status` | Check service status |
+| `./start.sh logs` | View all logs |
+| `./start.sh logs backend` | View backend logs |
+| `./start.sh logs frontend` | View frontend logs |
+| `./start.sh diagnose` | Debug startup issues |
+| `./start.sh restart-frontend` | Restart frontend only |
+| `./start.sh restart-backend` | Restart backend only |
+
+---
+
+## 🔄 Updates
+
+### From the Web UI (Recommended)
+
+1. Go to **Settings** page
+2. See "Update Available" notification
+3. Click **Install Update**
+4. Page auto-refreshes with new version (~3 seconds)
+
+### From Terminal
+
+```bash
+./start.sh update
+```
+
+### How It Works
+
+- Uses **hot reload** - no full restart needed
+- Backend: ~1 second to apply
+- Frontend: ~2-3 seconds to apply
+- Dependencies auto-install if changed
+
+---
 
 ## 🤖 Telegram Bot
 
 Control your scheduler remotely via Telegram!
 
-```
-/status    - Check WhatsApp connection
-/contacts  - List all contacts
-/schedules - List active schedules
-/send John Hello!  - Send message now
-```
+### Setup
 
-📖 See [Telegram Setup Guide](docs/TELEGRAM.md)
+1. Create a bot with [@BotFather](https://t.me/BotFather)
+2. Copy the bot token
+3. Go to **Settings** → Paste token → Enable
+4. Send `/start` to your bot
 
-## 🔄 Auto-Updates
+### Commands
 
-WA Scheduler can automatically update itself from GitHub.
+| Command | Description |
+|---------|-------------|
+| `/status` | Check WhatsApp connection |
+| `/contacts` | List all contacts |
+| `/search <name>` | Search contacts |
+| `/schedules` | List active schedules |
+| `/send <name> <msg>` | Send message now |
+| `/create` | Create new schedule (wizard) |
+| `/logs` | Recent message history |
+| `/help` | Show all commands |
 
-```bash
-# Enable auto-updates (checks every 30 min)
-./start.sh --auto-update
-
-# Or manually check
-./update.sh check
-
-# Install update
-./update.sh install
-```
+---
 
 ## 🏗️ Architecture
 
@@ -126,32 +158,122 @@ WA Scheduler can automatically update itself from GitHub.
                         └─────────────────┘
 ```
 
-## 📁 Project Structure
+---
+
+## 📁 Project Structure (v2.0+)
+
+The codebase is fully modularized for maintainability:
 
 ```
 WA-Schedular/
-├── backend/              # FastAPI Python backend
-│   ├── server.py         # Main API server
-│   └── requirements.txt  # Python dependencies
-├── frontend/             # React frontend
+├── backend/                    # FastAPI Python backend
+│   ├── server.py               # Entry point (~80 lines)
+│   ├── venv/                   # Python virtual environment
+│   ├── core/                   # Config, database, scheduler, logging
+│   ├── models/                 # Pydantic models
+│   ├── routes/                 # API endpoints (13 modules)
+│   ├── services/               # Business logic
+│   │   ├── whatsapp/           # WhatsApp HTTP client
+│   │   ├── telegram/           # Telegram bot + commands
+│   │   ├── scheduler/          # Job execution
+│   │   ├── contacts/           # Contact CRUD
+│   │   ├── templates/          # Template CRUD
+│   │   └── updates/            # Update system
+│   ├── utils/                  # Helpers
+│   └── requirements.txt
+│
+├── frontend/                   # React frontend
 │   ├── src/
-│   │   ├── pages/        # Page components
-│   │   ├── components/   # UI components
-│   │   └── lib/          # API client
+│   │   ├── App.js              # Entry point (~45 lines)
+│   │   ├── api/                # API layer (11 modules)
+│   │   ├── components/
+│   │   │   ├── layout/         # Sidebar, Layout
+│   │   │   ├── shared/         # Reusable components
+│   │   │   └── ui/             # shadcn components
+│   │   ├── context/            # React contexts
+│   │   ├── hooks/              # Custom hooks
+│   │   └── pages/              # Page components
 │   └── package.json
-├── whatsapp-service/     # WhatsApp automation
-│   ├── index.js          # WhatsApp Web client
-│   └── package.json
-├── docs/                 # Documentation
-├── logs/                 # Service logs
-└── *.sh                  # Shell scripts
+│
+├── whatsapp-service/           # WhatsApp Web automation
+│   ├── index.js                # Entry point
+│   └── src/
+│       ├── routes/             # API routes
+│       ├── services/           # WhatsApp client
+│       └── utils/              # Helpers
+│
+├── logs/                       # Service logs
+├── start.sh                    # Single control script
+├── version.json                # Version info
+└── README.md
 ```
 
-## 📚 Documentation
+---
 
-- [Installation Guide](docs/INSTALLATION.md)
-- [Telegram Bot Setup](docs/TELEGRAM.md)
-- [API Reference](docs/API.md)
+## 🔧 Troubleshooting
+
+### Backend won't start
+
+```bash
+# Check logs
+./start.sh logs backend
+
+# Run diagnostics
+./start.sh diagnose
+
+# Reinstall dependencies
+./start.sh setup
+```
+
+### Port already in use
+
+```bash
+# Kill process on port
+sudo kill -9 $(lsof -ti:8001)   # Backend
+sudo kill -9 $(lsof -ti:3000)   # Frontend
+
+# Restart
+./start.sh restart
+```
+
+### Frontend stuck
+
+```bash
+./start.sh restart-frontend
+```
+
+### Python "externally-managed-environment" error
+
+The script automatically creates a virtual environment. If issues persist:
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+deactivate
+cd ..
+./start.sh
+```
+
+---
+
+## 🛠️ Development
+
+### Hot Reload
+
+Both backend and frontend have hot reload enabled:
+- **Backend**: Edit Python files → Auto-reloads in ~1 second
+- **Frontend**: Edit React files → Auto-reloads in ~2-3 seconds
+
+### Adding Features
+
+1. **Backend route**: Add to `backend/routes/`
+2. **Backend service**: Add to `backend/services/`
+3. **Frontend API**: Add to `frontend/src/api/`
+4. **Frontend page**: Add to `frontend/src/pages/`
+
+---
 
 ## ⚠️ Disclaimer
 
@@ -162,9 +284,13 @@ This tool uses WhatsApp Web automation via [whatsapp-web.js](https://github.com/
 - Respect WhatsApp's Terms of Service
 - Excessive automation may result in account restrictions
 
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
 
 ## 🙏 Acknowledgments
 
@@ -172,11 +298,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [FastAPI](https://fastapi.tiangolo.com/) - Backend framework
 - [React](https://reactjs.org/) - Frontend framework
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
 
 ---
 
 <div align="center">
 
-Made with ❤️ by [Nakshtra Yadav](https://github.com/NakshtraYadav)
+**v2.1.2** • Made with ❤️ by [Nakshtra Yadav](https://github.com/NakshtraYadav)
+
+⭐ Star this repo if you find it useful!
 
 </div>
