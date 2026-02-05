@@ -18,7 +18,7 @@ async def get_settings():
         try:
             from tzlocal import get_localzone_name
             system_tz = get_localzone_name()
-        except:
+        except Exception:
             system_tz = None
         default_settings = Settings(timezone=system_tz)
         settings = default_settings.model_dump()
