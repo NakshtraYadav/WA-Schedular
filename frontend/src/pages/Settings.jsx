@@ -166,7 +166,8 @@ function SettingsPage() {
     try {
       await updateSettings(settings);
       toast.success('Settings saved');
-      // Refresh telegram status
+      // Wait a moment for bot to start, then refresh telegram status
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const statusRes = await getTelegramStatus();
       setTelegramStatus(statusRes.data);
     } catch (error) {
