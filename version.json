@@ -1,10 +1,25 @@
 {
-  "version": "2.1.5",
+  "version": "2.2.0",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 15,
+  "build": 16,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "2.2.0",
+      "date": "2026-02-05",
+      "changes": [
+        "MAJOR: WhatsApp session persistence - sessions now survive restarts",
+        "FIXED: Changed session path from relative to absolute (/app/data/whatsapp-sessions)",
+        "ADDED: Graceful shutdown with 10s timeout for session save",
+        "ADDED: Process signal handlers (SIGTERM, SIGINT, SIGHUP)",
+        "ADDED: Session validation and corruption detection",
+        "ADDED: Auto-reconnect on disconnect",
+        "ADDED: Session backup before clear operations",
+        "ADDED: /session-info endpoint for persistence status",
+        "ADDED: Stale lock file cleanup on startup"
+      ]
+    },
     {
       "version": "2.1.5",
       "date": "2026-02-05",
