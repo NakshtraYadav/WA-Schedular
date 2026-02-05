@@ -72,7 +72,8 @@ function Connect() {
     try {
       // Call the clear-session endpoint directly on WhatsApp service
       await axios.post('http://localhost:3001/clear-session', {}, { timeout: 10000 });
-      toast.success('Session cleared! Reinitializing...');
+      toast.success('Session cleared! Click "Generate QR Code" to reconnect.');
+      setQrCode(null);
       
       // Wait a moment then refresh
       setTimeout(() => {
@@ -82,7 +83,8 @@ function Connect() {
       // Try via backend
       try {
         await axios.post(`${API_URL}/api/whatsapp/clear-session`, {}, { timeout: 10000 });
-        toast.success('Session cleared! Reinitializing...');
+        toast.success('Session cleared! Click "Generate QR Code" to reconnect.');
+        setQrCode(null);
         setTimeout(() => fetchStatus(), 3000);
       } catch (e) {
         toast.error('Could not clear session. Try running scripts/fix-whatsapp.bat manually.');
@@ -92,16 +94,26 @@ function Connect() {
     }
   };
 
-  const handleRetryInit = async () => {
-    setRetrying(true);
+  const handleGenerateQR = async () => {
+    setGeneratingQR(true);
     try {
-      await axios.post('http://localhost:3001/retry-init', {}, { timeout: 5000 });
-      toast.success('Reinitialization started...');
-      setTimeout(() => fetchStatus(), 2000);
+      await axios.post('http://localhost:3001/generate-qr', {}, { timeout: 5000 });
+      toast.success('Generating QR code... Please wait 10-30 seconds.');
+      
+      // Start polling for QR code
+      let attempts = 0;
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        await fetchStatus();
+        
+        if (qrCode || status?.isReady || attempts > 30) {
+          clearInterval(pollInterval);
+          setGeneratingQR(false);
+        }
+      }, 2000);
     } catch (error) {
-      toast.error('Could not trigger retry. Check if WhatsApp service is running.');
-    } finally {
-      setRetrying(false);
+      toast.error('Could not start QR generation. Check if WhatsApp service is running.');
+      setGeneratingQR(false);
     }
   };
 
