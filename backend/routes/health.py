@@ -34,10 +34,11 @@ async def health_check():
     
     # Check WhatsApp service
     try:
-        async with httpx.AsyncClient() as http_client:
-            response = await http_client.get(f"{WA_SERVICE_URL}/health", timeout=3.0)
-            health["whatsapp_service"] = response.status_code == 200
-    except:
-        pass
+        from core.http_client import get_http_client
+        http_client = await get_http_client()
+        response = await http_client.get(f"{WA_SERVICE_URL}/health", timeout=3.0)
+        health["whatsapp_service"] = response.status_code == 200
+    except Exception:
+        health["whatsapp_service"] = False
     
     return health
