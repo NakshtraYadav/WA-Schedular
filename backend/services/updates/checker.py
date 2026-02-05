@@ -1,19 +1,70 @@
 """Update checking functionality"""
 import time
+import subprocess
 import httpx
 from core.config import ROOT_DIR
 from core.logging import logger
 from .version import get_version_info, GITHUB_REPO, GITHUB_BRANCH
 
 
+def get_local_git_sha() -> str:
+    """Get local git commit SHA"""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(ROOT_DIR.parent),
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()[:7]
+    except:
+        pass
+    return "unknown"
+
+
+def check_git_behind() -> tuple:
+    """Check if local is behind remote using git"""
+    try:
+        # Fetch latest from remote (without merging)
+        subprocess.run(
+            ["git", "fetch", "origin", GITHUB_BRANCH, "--quiet"],
+            cwd=str(ROOT_DIR.parent),
+            capture_output=True,
+            timeout=15
+        )
+        
+        # Check how many commits behind
+        result = subprocess.run(
+            ["git", "rev-list", "--count", f"HEAD..origin/{GITHUB_BRANCH}"],
+            cwd=str(ROOT_DIR.parent),
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        if result.returncode == 0:
+            commits_behind = int(result.stdout.strip())
+            return commits_behind > 0, commits_behind
+    except Exception as e:
+        logger.warning(f"Git check failed: {e}")
+    
+    return False, 0
+
+
 async def check_for_updates() -> dict:
-    """Check GitHub for available updates by comparing version.json"""
+    """Check GitHub for available updates by comparing version.json AND git status"""
     try:
         local_version = get_version_info()
+        local_sha = get_local_git_sha()
         cache_buster = int(time.time())
         
+        # Method 1: Check git status (most reliable)
+        git_has_update, commits_behind = check_git_behind()
+        
         async with httpx.AsyncClient() as http_client:
-            # Try to get version.json from GitHub
+            # Method 2: Check version.json from GitHub
             version_url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/version.json?t={cache_buster}"
             logger.info(f"Checking for updates from: {version_url}")
             
@@ -46,17 +97,18 @@ async def check_for_updates() -> dict:
                 remote_message = commit_data.get("commit", {}).get("message", "").split("\n")[0]
                 remote_date = commit_data.get("commit", {}).get("committer", {}).get("date", "")
             
-            # Get local git SHA
-            git_sha_file = ROOT_DIR.parent / ".version"
-            local_sha = "none"
-            if git_sha_file.exists():
-                local_sha = git_sha_file.read_text().strip()[:7]
-            
             # Determine if update is available
             has_update = False
             update_type = None
             
-            if remote_version_info:
+            # Check 1: Git says we're behind
+            if git_has_update:
+                has_update = True
+                update_type = "commits"
+                logger.info(f"Git: {commits_behind} commits behind")
+            
+            # Check 2: Version comparison
+            if remote_version_info and not has_update:
                 def parse_version(v):
                     try:
                         parts = v.split('.')
@@ -83,13 +135,17 @@ async def check_for_updates() -> dict:
                 elif remote_tuple == local_tuple and remote_build > local_build:
                     has_update = True
                     update_type = "patch"
-            else:
-                has_update = remote_sha != local_sha and local_sha != "none"
-                update_type = "unknown"
+            
+            # Check 3: SHA comparison as fallback
+            if not has_update and local_sha != "unknown" and remote_sha != "unknown":
+                if local_sha != remote_sha:
+                    has_update = True
+                    update_type = "unknown"
             
             return {
                 "has_update": has_update,
                 "update_type": update_type,
+                "commits_behind": commits_behind if git_has_update else 0,
                 "local": {
                     "version": local_version.get("version", "1.0.0"),
                     "build": local_version.get("build", 1),
