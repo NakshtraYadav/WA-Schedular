@@ -21,7 +21,7 @@ import {
   RefreshCw,
   Github
 } from 'lucide-react';
-import { getSettings, updateSettings, getTimezoneInfo, checkForUpdates, installUpdate, getAppVersion, getTelegramStatus } from '../api';
+import { getSettings, updateSettings, getTimezoneInfo, checkForUpdates, installUpdate, getAppVersion, getTelegramStatus, testTelegram } from '../api';
 import { toast } from 'sonner';
 import { useVersionContext } from '../context';
 
