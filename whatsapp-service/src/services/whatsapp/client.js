@@ -97,7 +97,6 @@ const validateSessionStorage = () => {
 
   log('ERROR', 'Session storage validation failed - no writable path found');
   return false;
-  }
 };
 
 /**
