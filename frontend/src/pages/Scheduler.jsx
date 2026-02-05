@@ -43,9 +43,10 @@ import {
   Send,
   Loader2,
   MessageSquare,
-  User
+  User,
+  Pencil
 } from 'lucide-react';
-import { getSchedules, createSchedule, toggleSchedule, deleteSchedule, getContacts, getTemplates, sendNow } from '../api';
+import { getSchedules, createSchedule, updateSchedule, toggleSchedule, deleteSchedule, getContacts, getTemplates, sendNow } from '../api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
