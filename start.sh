@@ -346,6 +346,60 @@ start_all() {
 }
 
 # ============================================================================
+#  SETUP - First time installation of all dependencies
+# ============================================================================
+setup() {
+    echo ""
+    echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}              WA Scheduler - First Time Setup                  ${NC}"
+    echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    # Backend dependencies
+    echo -e "  ${CYAN}→${NC} Installing Python dependencies..."
+    cd "$SCRIPT_DIR/backend"
+    pip install -r requirements.txt
+    
+    if [ $? -eq 0 ]; then
+        echo -e "  ${GREEN}✓${NC} Python dependencies installed"
+    else
+        echo -e "  ${RED}✗${NC} Failed to install Python dependencies"
+        return 1
+    fi
+    
+    # Frontend dependencies
+    echo ""
+    echo -e "  ${CYAN}→${NC} Installing Node.js dependencies..."
+    cd "$SCRIPT_DIR/frontend"
+    npm install --legacy-peer-deps
+    
+    if [ $? -eq 0 ]; then
+        echo -e "  ${GREEN}✓${NC} Node.js dependencies installed"
+    else
+        echo -e "  ${RED}✗${NC} Failed to install Node.js dependencies"
+        return 1
+    fi
+    
+    # WhatsApp service dependencies
+    echo ""
+    echo -e "  ${CYAN}→${NC} Installing WhatsApp service dependencies..."
+    cd "$SCRIPT_DIR/whatsapp-service"
+    npm install
+    
+    if [ $? -eq 0 ]; then
+        echo -e "  ${GREEN}✓${NC} WhatsApp service dependencies installed"
+    else
+        echo -e "  ${YELLOW}!${NC} WhatsApp service dependencies may have issues"
+    fi
+    
+    echo ""
+    echo -e "${GREEN}${BOLD}✓ Setup complete!${NC}"
+    echo ""
+    echo -e "Now run: ${CYAN}./start.sh${NC}"
+    echo ""
+}
+
+# ============================================================================
 #  UPDATE
 # ============================================================================
 update() {
