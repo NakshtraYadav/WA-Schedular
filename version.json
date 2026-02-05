@@ -1,10 +1,18 @@
 {
-  "version": "3.0.0",
+  "version": "3.0.1",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 38,
+  "build": 39,
   "release_date": "2026-02-05",
   "changelog": [
+    {
+      "version": "3.0.1",
+      "date": "2026-02-05",
+      "changes": [
+        "FIXED: backupSyncIntervalMs must be >=60000ms (library constraint)",
+        "NOTE: Session sync remains at 60s minimum due to wwebjs limitation"
+      ]
+    },
     {
       "version": "3.0.0",
       "date": "2026-02-05",
