@@ -20,7 +20,9 @@ router.get('/status', (req, res) => {
     error: state.initError,
     clientInfo: state.clientInfo,
     sessionPath: state.sessionPath,
-    sessionType: state.sessionType
+    sessionType: state.sessionType,
+    qrCount: state.qrCount || 0,
+    qrAge: state.qrAge
   });
 });
 
