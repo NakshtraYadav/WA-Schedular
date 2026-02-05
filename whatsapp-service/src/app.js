@@ -5,7 +5,6 @@ const express = require('express');
 const cors = require('cors');
 const { errorHandler } = require('./middleware/errorHandler');
 const routes = require('./routes');
-const { initWhatsApp } = require('./services/whatsapp/client');
 const { log } = require('./utils/logger');
 
 const app = express();
@@ -20,11 +19,8 @@ app.use('/', routes);
 // Error handler
 app.use(errorHandler);
 
-// Initialize WhatsApp client with delay to ensure services are ready
-// This helps avoid race conditions on first start
-setTimeout(() => {
-  log('INFO', 'Starting WhatsApp initialization (delayed start for stability)...');
-  initWhatsApp();
-}, 3000);
+// Don't auto-initialize WhatsApp - wait for user to request QR code
+// This ensures QR is fresh when user is ready to scan
+log('INFO', 'WhatsApp service ready - QR will be generated on demand');
 
 module.exports = app;
