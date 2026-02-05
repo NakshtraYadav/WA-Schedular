@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
+import { Badge } from '../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -28,9 +29,13 @@ import {
   Send,
   RefreshCw,
   Download,
-  Loader2
+  Loader2,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  ShieldCheck
 } from 'lucide-react';
-import { getContacts, createContact, updateContact, deleteContact, sendNow, getWhatsAppStatus, syncWhatsAppContacts } from '../api';
+import { getContacts, createContact, updateContact, deleteContact, sendNow, getWhatsAppStatus, syncWhatsAppContacts, verifyBulkNumbers } from '../api';
 import { toast } from 'sonner';
 
 function Contacts() {
