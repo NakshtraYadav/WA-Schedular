@@ -106,6 +106,70 @@ async def delete_schedule(schedule_id: str):
     return {"success": True}
 
 
+@router.put("/{schedule_id}")
+async def update_schedule(schedule_id: str, data: ScheduledMessageCreate):
+    """Update an existing scheduled message"""
+    logger.info(f"📝 Updating schedule: {schedule_id}")
+    
+    database = await get_database()
+    existing = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    # Get contact info
+    contact = await database.contacts.find_one({"id": data.contact_id}, {"_id": 0})
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    # Build update document
+    update_doc = {
+        "contact_id": data.contact_id,
+        "contact_name": contact['name'],
+        "contact_phone": contact['phone'],
+        "message": data.message,
+        "schedule_type": data.schedule_type,
+        "scheduled_time": data.scheduled_time.isoformat() if data.scheduled_time else None,
+        "cron_expression": data.cron_expression,
+        "cron_description": data.cron_description
+    }
+    
+    await database.schedules.update_one({"id": schedule_id}, {"$set": update_doc})
+    logger.info(f"✅ Schedule updated: {schedule_id}")
+    
+    # Update scheduler job
+    remove_schedule_job(schedule_id)
+    if existing.get('is_active', True):
+        add_schedule_job(
+            schedule_id,
+            data.schedule_type,
+            scheduled_time=data.scheduled_time,
+            cron_expression=data.cron_expression
+        )
+    
+    # Return updated schedule
+    updated = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
+    for field in ['scheduled_time', 'last_run', 'next_run', 'created_at']:
+        if isinstance(updated.get(field), str):
+            updated[field] = datetime.fromisoformat(updated[field])
+    
+    return updated
+
+
+@router.get("/{schedule_id}")
+async def get_schedule(schedule_id: str):
+    """Get a single schedule by ID"""
+    database = await get_database()
+    schedule = await database.schedules.find_one({"id": schedule_id}, {"_id": 0})
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    for field in ['scheduled_time', 'last_run', 'next_run', 'created_at']:
+        if isinstance(schedule.get(field), str):
+            schedule[field] = datetime.fromisoformat(schedule[field])
+    
+    return schedule
+
+
 @router.get("/debug")
 async def debug_schedules():
     """Debug endpoint to see scheduler status"""
