@@ -267,6 +267,11 @@ function Connect() {
                     <p className="text-sm text-muted-foreground mt-1">
                       Point your phone at this screen to capture the QR code
                     </p>
+                    {status?.qrCount === 1 && (
+                      <p className="text-xs text-amber-500 mt-3">
+                        💡 First QR code - if scan fails, wait ~20s for auto-refresh
+                      </p>
+                    )}
                   </div>
                 </>
               ) : (
