@@ -74,6 +74,9 @@ const initSessionStore = async (retries = 3) => {
 
 /**
  * Check if we have an existing session in MongoDB
+ * 
+ * IMPORTANT: wwebjs-mongo uses GridFS bucket storage, not regular collections!
+ * Session data is stored in: whatsapp-{clientId}.files and whatsapp-{clientId}.chunks
  */
 const hasExistingSession = async (clientId = 'wa-scheduler') => {
   try {
@@ -81,16 +84,16 @@ const hasExistingSession = async (clientId = 'wa-scheduler') => {
       await initSessionStore();
     }
 
-    // Check if session exists in MongoDB
-    const Session = mongoose.connection.collection('whatsapp-sessions');
-    const session = await Session.findOne({ session: clientId });
+    // wwebjs-mongo stores sessions in GridFS buckets: whatsapp-{session}.files
+    const gridFsCollection = mongoose.connection.collection(`whatsapp-${clientId}.files`);
+    const sessionCount = await gridFsCollection.countDocuments();
     
-    if (session) {
-      log('INFO', `Found existing session for ${clientId} in MongoDB`);
+    if (sessionCount > 0) {
+      log('INFO', `✓ Found existing GridFS session for ${clientId} in MongoDB (${sessionCount} files)`);
       return true;
     }
     
-    log('INFO', `No existing session found for ${clientId}`);
+    log('INFO', `No existing session found for ${clientId} in MongoDB`);
     return false;
   } catch (error) {
     log('WARN', 'Error checking session:', error.message);
