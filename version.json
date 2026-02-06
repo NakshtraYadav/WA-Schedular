@@ -1,10 +1,21 @@
 {
-  "version": "3.2.3",
+  "version": "3.2.4",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 44,
+  "build": 45,
   "release_date": "2026-02-06",
   "changelog": [
+    {
+      "version": "3.2.4",
+      "date": "2026-02-06",
+      "changes": [
+        "FIXED: Auto-updater now properly detects missing git remote",
+        "FIXED: Auto-updater ANSI color codes were broken",
+        "IMPROVED: Auto-updater check interval changed from 5min to 1 hour",
+        "IMPROVED: Clear error messages when git remote not configured",
+        "IMPROVED: Status command shows git remote configuration"
+      ]
+    },
     {
       "version": "3.2.3",
       "date": "2026-02-06",
