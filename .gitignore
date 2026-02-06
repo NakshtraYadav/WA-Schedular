@@ -74,3 +74,7 @@ test_reports/
 
 # Yarn
 .yarn/
+-e 
+# Environment files
+*.env
+*.env.*
