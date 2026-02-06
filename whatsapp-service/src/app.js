@@ -89,14 +89,30 @@ const setupGracefulShutdown = () => {
  */
 const autoInitIfSessionExists = async () => {
   try {
-    log('INFO', 'Checking for existing WhatsApp session...');
+    log('INFO', '===========================================');
+    log('INFO', '  CHECKING FOR EXISTING WHATSAPP SESSION');
+    log('INFO', '===========================================');
     
     // Try to connect to MongoDB first
     let hasSession = false;
+    let sessionInfo = null;
     try {
       await initSessionStore();
       hasSession = await hasExistingSession('wa-scheduler');
-      log('INFO', `MongoDB session check: ${hasSession ? 'Session found' : 'No session'}`);
+      
+      // Get detailed session info for debugging
+      const { getSessionInfo } = require('./services/session/mongoStore');
+      sessionInfo = await getSessionInfo('wa-scheduler');
+      
+      if (hasSession && sessionInfo) {
+        log('INFO', '✓ MongoDB Session Status:');
+        log('INFO', `  - Storage: ${sessionInfo.storage || 'GridFS'}`);
+        log('INFO', `  - File count: ${sessionInfo.fileCount || 0}`);
+        log('INFO', `  - Latest upload: ${sessionInfo.latestUpload || 'N/A'}`);
+        log('INFO', `  - File size: ${sessionInfo.fileSize ? Math.round(sessionInfo.fileSize / 1024) + ' KB' : 'N/A'}`);
+      } else {
+        log('INFO', '✗ No session found in MongoDB (GridFS bucket whatsapp-wa-scheduler is empty)');
+      }
     } catch (mongoError) {
       log('INFO', 'MongoDB not available, checking filesystem session...');
       // Check filesystem session
@@ -105,8 +121,10 @@ const autoInitIfSessionExists = async () => {
       const { SESSION_PATH } = require('./config/env');
       const sessionDir = path.join(SESSION_PATH, 'session-wa-scheduler');
       hasSession = fs.existsSync(sessionDir) && fs.existsSync(path.join(sessionDir, 'Default'));
-      log('INFO', `Filesystem session check: ${hasSession ? 'Session found' : 'No session'}`);
+      log('INFO', `Filesystem session check: ${hasSession ? 'Session found at ' + sessionDir : 'No session'}`);
     }
+    
+    log('INFO', '===========================================');
     
     if (hasSession) {
       log('INFO', '✓ Found existing session - auto-initializing WhatsApp...');
@@ -115,7 +133,11 @@ const autoInitIfSessionExists = async () => {
         initWhatsApp();
       }, 2000);
     } else {
-      log('INFO', 'No existing session found - waiting for user to request QR code');
+      log('INFO', '⚠ No existing session found');
+      log('INFO', 'To connect WhatsApp:');
+      log('INFO', '  1. Open the web interface (http://localhost:3000)');
+      log('INFO', '  2. Go to Settings → WhatsApp Connection');
+      log('INFO', '  3. Scan the QR code with your phone');
     }
   } catch (error) {
     log('WARN', `Auto-init check failed: ${error.message}`);
