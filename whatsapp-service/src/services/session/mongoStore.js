@@ -140,6 +140,7 @@ const deleteSession = async (clientId = 'wa-scheduler') => {
 
 /**
  * Get session info from MongoDB
+ * Uses GridFS bucket pattern: whatsapp-{clientId}.files
  */
 const getSessionInfo = async (clientId = 'wa-scheduler') => {
   try {
@@ -147,13 +148,29 @@ const getSessionInfo = async (clientId = 'wa-scheduler') => {
       await initSessionStore();
     }
 
-    const Session = mongoose.connection.collection('whatsapp-sessions');
-    const sessions = await Session.find({ session: clientId }).toArray();
+    // wwebjs-mongo uses GridFS bucket storage
+    const filesCollection = mongoose.connection.collection(`whatsapp-${clientId}.files`);
+    const chunksCollection = mongoose.connection.collection(`whatsapp-${clientId}.chunks`);
+    
+    const files = await filesCollection.find({}).toArray();
+    const chunksCount = await chunksCollection.countDocuments();
+    
+    // Get the latest uploaded file info
+    let latestFile = null;
+    if (files.length > 0) {
+      latestFile = files.reduce((a, b) => 
+        (a.uploadDate > b.uploadDate) ? a : b
+      );
+    }
     
     return {
-      exists: sessions.length > 0,
-      entries: sessions.length,
-      clientId
+      exists: files.length > 0,
+      fileCount: files.length,
+      chunksCount: chunksCount,
+      clientId,
+      storage: 'GridFS',
+      latestUpload: latestFile ? latestFile.uploadDate : null,
+      fileSize: latestFile ? latestFile.length : null
     };
   } catch (error) {
     return { exists: false, error: error.message };
