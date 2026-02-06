@@ -103,6 +103,7 @@ const hasExistingSession = async (clientId = 'wa-scheduler') => {
 
 /**
  * Delete session from MongoDB (for logout/clear)
+ * Uses GridFS bucket pattern: whatsapp-{clientId}.files and whatsapp-{clientId}.chunks
  */
 const deleteSession = async (clientId = 'wa-scheduler') => {
   try {
@@ -110,11 +111,27 @@ const deleteSession = async (clientId = 'wa-scheduler') => {
       await initSessionStore();
     }
 
-    const Session = mongoose.connection.collection('whatsapp-sessions');
-    const result = await Session.deleteMany({ session: clientId });
+    // wwebjs-mongo uses GridFS bucket storage
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: `whatsapp-${clientId}`
+    });
     
-    log('INFO', `Deleted ${result.deletedCount} session entries for ${clientId}`);
-    return { success: true, deleted: result.deletedCount };
+    // Find and delete all files in the bucket
+    const filesCollection = mongoose.connection.collection(`whatsapp-${clientId}.files`);
+    const files = await filesCollection.find({}).toArray();
+    
+    let deletedCount = 0;
+    for (const file of files) {
+      try {
+        await bucket.delete(file._id);
+        deletedCount++;
+      } catch (e) {
+        log('WARN', `Failed to delete file ${file._id}:`, e.message);
+      }
+    }
+    
+    log('INFO', `Deleted ${deletedCount} session files for ${clientId} from MongoDB`);
+    return { success: true, deleted: deletedCount };
   } catch (error) {
     log('ERROR', 'Error deleting session:', error.message);
     return { success: false, error: error.message };
