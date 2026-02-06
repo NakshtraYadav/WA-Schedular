@@ -1,10 +1,21 @@
 {
-  "version": "3.2.4",
+  "version": "3.2.5",
   "name": "WhatsApp Scheduler",
   "description": "Local WhatsApp message scheduling with Telegram remote control",
-  "build": 45,
+  "build": 46,
   "release_date": "2026-02-06",
   "changelog": [
+    {
+      "version": "3.2.5",
+      "date": "2026-02-06",
+      "changes": [
+        "FIXED: MongoDB session detection now uses correct GridFS bucket collections",
+        "FIXED: hasExistingSession() checks whatsapp-{clientId}.files instead of non-existent whatsapp-sessions",
+        "FIXED: Session deletion properly uses GridFS bucket API",
+        "IMPROVED: Startup logs now show detailed session status (storage type, file count, size)",
+        "IMPROVED: getSessionInfo() returns comprehensive GridFS metadata"
+      ]
+    },
     {
       "version": "3.2.4",
       "date": "2026-02-06",
